@@ -1,0 +1,2 @@
+7d44162 (HEAD -> main, backup-current) Bootstrap NephrosPaidi architecture: Eureka, API Gateway, microservices skeleton, Dockerized Keycloak setup
+3afd817 Initialize clean main branch
