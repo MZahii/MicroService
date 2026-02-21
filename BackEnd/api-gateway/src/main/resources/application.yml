@@ -7,10 +7,19 @@ spring:
 
   cloud:
     gateway:
-      discovery:
-        locator:
-          enabled: true
-          lower-case-service-id: true
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+      routes:
+        - id: ops-service
+          uri: lb://ops-service
+          predicates:
+            - Path=/ops/**
+          filters:
+            - StripPrefix=1
 
   security:
     oauth2:
@@ -22,3 +31,4 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka
+
