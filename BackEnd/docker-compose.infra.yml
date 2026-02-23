@@ -31,7 +31,29 @@ services:
     depends_on:
       - keycloak-db
     volumes:
-      - ./realm:/opt/keycloak/data/import
+      - ./keycloak/realm:/opt/keycloak/data/import
+
+  eureka:
+    build:
+      context: ./eureka
+    container_name: nephro-eureka
+    environment:
+      EUREKA_DEFAULT_ZONE: http://eureka:8761/eureka/
+    ports:
+      - "8761:8761"
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: nephro-api-gateway
+    environment:
+      EUREKA_DEFAULT_ZONE: http://eureka:8761/eureka
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/nephrospaidi
+    ports:
+      - "8083:8083"
+    depends_on:
+      - eureka
+      - keycloak
 
 volumes:
   keycloak_db:

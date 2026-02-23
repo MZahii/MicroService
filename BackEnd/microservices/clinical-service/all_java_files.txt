@@ -1,2 +1,0 @@
-C:\Users\zehim\OneDrive - ESPRIT\Bureau\PiDev\PiDev\NephrosPaidi\BackEnd\microservices\clinical-service\src\main\java\tn\esprit\spring\clinicalservice\ClinicalServiceApplication.java
-C:\Users\zehim\OneDrive - ESPRIT\Bureau\PiDev\PiDev\NephrosPaidi\BackEnd\microservices\clinical-service\src\test\java\tn\esprit\spring\clinicalservice\ClinicalServiceApplicationTests.java
