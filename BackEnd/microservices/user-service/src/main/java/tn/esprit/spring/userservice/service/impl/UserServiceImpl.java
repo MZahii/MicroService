@@ -9,8 +9,7 @@ import tn.esprit.spring.userservice.entity.User;
 import tn.esprit.spring.userservice.mapper.UserMapper;
 import tn.esprit.spring.userservice.repository.UserRepository;
 import tn.esprit.spring.userservice.service.UserService;
-
-import java.util.UUID;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +24,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse createStaff(CreateStaffAccountRequest request) {
-        return createUser(request.getUsername(), request.getEmail(), Role.STAFF);
+        return createUser(request.getUsername(), request.getEmail(), Role.RECEPTIONIST);
     }
 
     @Override
@@ -33,14 +32,23 @@ public class UserServiceImpl implements UserService {
         return createUser(request.getUsername(), request.getEmail(), Role.GUARDIAN);
     }
 
-    private UserResponse createUser(String username, String email, Role role) {
+    @Override
+    public List<UserResponse> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(UserMapper::toResponse)
+                .toList();
+    }
 
+    private UserResponse createUser(String username, String email, Role role) {
         if (userRepository.existsByUsername(username)) {
-            throw new RuntimeException("User already exists");
+            throw new RuntimeException("Username already exists: " + username);
+        }
+
+        if (userRepository.existsByEmail(email)) {
+            throw new RuntimeException("Email already exists: " + email);
         }
 
         User user = userRepository.save(User.builder()
-                .id(UUID.randomUUID().toString())
                 .username(username)
                 .email(email)
                 .role(role)

@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import tn.esprit.spring.userservice.dto.request.*;
 import tn.esprit.spring.userservice.dto.response.UserResponse;
 import tn.esprit.spring.userservice.service.UserService;
+import java.util.List;
 
 @RestController
 @RequestMapping("/users")
@@ -22,6 +23,11 @@ public class UserController {
     @PostMapping("/staff")
     public UserResponse createStaff(@Valid @RequestBody CreateStaffAccountRequest request) {
         return userService.createStaff(request);
+    }
+
+    @GetMapping
+    public List<UserResponse> getAllUsers() {
+        return userService.getAllUsers();
     }
 
     @PostMapping("/guardian")

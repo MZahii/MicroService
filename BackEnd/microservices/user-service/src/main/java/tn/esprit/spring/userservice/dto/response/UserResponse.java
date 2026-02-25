@@ -8,7 +8,7 @@ import tn.esprit.spring.userservice.entity.User;
 @Getter
 @Builder
 public class UserResponse {
-    private String id;
+    private Long id;
     private String username;
     private String email;
     private Role role;

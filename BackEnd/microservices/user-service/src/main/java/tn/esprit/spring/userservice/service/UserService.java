@@ -2,6 +2,7 @@ package tn.esprit.spring.userservice.service;
 
 import tn.esprit.spring.userservice.dto.request.*;
 import tn.esprit.spring.userservice.dto.response.UserResponse;
+import java.util.List;
 
 public interface UserService {
 
@@ -10,4 +11,6 @@ public interface UserService {
     UserResponse createStaff(CreateStaffAccountRequest request);
 
     UserResponse createGuardian(CreateGuardianAccountRequest request);
+
+    List<UserResponse> getAllUsers();
 }

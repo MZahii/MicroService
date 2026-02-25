@@ -1,22 +1,153 @@
-# Ports and Startup Guide
+# NephrosPaidi - Ports and Startup Guide
 
-## Service Ports Map
+## 🚀 How to Run in IntelliJ
 
-| Service | Port | Config File | Status |
-|---------|------|-------------|--------|
-| keycloak | 8080 | docker-compose | Authentication Server |
-| eureka | 8761 | application.yml | Service Registry |
-| api-gateway | 8083 | application.yml | API Gateway |
-| ops-service | 8082 | application.yml | Operations Service |
-| clinical-service | 8084 | application.yml | Clinical Service |
-| communication-service | 8085 | application.yml | Communication Service |
-| core-ops-service | 8086 | application.yml | Core Operations Service |
-| patient-service | 8087 | application.yml | Patient Service |
-| pharmacy-service | 8088 | application.yml | Pharmacy Service |
-| procedure-service | 8089 | application.yml | Procedure Service |
-| user-service | 8090 | application.yml | User Service |
+### Prerequisites
+- IntelliJ IDEA Ultimate or Community
+- Java 17+
+- Maven 3.6+
+- Docker Desktop
 
-## Startup Order
+### Step 1: Start Infrastructure
+```bash
+cd BackEnd
+docker compose up -d
+```
+Wait for all services to be healthy (Eureka, Keycloak, Gateway).
+
+### Step 2: Configure IntelliJ Run Configuration
+1. Open `UserServiceApplication.java`
+2. Go to Run → Edit Configurations
+3. Set Active profiles: `local`
+4. Add VM options (optional): `-Dspring.profiles.active=local`
+5. Environment variables (if using Neon):
+   - `DB_HOST=your-neon-host`
+   - `DB_USER=your-neon-user`
+   - `DB_PASSWORD=your-neon-password`
+   - `DB_SSL_PARAMS=?sslmode=require`
+
+### Step 3: Run User Service
+- Click the green play button or press `Shift+F10`
+- Service should start on port 8090
+
+### Step 4: Verify
+- Swagger UI: http://localhost:8090/swagger-ui/index.html
+- Health check: http://localhost:8090/actuator/health
+- Eureka: http://localhost:8761 (should show user-service)
+
+---
+
+## 📋 Service Ports
+
+| Service | Port | Description |
+|---------|------|-------------|
+| Eureka Server | 8761 | Service Discovery |
+| Keycloak | 8080 | Authentication Server |
+| API Gateway | 8083 | Edge Router |
+| User Service | 8090 | User Management |
+| Ops Service | 8082 | Health Checks |
+| PostgreSQL (Keycloak) | 5433 | Keycloak DB |
+
+---
+
+## 🎯 Jury Demo Script
+
+### Introduction (2 minutes)
+"Bonjour, je vous présente NephrosPaidi, une application médicale basée sur une architecture microservices Spring Boot. Notre système utilise Keycloak pour l'authentification, Eureka pour la découverte de services, et PostgreSQL pour la persistance des données."
+
+### Infrastructure Demo (3 minutes)
+1. **Show Docker infrastructure running**
+   ```bash
+   docker ps
+   ```
+2. **Show Eureka dashboard**
+   - Navigate to http://localhost:8761
+   - Explain service discovery concept
+3. **Show Keycloak admin console**
+   - Navigate to http://localhost:8080/admin
+   - Show realm nephrospaidi and users
+
+### User Service Demo (5 minutes)
+1. **Start user-service with local profile**
+   - Show IntelliJ configuration
+   - Start the service
+2. **Show Swagger documentation**
+   - Navigate to http://localhost:8090/swagger-ui/index.html
+   - Explain API endpoints and security
+3. **Create users via Swagger**
+   - Create ADMIN user via POST /users/internal
+   - Create RECEPTIONIST user via POST /users/staff
+   - Create GUARDIAN user via POST /users/guardian
+4. **List all users**
+   - Use GET /users to show created users
+5. **Show error handling**
+   - Try to create duplicate user to show validation
+
+### Frontend Demo (2 minutes)
+1. **Show simple HTML frontend**
+   - Navigate to FrontEnd/index.html
+   - Show user creation and listing
+   - Explain that Angular version will replace this
+
+### Security Demo (3 minutes)
+1. **Explain profile-based security**
+   - Local profile: no authentication for development
+   - Production profile: JWT with Keycloak
+2. **Show security configurations**
+   - Briefly show SecurityConfig.java and SecurityConfigDev.java
+3. **Explain role-based access**
+   - PLATFORM_ADMIN can create internal users
+   - HR can create staff/guardian users
+   - RECEPTIONIST can list users
+
+### Database & Migration Demo (2 minutes)
+1. **Show Flyway migrations**
+   - Explain V1-V4 migrations
+   - Show schema alignment with entities
+2. **Explain Neon PostgreSQL integration**
+   - Cloud database benefits
+   - Connection configuration
+
+### Conclusion (1 minute)
+"En résumé, NephrosPaidi démontre une architecture microservices robuste avec une séparation claire des responsabilités, une sécurité basée sur les standards OAuth2/JWT, et une gestion de base de données versionnée avec Flyway. Le système est prêt pour le déploiement en production et peut facilement s'étendre avec de nouveaux services."
+
+---
+
+## 🔧 Configuration Profiles
+
+### Local Profile (Development)
+- Database: PostgreSQL (Neon or local)
+- Security: Disabled (permit all)
+- Flyway: Enabled
+- Purpose: Fast development iteration
+
+### Production Profile
+- Database: PostgreSQL (Neon)
+- Security: JWT with Keycloak
+- Flyway: Enabled
+- Purpose: Production deployment
+
+### H2 Profile (Testing)
+- Database: H2 in-memory
+- Security: Disabled
+- Flyway: Disabled
+- Purpose: Unit testing
+
+---
+
+## 🐛 Common Issues
+
+### Issue: "Cannot load driver class: org.h2.Driver"
+**Solution**: Ensure H2 dependency is only in test scope
+
+### Issue: "Connection refused to PostgreSQL"
+**Solution**: Check DB_HOST, DB_USER, DB_PASSWORD environment variables
+
+### Issue: "401 Unauthorized from Gateway"
+**Solution**: Ensure Keycloak is running and user has correct roles
+
+### Issue: "Flyway validation failed"
+**Solution**: Check migration checksums and run `mvn flyway:repair` if needed
 
 1. **Keycloak** (Docker)
    ```bash
