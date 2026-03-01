@@ -6,15 +6,36 @@
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
   "editUsernameAllowed": false,
+
   "roles": {
     "realm": [
-      { "name": "PLATFORM_ADMIN" },
+      { "name": "ADMIN" },
       { "name": "HR" },
+      { "name": "RECEPTIONIST" },
       { "name": "DOCTOR" },
       { "name": "NURSE" },
-      { "name": "PHARMACIST" }
+      { "name": "SURGEON" },
+      { "name": "PHARMACIST" },
+      { "name": "GUARDIAN" }
     ]
   },
+
+  "clients": [
+    {
+      "clientId": "nephro-backend",
+      "name": "nephro-backend",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "nephro-backend-secret",
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "fullScopeAllowed": true
+    }
+  ],
+
   "users": [
     {
       "username": "platform-admin",
@@ -23,8 +44,14 @@
       "firstName": "Platform",
       "lastName": "Admin",
       "email": "platform-admin@nephrospaidi.local",
-      "requiredActions": ["UPDATE_PASSWORD"],
-      "realmRoles": ["PLATFORM_ADMIN"]
+      "realmRoles": ["ADMIN"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Admin123!",
+          "temporary": false
+        }
+      ]
     }
   ]
 }

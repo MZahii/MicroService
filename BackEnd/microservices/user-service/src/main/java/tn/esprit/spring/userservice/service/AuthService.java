@@ -1,0 +1,115 @@
+package tn.esprit.spring.userservice.service;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
+import tn.esprit.spring.userservice.config.KeycloakAdminConfig;
+import tn.esprit.spring.userservice.dto.request.LoginRequest;
+import tn.esprit.spring.userservice.dto.response.KeycloakTokenResponse;
+import tn.esprit.spring.userservice.dto.response.LoginResponse;
+import tn.esprit.spring.userservice.entity.Role;
+import tn.esprit.spring.userservice.entity.User;
+import tn.esprit.spring.userservice.repository.UserRepository;
+
+import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+
+    private final UserRepository userRepository;
+    private final KeycloakAdminConfig keycloakConfig;
+    private final RestTemplateBuilder restTemplateBuilder;
+
+    public LoginResponse login(LoginRequest request) {
+        String identifier = request.getIdentifier().trim();
+
+        User user = userRepository.findByIdentifier(identifier)
+                .orElseThrow(() -> new ResponseStatusException(
+                        UNAUTHORIZED,
+                        "Invalid username/email or password"
+                ));
+
+        if (!user.isEnabled()) {
+            throw new ResponseStatusException(FORBIDDEN, "User account is disabled");
+        }
+
+        KeycloakTokenResponse tokenResponse = requestTokenFromKeycloak(
+                user.getUsername(),
+                request.getPassword()
+        );
+
+        return LoginResponse.builder()
+                .accessToken(tokenResponse.getAccessToken())
+                .refreshToken(tokenResponse.getRefreshToken())
+                .tokenType(tokenResponse.getTokenType())
+                .expiresIn(tokenResponse.getExpiresIn())
+                .role(user.getRole().name())
+                .redirectTo(resolveRedirect(user.getRole()))
+                .userId(user.getId())
+                .keycloakId(user.getKeycloakId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .build();
+    }
+
+    private KeycloakTokenResponse requestTokenFromKeycloak(String username, String password) {
+        String tokenUrl = keycloakConfig.getServerUrl()
+                + "/realms/" + keycloakConfig.getRealm()
+                + "/protocol/openid-connect/token";
+
+        RestTemplate restTemplate = restTemplateBuilder.build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("grant_type", "password");
+        form.add("client_id", keycloakConfig.getAuth().getClientId());
+        form.add("client_secret", keycloakConfig.getAuth().getClientSecret());
+        form.add("username", username);
+        form.add("password", password);
+
+        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(form, headers);
+
+        try {
+            ResponseEntity<KeycloakTokenResponse> response = restTemplate.exchange(
+                    tokenUrl,
+                    HttpMethod.POST,
+                    requestEntity,
+                    KeycloakTokenResponse.class
+            );
+
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                throw new ResponseStatusException(
+                        UNAUTHORIZED,
+                        "Invalid username/email or password"
+                );
+            }
+
+            return response.getBody();
+
+        } catch (HttpStatusCodeException ex) {
+            throw new ResponseStatusException(
+                    UNAUTHORIZED,
+                    "Invalid username/email or password"
+            );
+        }
+    }
+
+    private String resolveRedirect(Role role) {
+        return switch (role) {
+            case ADMIN, HR, DOCTOR, NURSE, SURGEON, PHARMACIST, RECEPTIONIST -> "/backoffice/dashboard";
+            case GUARDIAN -> "/frontoffice/home";
+        };
+    }
+}

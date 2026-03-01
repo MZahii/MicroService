@@ -6,14 +6,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
-import tn.esprit.spring.userservice.entity.Role;
 import tn.esprit.spring.userservice.entity.Sex;
 
 import java.time.LocalDate;
 
 @Getter
 @Setter
-public class CreateStaffAccountRequest {
+public class CreateHrAccountRequest {
 
     @NotBlank(message = "Username is required")
     private String username;
@@ -40,7 +39,4 @@ public class CreateStaffAccountRequest {
 
     @NotNull(message = "Sex is required")
     private Sex sex;
-
-    @NotNull(message = "Role is required")
-    private Role role;
 }

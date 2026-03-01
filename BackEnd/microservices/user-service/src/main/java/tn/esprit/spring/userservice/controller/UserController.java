@@ -1,11 +1,15 @@
 package tn.esprit.spring.userservice.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
-import tn.esprit.spring.userservice.dto.request.*;
+import tn.esprit.spring.userservice.dto.request.CreateGuardianAccountRequest;
+import tn.esprit.spring.userservice.dto.request.CreateHrAccountRequest;
+import tn.esprit.spring.userservice.dto.request.CreateInternalUserRequest;
+import tn.esprit.spring.userservice.dto.request.CreateStaffAccountRequest;
 import tn.esprit.spring.userservice.dto.response.UserResponse;
 import tn.esprit.spring.userservice.service.UserService;
+
 import java.util.List;
 
 @RestController
@@ -14,6 +18,11 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+
+    @PostMapping("/hr")
+    public UserResponse createHr(@Valid @RequestBody CreateHrAccountRequest request) {
+        return userService.createHr(request);
+    }
 
     @PostMapping("/internal")
     public UserResponse createInternal(@Valid @RequestBody CreateInternalUserRequest request) {
