@@ -8,6 +8,11 @@ import { Dashboard } from './pages/backoffice/dashboard/dashboard';
 import { CreateHr } from './pages/backoffice/create-hr/create-hr';
 import { CreateStaff } from './pages/backoffice/create-staff/create-staff';
 import { StaffList } from './pages/backoffice/staff-list/staff-list';
+import { HrList } from './pages/backoffice/hr-list/hr-list';
+import { StaffRolesDetails } from './pages/backoffice/staff-roles-details/staff-roles-details';
+import { CreateGuardianPatient } from './pages/backoffice/create-guardian-patient/create-guardian-patient';
+import { PatientsList } from './pages/backoffice/patients-list/patients-list';
+import { GuardiansLinkedProfiles } from './pages/backoffice/guardians-linked-profiles/guardians-linked-profiles';
 import { FrontofficeHomeComponent } from './pages/frontoffice/frontoffice-home/frontoffice-home';
 
 import { HomePageComponent } from './pages/public/home-page/home-page';
@@ -59,6 +64,12 @@ export const routes: Routes = [
         data: { roles: ['ADMIN'] }
       },
       {
+        path: 'hr-list',
+        component: HrList,
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] }
+      },
+      {
         path: 'create-staff',
         component: CreateStaff,
         canActivate: [roleGuard],
@@ -69,6 +80,30 @@ export const routes: Routes = [
         component: StaffList,
         canActivate: [roleGuard],
         data: { roles: ['ADMIN', 'HR'] }
+      },
+      {
+        path: 'staff-details',
+        component: StaffRolesDetails,
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'HR'] }
+      },
+      {
+        path: 'create-guardian-patient',
+        component: CreateGuardianPatient,
+        canActivate: [roleGuard],
+        data: { roles: ['RECEPTIONIST'] }
+      },
+      {
+        path: 'patients',
+        component: PatientsList,
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'RECEPTIONIST'] }
+      },
+      {
+        path: 'guardians-linked',
+        component: GuardiansLinkedProfiles,
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'RECEPTIONIST'] }
       }
     ]
   },

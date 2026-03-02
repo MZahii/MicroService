@@ -14,6 +14,7 @@ public interface UserService {
     UserResponse createStaff(CreateStaffAccountRequest request);
     UserResponse createGuardian(CreateGuardianAccountRequest request);
     List<UserResponse> getAllUsers();
+    List<UserResponse> getGuardians();
 
     UserResponse updateActivation(Long userId, boolean enabled);
 }

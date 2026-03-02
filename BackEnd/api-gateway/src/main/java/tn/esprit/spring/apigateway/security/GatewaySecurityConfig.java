@@ -22,6 +22,7 @@ import reactor.core.publisher.Mono;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Configuration
@@ -42,8 +43,20 @@ public class GatewaySecurityConfig {
                         .pathMatchers(HttpMethod.POST, "/api/users/hr").hasRole("ADMIN")
                         .pathMatchers(HttpMethod.POST, "/api/users/internal").hasRole("HR")
                         .pathMatchers(HttpMethod.POST, "/api/users/staff").hasRole("HR")
-                        .pathMatchers(HttpMethod.POST, "/api/users/guardian").hasRole("HR")
+                        .pathMatchers(HttpMethod.POST, "/api/users/guardian").hasRole("RECEPTIONIST")
+                        .pathMatchers(HttpMethod.GET, "/api/users/guardians").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .pathMatchers(HttpMethod.GET, "/api/users/**").hasAnyRole("ADMIN", "HR")
+                        .pathMatchers(HttpMethod.POST, "/api/patients/**").hasRole("RECEPTIONIST")
+                        .pathMatchers(HttpMethod.GET, "/api/patients/**").hasAnyRole(
+                                "ADMIN",
+                                "HR",
+                                "RECEPTIONIST",
+                                "DOCTOR",
+                                "NURSE",
+                                "SURGEON",
+                                "PHARMACIST",
+                                "GUARDIAN"
+                        )
 
                         .anyExchange().authenticated()
                 )
@@ -64,18 +77,39 @@ public class GatewaySecurityConfig {
         Collection<GrantedAuthority> authorities = new ArrayList<>();
 
         Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+        addRolesFromClaim(authorities, realmAccess);
 
-        if (realmAccess != null && realmAccess.containsKey("roles")) {
-            Object rolesObject = realmAccess.get("roles");
-
-            if (rolesObject instanceof Collection<?> roles) {
-                for (Object role : roles) {
-                    authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+        Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
+        if (resourceAccess != null) {
+            for (Object clientAccess : resourceAccess.values()) {
+                if (clientAccess instanceof Map<?, ?> clientRoles) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> casted = (Map<String, Object>) clientRoles;
+                    addRolesFromClaim(authorities, casted);
                 }
             }
         }
 
         return authorities;
+    }
+
+    private void addRolesFromClaim(Collection<GrantedAuthority> authorities, Map<String, Object> accessClaim) {
+        if (accessClaim == null || !accessClaim.containsKey("roles")) {
+            return;
+        }
+
+        Object rolesObject = accessClaim.get("roles");
+        if (rolesObject instanceof Collection<?> roles) {
+            for (Object roleObj : roles) {
+                if (roleObj == null) {
+                    continue;
+                }
+                String normalizedRole = roleObj.toString().trim().toUpperCase(Locale.ROOT);
+                if (!normalizedRole.isEmpty()) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_" + normalizedRole));
+                }
+            }
+        }
     }
 
     @Bean

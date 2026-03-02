@@ -45,6 +45,13 @@ spring:
           filters:
             - StripPrefix=1
 
+        - id: administration-service-api
+          uri: lb://administration-service
+          predicates:
+            - Path=/api/patients/**
+          filters:
+            - StripPrefix=1
+
   security:
     oauth2:
       resourceserver:

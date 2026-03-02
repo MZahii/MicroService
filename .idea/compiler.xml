@@ -12,9 +12,9 @@
         <module name="eureka" />
         <module name="communication-service" />
         <module name="api-gateway" />
-        <module name="patient-service" />
         <module name="ops-service" />
         <module name="clinical-service" />
+        <module name="Administration-service" />
         <module name="procedure-service" />
       </profile>
       <profile name="Annotation profile for user-service" enabled="true">
@@ -30,13 +30,13 @@
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="Administration-service" options="-parameters" />
       <module name="api-gateway" options="-parameters" />
       <module name="clinical-service" options="-parameters" />
       <module name="communication-service" options="-parameters" />
       <module name="core-ops-service" options="-parameters" />
       <module name="eureka" options="-parameters" />
       <module name="ops-service" options="-parameters" />
-      <module name="patient-service" options="-parameters" />
       <module name="pharmacy-service" options="-parameters" />
       <module name="procedure-service" options="-parameters" />
       <module name="user-service" options="-parameters" />

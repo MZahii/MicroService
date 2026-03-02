@@ -1,0 +1,84 @@
+<div class="page-header">
+  <div class="page-header-left d-flex align-items-center">
+    <div class="page-header-title">
+      <h5 class="m-b-10">Patients List</h5>
+    </div>
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a routerLink="/backoffice/dashboard">Dashboard</a></li>
+      <li class="breadcrumb-item">Patients List</li>
+    </ul>
+  </div>
+</div>
+
+<div class="main-content">
+  <div class="row">
+    <div class="col-12">
+      <div class="card stretch stretch-full">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <h5 class="card-title mb-0">Patient Profiles</h5>
+          <button class="btn btn-light-brand" type="button" (click)="loadPatients()" [disabled]="loading">
+            Refresh
+          </button>
+        </div>
+
+        <div class="card-body">
+          <div *ngIf="errorMessage" class="alert alert-danger mb-3">
+            {{ errorMessage }}
+          </div>
+
+          <div class="filters mb-3">
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Search by patient or guardian..."
+              [(ngModel)]="searchTerm"
+            />
+
+            <select class="form-control" [(ngModel)]="sexFilter">
+              <option value="ALL">All Sex</option>
+              <option value="MALE">MALE</option>
+              <option value="FEMALE">FEMALE</option>
+            </select>
+          </div>
+
+          <div *ngIf="loading" class="text-muted py-3">Loading patient profiles...</div>
+
+          <div class="table-responsive" *ngIf="!loading">
+            <table class="table table-hover align-middle">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Patient</th>
+                  <th>Age</th>
+                  <th>Sex</th>
+                  <th>Guardian</th>
+                  <th>Guardian Email</th>
+                  <th>Blood Type</th>
+                  <th>Allergies</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let patient of filteredPatients">
+                  <td>{{ patient.id }}</td>
+                  <td>{{ patientFullName(patient) }}</td>
+                  <td>{{ patientAge(patient.dateOfBirth) }}</td>
+                  <td>{{ patient.sex }}</td>
+                  <td>{{ guardianDisplay(patient) }}</td>
+                  <td>{{ guardianMap[patient.guardianUserId]?.email || '-' }}</td>
+                  <td>{{ patient.bloodType || '-' }}</td>
+                  <td>{{ patient.allergies || '-' }}</td>
+                </tr>
+
+                <tr *ngIf="filteredPatients.length === 0">
+                  <td colspan="8" class="text-center text-muted py-4">
+                    No patient profiles found.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

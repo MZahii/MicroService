@@ -39,6 +39,11 @@ public class UserController {
         return userService.getAllUsers();
     }
 
+    @GetMapping("/guardians")
+    public List<UserResponse> getGuardians() {
+        return userService.getGuardians();
+    }
+
     @PostMapping("/guardian")
     public UserResponse createGuardian(@Valid @RequestBody CreateGuardianAccountRequest request) {
         return userService.createGuardian(request);

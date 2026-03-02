@@ -1,0 +1,92 @@
+<div class="page-header">
+  <div class="page-header-left d-flex align-items-center">
+    <div class="page-header-title">
+      <h5 class="m-b-10">HR Accounts List</h5>
+    </div>
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a routerLink="/backoffice/dashboard">Dashboard</a></li>
+      <li class="breadcrumb-item">HR Accounts</li>
+    </ul>
+  </div>
+</div>
+
+<div class="main-content">
+  <div class="row">
+    <div class="col-12">
+      <div class="card stretch stretch-full">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <h5 class="card-title mb-0">HR Users</h5>
+          <button class="btn btn-light-brand" type="button" (click)="loadHrAccounts()" [disabled]="loading">
+            Refresh
+          </button>
+        </div>
+
+        <div class="card-body">
+          <div *ngIf="errorMessage" class="alert alert-danger mb-3">
+            {{ errorMessage }}
+          </div>
+
+          <div class="filters mb-3">
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Search by username, name, email, phone..."
+              [(ngModel)]="searchTerm"
+            />
+
+            <select class="form-control" [(ngModel)]="statusFilter">
+              <option value="ALL">All Status</option>
+              <option value="PENDING_CONTRACT">PENDING_CONTRACT</option>
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="INACTIVE">INACTIVE</option>
+            </select>
+          </div>
+
+          <div *ngIf="loading" class="text-muted py-3">Loading HR accounts...</div>
+
+          <div class="table-responsive" *ngIf="!loading">
+            <table class="table table-hover align-middle">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>Full Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Role</th>
+                  <th>Account Status</th>
+                  <th>Enabled</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let user of filteredHr">
+                  <td>{{ user.id }}</td>
+                  <td>{{ user.username }}</td>
+                  <td>{{ fullName(user) }}</td>
+                  <td>{{ user.email || '-' }}</td>
+                  <td>{{ user.phone || '-' }}</td>
+                  <td>{{ user.role }}</td>
+                  <td>
+                    <span class="status-pill" [ngClass]="statusClass(user.accountStatus)">
+                      {{ user.accountStatus }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="status-pill" [ngClass]="enabledClass(user.enabled)">
+                      {{ user.enabled ? 'ENABLED' : 'DISABLED' }}
+                    </span>
+                  </td>
+                </tr>
+                <tr *ngIf="filteredHr.length === 0">
+                  <td colspan="8" class="text-center text-muted py-4">
+                    No HR accounts found.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

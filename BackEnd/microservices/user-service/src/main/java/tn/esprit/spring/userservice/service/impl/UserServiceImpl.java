@@ -162,13 +162,21 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Email already exists");
         }
 
-        String generatedPassword = "Temp123!";
+        if (userRepository.existsByCin(request.getCin())) {
+            throw new IllegalArgumentException("CIN already exists");
+        }
+
+        if (request.getPhone() != null && userRepository.existsByPhone(request.getPhone())) {
+            throw new IllegalArgumentException("Phone already exists");
+        }
+
+        String generatedPassword = request.getCin();
 
         String keycloakId = keycloakAdminService.createUser(
                 request.getUsername(),
                 request.getEmail(),
-                request.getUsername(),
-                "Guardian",
+                request.getFirstName(),
+                request.getLastName(),
                 generatedPassword,
                 Role.GUARDIAN.name(),
                 true
@@ -178,10 +186,13 @@ public class UserServiceImpl implements UserService {
                 User.builder()
                         .keycloakId(keycloakId)
                         .username(request.getUsername())
-                        .cin("GUARD-" + System.currentTimeMillis())
-                        .firstName(request.getUsername())
-                        .lastName("Guardian")
+                        .cin(request.getCin())
+                        .firstName(request.getFirstName())
+                        .lastName(request.getLastName())
                         .email(request.getEmail())
+                        .phone(request.getPhone())
+                        .dateOfBirth(request.getDateOfBirth())
+                        .sex(request.getSex())
                         .role(Role.GUARDIAN)
                         .accountStatus(AccountStatus.ACTIVE)
                         .enabled(true)
@@ -194,6 +205,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll()
+                .stream()
+                .map(UserMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    public List<UserResponse> getGuardians() {
+        return userRepository.findByRole(Role.GUARDIAN)
                 .stream()
                 .map(UserMapper::toResponse)
                 .toList();

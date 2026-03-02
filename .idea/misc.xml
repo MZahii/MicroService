@@ -14,6 +14,7 @@
         <option value="$PROJECT_DIR$/BackEnd/microservices/pharmacy-service/pom.xml" />
         <option value="$PROJECT_DIR$/BackEnd/microservices/procedure-service/pom.xml" />
         <option value="$PROJECT_DIR$/BackEnd/microservices/communication-service/pom.xml" />
+        <option value="$PROJECT_DIR$/BackEnd/microservices/Administration-service/pom.xml" />
       </list>
     </option>
   </component>

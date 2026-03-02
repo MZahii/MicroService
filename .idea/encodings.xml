@@ -3,11 +3,11 @@
   <component name="Encoding">
     <file url="file://$PROJECT_DIR$/BackEnd/api-gateway/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/BackEnd/eureka/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/BackEnd/microservices/Administration-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/BackEnd/microservices/clinical-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/BackEnd/microservices/communication-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/BackEnd/microservices/core-ops-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/BackEnd/microservices/ops-service/src/main/java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/BackEnd/microservices/patient-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/BackEnd/microservices/pharmacy-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/BackEnd/microservices/procedure-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/BackEnd/microservices/user-service/src/main/java" charset="UTF-8" />

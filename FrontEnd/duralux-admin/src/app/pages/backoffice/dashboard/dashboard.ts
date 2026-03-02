@@ -40,6 +40,10 @@ export class Dashboard implements AfterViewInit {
     return this.role === 'HR';
   }
 
+  get isReceptionist(): boolean {
+    return this.role === 'RECEPTIONIST';
+  }
+
   get displayName(): string {
     if (this.user?.firstName && this.user?.lastName) {
       return `${this.user.firstName} ${this.user.lastName}`;
@@ -65,6 +69,10 @@ export class Dashboard implements AfterViewInit {
       return 'Human resources and operational management';
     }
 
+    if (this.isReceptionist) {
+      return 'Reception and patient onboarding operations';
+    }
+
     return 'Connected backoffice user';
   }
 
@@ -77,6 +85,10 @@ export class Dashboard implements AfterViewInit {
       return 'Create Staff Account';
     }
 
+    if (this.isReceptionist) {
+      return 'Create Guardian + Patient';
+    }
+
     return 'Open Management';
   }
 
@@ -87,6 +99,10 @@ export class Dashboard implements AfterViewInit {
 
     if (this.isHr) {
       return '/backoffice/create-staff';
+    }
+
+    if (this.isReceptionist) {
+      return '/backoffice/create-guardian-patient';
     }
 
     return '/backoffice/dashboard';
@@ -156,10 +172,10 @@ export class Dashboard implements AfterViewInit {
         label: 'Patients',
         description: this.isAdmin
           ? 'View patients and guardians overview'
-          : 'Create guardian account and linked patient profile',
+          : 'Patient and guardian operations',
         link: '/backoffice/patients',
         icon: 'feather-user',
-        visible: this.isAdmin || this.isHr
+        visible: this.isAdmin || this.isReceptionist
       },
       {
         label: 'Clinic Resources',
@@ -189,7 +205,7 @@ export class Dashboard implements AfterViewInit {
         description: 'Create guardian account and linked child profile',
         link: '/backoffice/create-guardian-patient',
         icon: 'feather-heart',
-        visible: this.isHr
+        visible: this.isReceptionist
       }
     ];
   }
@@ -222,12 +238,6 @@ export class Dashboard implements AfterViewInit {
       {
         module: 'Staff',
         action: 'Create and manage staff accounts',
-        role: 'HR',
-        status: 'Allowed'
-      },
-      {
-        module: 'Patients',
-        action: 'Create guardian account + patient profile',
         role: 'HR',
         status: 'Allowed'
       },

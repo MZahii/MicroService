@@ -94,6 +94,10 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
     return this.role === 'HR';
   }
 
+  get isReceptionist(): boolean {
+    return this.role === 'RECEPTIONIST';
+  }
+
   get displayName(): string {
     if (this.user?.firstName && this.user?.lastName) {
       return `${this.user.firstName} ${this.user.lastName}`;
@@ -158,8 +162,8 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
           },
           {
             label: 'HR List',
-            implemented: false,
-            note: 'Coming soon'
+            route: '/backoffice/hr-list',
+            implemented: true
           }
         ]
       });
@@ -193,43 +197,17 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
           icon: 'feather-briefcase',
           children: [
             {
-              label: 'Staff List',
-              route: '/backoffice/staff',
-              implemented: true
-            },
-            {
               label: 'Roles & Staff Details',
-              implemented: false,
-              note: 'Coming soon'
+              route: '/backoffice/staff-details',
+              implemented: true
             }
           ]
         },
-        {
-          key: 'patients',
-          label: 'Patients',
-          icon: 'feather-heart',
-          children: [
-            {
-              label: 'Patients List',
-              implemented: false,
-              note: 'Coming soon'
-            },
-            ...(this.isHr
-              ? [
-                {
-                  label: 'Create Guardian + Patient Profile',
-                  implemented: false,
-                  note: 'Coming soon'
-                } as BackofficeNavChild
-              ]
-              : []),
-            {
-              label: 'Guardians & Linked Profiles',
-              implemented: false,
-              note: 'Coming soon'
-            }
-          ]
-        },
+      );
+    }
+
+    if (this.isAdmin || this.isHr) {
+      items.push(
         {
           key: 'clinic',
           label: 'Clinic Resources',
@@ -257,6 +235,35 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
           ]
         }
       );
+    }
+
+    if (this.isAdmin || this.isReceptionist) {
+      items.push({
+        key: 'patients',
+        label: 'Patients',
+        icon: 'feather-heart',
+        children: [
+          {
+            label: 'Patients List',
+            route: '/backoffice/patients',
+            implemented: true
+          },
+          ...(this.isReceptionist
+            ? [
+              {
+                label: 'Create Guardian + Patient Profile',
+                route: '/backoffice/create-guardian-patient',
+                implemented: true
+              } as BackofficeNavChild
+            ]
+            : []),
+          {
+            label: 'Guardians & Linked Profiles',
+            route: '/backoffice/guardians-linked',
+            implemented: true
+          }
+        ]
+      });
     }
 
     return items;
