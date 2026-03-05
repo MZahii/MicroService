@@ -1,0 +1,107 @@
+.guardian-tracking {
+  .header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    margin-bottom: 0.25rem;
+  }
+
+  .tracking-card {
+    border: 1px solid #e8edf5;
+    box-shadow: 0 8px 24px rgba(16, 24, 40, 0.06);
+    border-radius: 14px;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+
+  .status-pill.success {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .status-pill.warning {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .status-pill.danger {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .status-pill.neutral {
+    background: #eef2f7;
+    color: #3d4a5c;
+  }
+
+  .timeline {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .timeline-item {
+    display: grid;
+    grid-template-columns: 16px 1fr;
+    gap: 0.65rem;
+  }
+
+  .timeline-dot {
+    margin-top: 0.4rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #9ca3af;
+  }
+
+  .timeline-dot.success {
+    background: #10b981;
+  }
+
+  .timeline-dot.warning {
+    background: #f59e0b;
+  }
+
+  .timeline-dot.danger {
+    background: #ef4444;
+  }
+
+  .timeline-dot.neutral {
+    background: #9ca3af;
+  }
+
+  .timeline-content {
+    border: 1px solid #e7edf4;
+    border-radius: 12px;
+    padding: 0.7rem 0.8rem;
+    background: #fafcff;
+  }
+
+  .timeline-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .timeline-head small {
+    color: #64748b;
+    white-space: nowrap;
+  }
+
+  .empty-state {
+    color: #6b7280;
+    padding: 0.5rem 0;
+  }
+}

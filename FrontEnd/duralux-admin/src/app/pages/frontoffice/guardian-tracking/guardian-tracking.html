@@ -1,0 +1,103 @@
+<section class="section guardian-tracking">
+  <div class="container">
+    <div class="header-row">
+      <div>
+        <h2>Child Care Journey</h2>
+        <p>Track dialysis and intervention progress in one place.</p>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-primary" (click)="loadTrackingData()">
+        Refresh
+      </button>
+    </div>
+
+    <div *ngIf="errorMessage" class="alert alert-danger mt-3">{{ errorMessage }}</div>
+    <div *ngIf="loading" class="empty-state">Loading child tracking data...</div>
+
+    <div *ngIf="!loading">
+      <div class="card tracking-card mb-4">
+        <div class="card-body">
+          <label class="form-label">Child Profile (Demo selector)</label>
+          <select class="form-select" [(ngModel)]="selectedChildKey">
+            <option *ngFor="let child of childOptions" [value]="child.key">
+              {{ child.label }} {{ child.patientId ? ('| ' + child.patientId) : '' }}
+            </option>
+          </select>
+          <small class="text-muted d-block mt-2">
+            Temporary selector for demo until Guardian-to-Patient mapping is integrated.
+          </small>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+          <div class="card tracking-card h-100">
+            <div class="card-body">
+              <h5>Global Status</h5>
+              <span class="status-pill" [ngClass]="globalStatusTone">
+                {{ statusLabel(globalStatus) }}
+              </span>
+              <p class="mt-3 mb-1"><strong>Next Step:</strong></p>
+              <p class="mb-0">{{ nextStepLabel }}</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card tracking-card h-100">
+            <div class="card-body">
+              <h5>Dialysis Snapshot</h5>
+              <p class="mb-1"><strong>Active Plan:</strong> {{ activeDialysisPlan ? statusLabel(activeDialysisPlan.status) : '-' }}</p>
+              <p class="mb-1"><strong>Type:</strong> {{ activeDialysisPlan?.dialysisType || '-' }}</p>
+              <p class="mb-1"><strong>Frequency:</strong> {{ activeDialysisPlan?.sessionsPerWeek || '-' }}/week, {{ activeDialysisPlan?.sessionDurationMinutes || '-' }} min</p>
+              <p class="mb-1"><strong>Next Session:</strong> {{ nextSession ? formatDateTime(nextSession.sessionDate) : '-' }}</p>
+              <p class="mb-0"><strong>Latest Outcome:</strong> {{ latestOutcome ? (latestOutcome.validated ? 'Validated' : 'Pending validation') : '-' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+          <div class="card tracking-card h-100">
+            <div class="card-body">
+              <h5>Intervention Snapshot</h5>
+              <p class="mb-1"><strong>Status:</strong> {{ latestSurgicalCase ? statusLabel(latestSurgicalCase.status) : '-' }}</p>
+              <p class="mb-1"><strong>Type:</strong> {{ latestSurgicalCase?.surgeryType || '-' }}</p>
+              <p class="mb-1"><strong>Procedure:</strong> {{ latestSurgicalCase?.procedureName || '-' }}</p>
+              <p class="mb-0"><strong>Scheduled:</strong> {{ latestSurgicalCase ? formatDate(latestSurgicalCase.scheduledDate) + ' ' + (latestSurgicalCase.scheduledStartTime || '') : '-' }}</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card tracking-card h-100">
+            <div class="card-body">
+              <h5>Care Alerts</h5>
+              <p class="mb-1"><strong>Total Care Tasks:</strong> {{ selectedCareTasks.length }}</p>
+              <p class="mb-3"><strong>Open Tasks:</strong> {{ openCareTasksCount }}</p>
+              <a routerLink="/contact" class="btn btn-sm btn-outline-primary">Contact Care Team</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card tracking-card">
+        <div class="card-body">
+          <h5 class="mb-3">Timeline</h5>
+          <div *ngIf="timeline.length === 0" class="empty-state">No events found for selected child.</div>
+
+          <div class="timeline" *ngIf="timeline.length > 0">
+            <div class="timeline-item" *ngFor="let event of timeline">
+              <div class="timeline-dot" [ngClass]="event.tone"></div>
+              <div class="timeline-content">
+                <div class="timeline-head">
+                  <strong>{{ event.title }}</strong>
+                  <small>{{ event.when ? (event.when | date: 'yyyy-MM-dd HH:mm') : 'No timestamp' }}</small>
+                </div>
+                <p class="mb-0">{{ event.detail }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

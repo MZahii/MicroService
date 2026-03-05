@@ -1,0 +1,295 @@
+<div class="page-header">
+  <div class="page-header-left d-flex align-items-center">
+    <div class="page-header-title">
+      <h5 class="m-b-10">Surgical Management</h5>
+    </div>
+
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a routerLink="/backoffice/dashboard">Home</a>
+      </li>
+      <li class="breadcrumb-item">Procedure Service</li>
+      <li class="breadcrumb-item">Surgical</li>
+    </ul>
+  </div>
+</div>
+
+<div class="main-content">
+  <div class="row g-4">
+    <div class="col-12 col-xl-4">
+      <div class="card stretch stretch-full">
+        <div class="card-header">
+          <h5 class="card-title">Create Surgical Case</h5>
+        </div>
+
+        <div class="card-body">
+          <h6 class="section-title">Patient Information</h6>
+          <div class="mb-3">
+            <label class="form-label">First Name</label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="createForm.firstName"
+              placeholder="Ali"
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Last Name</label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="createForm.lastName"
+              placeholder="Ben Salah"
+            />
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Age</label>
+              <input type="number" class="form-control" [(ngModel)]="createForm.age" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Gender</label>
+              <select class="form-select" [(ngModel)]="createForm.gender">
+                <option *ngFor="let g of genders" [value]="g">{{ labelFrom(genderLabels, g) }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Medical Record Number</label>
+            <input type="text" class="form-control" [(ngModel)]="createForm.medicalRecordNumber" placeholder="MRN-001" />
+          </div>
+
+          <h6 class="section-title">Operation Information</h6>
+          <div class="mb-3">
+            <label class="form-label">Surgery Type</label>
+            <input type="text" class="form-control" [(ngModel)]="createForm.surgeryType" placeholder="Kidney Transplant" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Procedure Name</label>
+            <input type="text" class="form-control" [(ngModel)]="createForm.procedureName" placeholder="Renal graft implantation" />
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Category</label>
+              <select class="form-select" [(ngModel)]="createForm.surgeryCategory">
+                <option *ngFor="let c of surgeryCategories" [value]="c">{{ labelFrom(surgeryCategoryLabels, c) }}</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Urgency</label>
+              <select class="form-select" [(ngModel)]="createForm.urgencyLevel">
+                <option *ngFor="let u of urgencyLevels" [value]="u">{{ labelFrom(urgencyLabels, u) }}</option>
+              </select>
+            </div>
+          </div>
+
+          <h6 class="section-title">Medical Team</h6>
+          <div class="mb-3">
+            <label class="form-label">Surgeon ID</label>
+            <input type="text" class="form-control" [(ngModel)]="createForm.surgeonId" placeholder="SURG-001" />
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Assistant Surgeon ID (optional)</label>
+              <input type="text" class="form-control" [(ngModel)]="createForm.assistantSurgeonId" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Anesthesiologist ID (optional)</label>
+              <input type="text" class="form-control" [(ngModel)]="createForm.anesthesiologistId" />
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Nurse Team (optional)</label>
+            <input type="text" class="form-control" [(ngModel)]="createForm.nurseTeam" placeholder="Team A" />
+          </div>
+
+          <h6 class="section-title">Intervention Planning</h6>
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Scheduled Date</label>
+              <input type="date" class="form-control" [(ngModel)]="createForm.scheduledDate" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Start Time</label>
+              <input type="time" class="form-control" [(ngModel)]="createForm.scheduledStartTime" />
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Estimated Duration (minutes)</label>
+              <input type="number" class="form-control" [(ngModel)]="createForm.estimatedDurationMinutes" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Operating Room (optional)</label>
+              <input type="text" class="form-control" [(ngModel)]="createForm.operatingRoom" placeholder="OR-2" />
+            </div>
+          </div>
+
+          <div class="alert alert-light border small mb-3">
+            New case starts with status: <strong>Open</strong>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn-primary w-100"
+            (click)="createCase()"
+            [disabled]="saving"
+          >
+            {{ saving ? 'Saving...' : 'Create Case' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-8">
+      <div class="card stretch stretch-full">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Surgical Cases</h5>
+          <button type="button" class="btn btn-light btn-sm" (click)="loadCases()">
+            Refresh
+          </button>
+        </div>
+
+        <div class="card-body">
+          <div *ngIf="errorMessage" class="alert alert-danger mb-3">{{ errorMessage }}</div>
+          <div *ngIf="successMessage" class="alert alert-success mb-3">{{ successMessage }}</div>
+          <div *ngIf="loading" class="empty-state">Loading surgical cases...</div>
+
+          <div class="row g-2 mb-3" *ngIf="!loading">
+            <div class="col-md-3">
+              <input
+                type="text"
+                class="form-control"
+                [(ngModel)]="searchTerm"
+                placeholder="Search patient / procedure"
+              />
+            </div>
+            <div class="col-md-3">
+              <select class="form-select" [(ngModel)]="caseStatusFilter">
+                <option value="ALL">All case statuses</option>
+                <option *ngFor="let status of caseStatuses" [value]="status">
+                  {{ labelFrom(caseStatusLabels, status) }}
+                </option>
+              </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-center">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="showArchivedSurgical"
+                  [(ngModel)]="showArchived"
+                />
+                <label class="form-check-label small" for="showArchivedSurgical">Archived</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive" *ngIf="!loading">
+            <table class="table table-hover align-middle mb-0 surgical-table">
+              <thead>
+              <tr>
+                <th class="patient-col">Patient</th>
+                <th class="procedure-col">Procedure</th>
+                <th class="urgency-col">Urgency</th>
+                <th class="planning-col">Planning</th>
+                <th class="team-col">Team</th>
+                <th class="status-col">Case Status</th>
+                <th class="status-col">Offer Status</th>
+                <th class="text-end actions-col">Actions</th>
+              </tr>
+              </thead>
+
+              <tbody>
+              <tr *ngIf="filteredCases.length === 0">
+                <td colspan="8" class="empty-state">No surgical cases found yet.</td>
+              </tr>
+
+              <tr *ngFor="let surgicalCase of filteredCases">
+                <td>
+                  <div class="fw-semibold">{{ surgicalCase.firstName || '-' }} {{ surgicalCase.lastName || '' }}</div>
+                  <small class="text-muted">MRN: {{ surgicalCase.medicalRecordNumber || '-' }} | {{ surgicalCase.age || '-' }}y | {{ labelFrom(genderLabels, surgicalCase.gender) }}</small>
+                </td>
+                <td>
+                  <div class="fw-semibold">{{ surgicalCase.surgeryType || '-' }}</div>
+                  <small class="text-muted">{{ surgicalCase.procedureName || '-' }} | {{ labelFrom(surgeryCategoryLabels, surgicalCase.surgeryCategory) }}</small>
+                </td>
+                <td>
+                  <span class="badge urgency-badge" [class.urgent]="surgicalCase.urgencyLevel === 'URGENT'">
+                    {{ labelFrom(urgencyLabels, surgicalCase.urgencyLevel) }}
+                  </span>
+                </td>
+                <td>
+                  <div>{{ formatDateTime(surgicalCase.scheduledDate, surgicalCase.scheduledStartTime) }}</div>
+                  <small class="text-muted">{{ surgicalCase.estimatedDurationMinutes || '-' }} min | {{ surgicalCase.operatingRoom || '-' }}</small>
+                </td>
+                <td>
+                  <div class="small">{{ surgicalCase.surgeonId || '-' }}</div>
+                  <small class="text-muted">{{ surgicalCase.nurseTeam || 'Nurse team N/A' }}</small>
+                </td>
+                <td>
+                  <select
+                    class="form-select form-select-sm status-select"
+                    [(ngModel)]="editStatus[surgicalCase.id]"
+                    [disabled]="isLockedCase(surgicalCase)"
+                  >
+                    <option *ngFor="let status of editableCaseStatuses" [value]="status">
+                      {{ labelFrom(caseStatusLabels, status) }}
+                    </option>
+                  </select>
+                  <small class="text-danger d-block mt-1" *ngIf="isLockedCase(surgicalCase)">
+                    Locked case (Pre-Op blocked or Post-Op unstable)
+                  </small>
+                </td>
+                <td>
+                  <select class="form-select form-select-sm status-select" [(ngModel)]="editOfferStatus[surgicalCase.id]">
+                    <option *ngFor="let status of offerStatuses" [value]="status">
+                      {{ labelFrom(offerStatusLabels, status) }}
+                    </option>
+                  </select>
+                </td>
+                <td class="text-end actions-cell">
+                  <div class="d-flex justify-content-end gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary btn-sm"
+                      (click)="updateStatus(surgicalCase)"
+                      [disabled]="isLockedCase(surgicalCase)"
+                    >
+                      Update Case
+                    </button>
+
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      (click)="updateOffer(surgicalCase)"
+                    >
+                      Update Offer
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger btn-sm"
+                      (click)="archiveCase(surgicalCase)"
+                      [disabled]="surgicalCase.status === 'ARCHIVED'"
+                    >
+                      Archive
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

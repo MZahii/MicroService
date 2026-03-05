@@ -40,6 +40,10 @@ export class Dashboard implements AfterViewInit {
     return this.role === 'HR';
   }
 
+  get isSurgeon(): boolean {
+    return this.role === 'SURGEON';
+  }
+
   get displayName(): string {
     if (this.user?.firstName && this.user?.lastName) {
       return `${this.user.firstName} ${this.user.lastName}`;
@@ -53,7 +57,19 @@ export class Dashboard implements AfterViewInit {
   }
 
   get roleBadgeClass(): string {
-    return this.isAdmin ? 'bg-soft-primary text-primary' : 'bg-soft-warning text-warning';
+    if (this.isAdmin) {
+      return 'bg-soft-primary text-primary';
+    }
+
+    if (this.isHr) {
+      return 'bg-soft-warning text-warning';
+    }
+
+    if (this.isSurgeon) {
+      return 'bg-soft-success text-success';
+    }
+
+    return 'bg-soft-secondary text-muted';
   }
 
   get roleDescription(): string {
@@ -63,6 +79,10 @@ export class Dashboard implements AfterViewInit {
 
     if (this.isHr) {
       return 'Human resources and operational management';
+    }
+
+    if (this.isSurgeon) {
+      return 'Procedure-service operations for surgical and dialysis management';
     }
 
     return 'Connected backoffice user';
@@ -77,6 +97,10 @@ export class Dashboard implements AfterViewInit {
       return 'Create Staff Account';
     }
 
+    if (this.isSurgeon) {
+      return 'Open Surgical Management';
+    }
+
     return 'Open Management';
   }
 
@@ -87,6 +111,10 @@ export class Dashboard implements AfterViewInit {
 
     if (this.isHr) {
       return '/backoffice/create-staff';
+    }
+
+    if (this.isSurgeon) {
+      return '/backoffice/procedures/surgical';
     }
 
     return '/backoffice/dashboard';
@@ -102,6 +130,48 @@ export class Dashboard implements AfterViewInit {
     progressClass: string;
   }> {
     return [
+      ...(this.isSurgeon
+        ? [
+          {
+            title: 'Surgical Cases',
+            value: 'Live',
+            subtitle: 'Create and update surgical cases',
+            progressLabel: 'procedure-service connected',
+            progressValue: 100,
+            icon: 'feather-scissors',
+            progressClass: 'bg-success'
+          },
+          {
+            title: 'Dialysis Plans',
+            value: 'Live',
+            subtitle: 'Manage dialysis plans from backoffice',
+            progressLabel: 'procedure-service connected',
+            progressValue: 100,
+            icon: 'feather-activity',
+            progressClass: 'bg-info'
+          },
+          {
+            title: 'Offer Decisions',
+            value: 'Live',
+            subtitle: 'Update transplant offer statuses',
+            progressLabel: 'SURGEON workflow',
+            progressValue: 100,
+            icon: 'feather-check-circle',
+            progressClass: 'bg-primary'
+          },
+          {
+            title: 'Service Access',
+            value: '8089',
+            subtitle: 'Direct access to procedure-service',
+            progressLabel: 'Local API endpoint',
+            progressValue: 100,
+            icon: 'feather-server',
+            progressClass: 'bg-warning'
+          }
+        ]
+        : []),
+      ...(!this.isSurgeon
+        ? [
       {
         title: 'Staff Management',
         value: 'Module',
@@ -138,11 +208,33 @@ export class Dashboard implements AfterViewInit {
         icon: 'feather-shield',
         progressClass: 'bg-warning'
       }
+        ]
+        : [])
     ];
   }
 
   get quickLinks(): Array<{ label: string; description: string; link: string; icon: string; visible: boolean }> {
     return [
+      ...(this.isSurgeon
+        ? [
+          {
+            label: 'Surgical Management',
+            description: 'Create cases and update surgical workflow statuses',
+            link: '/backoffice/procedures/surgical',
+            icon: 'feather-scissors',
+            visible: true
+          },
+          {
+            label: 'Dialysis Management',
+            description: 'Create and update dialysis plans from procedure-service',
+            link: '/backoffice/procedures/dialysis',
+            icon: 'feather-activity',
+            visible: true
+          }
+        ]
+        : []),
+      ...(!this.isSurgeon
+        ? [
       {
         label: 'Staff',
         description: this.isAdmin
@@ -191,6 +283,8 @@ export class Dashboard implements AfterViewInit {
         icon: 'feather-heart',
         visible: this.isHr
       }
+        ]
+        : [])
     ];
   }
 
@@ -213,6 +307,29 @@ export class Dashboard implements AfterViewInit {
           module: 'Clinic Resources',
           action: 'View clinic resource modules',
           role: 'ADMIN',
+          status: 'Allowed'
+        }
+      ];
+    }
+
+    if (this.isSurgeon) {
+      return [
+        {
+          module: 'Surgical',
+          action: 'Create and update surgical cases',
+          role: 'SURGEON',
+          status: 'Allowed'
+        },
+        {
+          module: 'Dialysis',
+          action: 'Create and update dialysis plans',
+          role: 'SURGEON',
+          status: 'Allowed'
+        },
+        {
+          module: 'Procedure Service',
+          action: 'Update transplant offer decisions',
+          role: 'SURGEON',
           status: 'Allowed'
         }
       ];

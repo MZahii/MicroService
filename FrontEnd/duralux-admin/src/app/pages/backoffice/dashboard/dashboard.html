@@ -126,7 +126,7 @@
             <div class="col-md-6">
               <div class="dashboard-info-box h-100">
                 <h6 class="fw-bold text-dark mb-3">
-                  {{ isAdmin ? 'What ADMIN can do' : 'What HR can do' }}
+                  {{ isAdmin ? 'What ADMIN can do' : isHr ? 'What HR can do' : isSurgeon ? 'What SURGEON can do' : 'What this role can do' }}
                 </h6>
 
                 <ul class="dashboard-list mb-0">
@@ -145,6 +145,14 @@
                     <li>Open staff list and related modules</li>
                     <li>Open patient list and clinic resource modules</li>
                   </ng-container>
+
+                  <ng-container *ngIf="isSurgeon">
+                    <li>Create surgical cases</li>
+                    <li>Update surgical case statuses</li>
+                    <li>Update transplant offer decisions</li>
+                    <li>Create dialysis plans</li>
+                    <li>Update dialysis plan statuses</li>
+                  </ng-container>
                 </ul>
               </div>
             </div>
@@ -154,19 +162,29 @@
                 <h6 class="fw-bold text-dark mb-3">Quick actions</h6>
 
                 <div class="d-grid gap-2">
-                  <a routerLink="/backoffice/staff" class="btn btn-light">
+                  <a *ngIf="!isSurgeon" routerLink="/backoffice/staff" class="btn btn-light">
                     <i class="feather-users me-2"></i>
                     Open Staff Module
                   </a>
 
-                  <a routerLink="/backoffice/patients" class="btn btn-light">
+                  <a *ngIf="!isSurgeon" routerLink="/backoffice/patients" class="btn btn-light">
                     <i class="feather-heart me-2"></i>
                     Open Patients Module
                   </a>
 
-                  <a routerLink="/backoffice/clinic-resources" class="btn btn-light">
+                  <a *ngIf="!isSurgeon" routerLink="/backoffice/clinic-resources" class="btn btn-light">
                     <i class="feather-grid me-2"></i>
                     Open Clinic Resources Module
+                  </a>
+
+                  <a *ngIf="isSurgeon" routerLink="/backoffice/procedures/surgical" class="btn btn-light">
+                    <i class="feather-scissors me-2"></i>
+                    Open Surgical Management
+                  </a>
+
+                  <a *ngIf="isSurgeon" routerLink="/backoffice/procedures/dialysis" class="btn btn-light">
+                    <i class="feather-activity me-2"></i>
+                    Open Dialysis Management
                   </a>
                 </div>
               </div>
@@ -283,7 +301,7 @@
 
         <div class="card-footer">
           <small class="text-muted">
-            Later, these modules will be connected to the real backend APIs from your team.
+            {{ isSurgeon ? 'These modules are directly connected to your procedure-service endpoints.' : 'Later, these modules will be connected to the real backend APIs from your team.' }}
           </small>
         </div>
       </div>
