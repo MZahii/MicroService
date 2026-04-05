@@ -1,21 +1,45 @@
 package tn.esprit.spring.userservice.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import tn.esprit.spring.userservice.dto.request.CreateGuardianAccountRequest;
 import tn.esprit.spring.userservice.dto.request.CreateHrAccountRequest;
 import tn.esprit.spring.userservice.dto.request.CreateInternalUserRequest;
 import tn.esprit.spring.userservice.dto.request.CreateStaffAccountRequest;
+import tn.esprit.spring.userservice.dto.request.StaffSearchRequest;
+import tn.esprit.spring.userservice.dto.request.UpdateGuardianProfileRequest;
+import tn.esprit.spring.userservice.dto.request.UpdateHrProfileRequest;
+import tn.esprit.spring.userservice.dto.request.UpdateStaffProfileRequest;
+import tn.esprit.spring.userservice.dto.response.StaffSearchResponse;
+import tn.esprit.spring.userservice.dto.response.UserAuditLogResponse;
 import tn.esprit.spring.userservice.dto.response.UserResponse;
 import tn.esprit.spring.userservice.entity.AccountStatus;
 import tn.esprit.spring.userservice.entity.Role;
 import tn.esprit.spring.userservice.entity.User;
+import tn.esprit.spring.userservice.entity.UserAuditLog;
 import tn.esprit.spring.userservice.mapper.UserMapper;
+import tn.esprit.spring.userservice.repository.UserAuditLogRepository;
+import tn.esprit.spring.userservice.service.InternalNotificationBridgeService;
 import tn.esprit.spring.userservice.repository.UserRepository;
 import tn.esprit.spring.userservice.service.KeycloakAdminService;
 import tn.esprit.spring.userservice.service.UserService;
 
+import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -24,6 +48,9 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final KeycloakAdminService keycloakAdminService;
+    private final InternalNotificationBridgeService notificationBridgeService;
+    private final UserAuditLogRepository userAuditLogRepository;
+    private final ObjectMapper objectMapper;
 
     private static final Set<Role> ALLOWED_STAFF_ROLES = Set.of(
             Role.DOCTOR,
@@ -46,7 +73,7 @@ public class UserServiceImpl implements UserService {
                 request.getLastName(),
                 generatedPassword,
                 Role.HR.name(),
-                true
+                false
         );
 
         User user = userRepository.save(
@@ -61,10 +88,11 @@ public class UserServiceImpl implements UserService {
                         .dateOfBirth(request.getDateOfBirth())
                         .sex(request.getSex())
                         .role(Role.HR)
-                        .accountStatus(AccountStatus.ACTIVE)
-                        .enabled(true)
+                        .accountStatus(AccountStatus.PENDING_CONTRACT)
+                        .enabled(false)
                         .build()
         );
+        saveAudit(user.getId(), "HrAccountCreated", null, userSnapshot(user));
 
         return UserMapper.toResponse(user);
     }
@@ -75,11 +103,11 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("HR cannot create role: " + request.getRole());
         }
 
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (userRepository.existsByUsernameAndDeletedFalse(request.getUsername())) {
             throw new IllegalArgumentException("Username already exists");
         }
 
-        if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
+        if (request.getEmail() != null && userRepository.existsByEmailAndDeletedFalse(request.getEmail())) {
             throw new IllegalArgumentException("Email already exists");
         }
 
@@ -108,6 +136,7 @@ public class UserServiceImpl implements UserService {
                         .enabled(false)
                         .build()
         );
+        saveAudit(user.getId(), "InternalAccountCreated", null, userSnapshot(user));
 
         return UserMapper.toResponse(user);
     }
@@ -148,25 +177,26 @@ public class UserServiceImpl implements UserService {
                         .enabled(false)
                         .build()
         );
+        saveAudit(user.getId(), "StaffAccountCreated", null, userSnapshot(user));
 
         return UserMapper.toResponse(user);
     }
 
     @Override
     public UserResponse createGuardian(CreateGuardianAccountRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (userRepository.existsByUsernameAndDeletedFalse(request.getUsername())) {
             throw new IllegalArgumentException("Username already exists");
         }
 
-        if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
+        if (request.getEmail() != null && userRepository.existsByEmailAndDeletedFalse(request.getEmail())) {
             throw new IllegalArgumentException("Email already exists");
         }
 
-        if (userRepository.existsByCin(request.getCin())) {
+        if (userRepository.existsByCinAndDeletedFalse(request.getCin())) {
             throw new IllegalArgumentException("CIN already exists");
         }
 
-        if (request.getPhone() != null && userRepository.existsByPhone(request.getPhone())) {
+        if (request.getPhone() != null && userRepository.existsByPhoneAndDeletedFalse(request.getPhone())) {
             throw new IllegalArgumentException("Phone already exists");
         }
 
@@ -198,21 +228,22 @@ public class UserServiceImpl implements UserService {
                         .enabled(true)
                         .build()
         );
+        saveAudit(user.getId(), "GuardianAccountCreated", null, userSnapshot(user));
 
         return UserMapper.toResponse(user);
     }
 
     @Override
     public List<UserResponse> getAllUsers() {
-        return userRepository.findAll()
-                .stream()
+        return userRepository.findAll().stream()
+                .filter(user -> !user.isDeleted())
                 .map(UserMapper::toResponse)
                 .toList();
     }
 
     @Override
     public List<UserResponse> getGuardians() {
-        return userRepository.findByRole(Role.GUARDIAN)
+        return userRepository.findByRoleAndDeletedFalse(Role.GUARDIAN)
                 .stream()
                 .map(UserMapper::toResponse)
                 .toList();
@@ -220,8 +251,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse updateActivation(Long userId, boolean enabled) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndDeletedFalse(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+        Map<String, Object> before = userSnapshot(user);
 
         keycloakAdminService.updateUserEnabled(user.getKeycloakId(), enabled);
 
@@ -229,36 +261,426 @@ public class UserServiceImpl implements UserService {
         user.setAccountStatus(enabled ? AccountStatus.ACTIVE : AccountStatus.INACTIVE);
 
         User saved = userRepository.save(user);
+        saveAudit(saved.getId(), "AccountStatusChanged", before, userSnapshot(saved));
+        notifyAccountStatusChanged(saved, before, userSnapshot(saved));
+        return UserMapper.toResponse(saved);
+    }
+
+    @Override
+    public UserResponse updateAccountStatus(Long userId, AccountStatus accountStatus) {
+        User user = userRepository.findByIdAndDeletedFalse(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+        Map<String, Object> before = userSnapshot(user);
+
+        boolean enabled = accountStatus == AccountStatus.ACTIVE;
+        keycloakAdminService.updateUserEnabled(user.getKeycloakId(), enabled);
+        user.setAccountStatus(accountStatus);
+        user.setEnabled(enabled);
+        User saved = userRepository.save(user);
+        saveAudit(saved.getId(), "AccountStatusChanged", before, userSnapshot(saved));
+        notifyAccountStatusChanged(saved, before, userSnapshot(saved));
+        return UserMapper.toResponse(saved);
+    }
+
+    @Override
+    public UserResponse updateStaffProfile(Long userId, UpdateStaffProfileRequest request) {
+        User user = userRepository.findByIdAndDeletedFalse(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+        Map<String, Object> before = userSnapshot(user);
+
+        if (!ALLOWED_STAFF_ROLES.contains(user.getRole())) {
+            throw new IllegalArgumentException("This endpoint is allowed only for staff accounts.");
+        }
+
+        if (request.getRole() == null || !ALLOWED_STAFF_ROLES.contains(request.getRole())) {
+            throw new IllegalArgumentException("Invalid staff role: " + request.getRole());
+        }
+
+        String normalizedEmail = request.getEmail().trim();
+        if (userRepository.existsByEmailAndIdNot(normalizedEmail, userId)) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+
+        String normalizedPhone = request.getPhone() == null ? null : request.getPhone().trim();
+        if (normalizedPhone != null && !normalizedPhone.isEmpty() && userRepository.existsByPhoneAndIdNot(normalizedPhone, userId)) {
+            throw new IllegalArgumentException("Phone already exists");
+        }
+
+        keycloakAdminService.updateUserProfileAndRole(
+                user.getKeycloakId(),
+                normalizedEmail,
+                request.getFirstName().trim(),
+                request.getLastName().trim(),
+                request.getRole()
+        );
+
+        user.setFirstName(request.getFirstName().trim());
+        user.setLastName(request.getLastName().trim());
+        user.setEmail(normalizedEmail);
+        user.setPhone((normalizedPhone == null || normalizedPhone.isEmpty()) ? null : normalizedPhone);
+        user.setDateOfBirth(request.getDateOfBirth());
+        user.setSex(request.getSex());
+        user.setRole(request.getRole());
+
+        User saved = userRepository.save(user);
+        saveAudit(saved.getId(), "StaffProfileUpdated", before, userSnapshot(saved));
+        notifyProfileUpdated(saved, before, userSnapshot(saved));
+        return UserMapper.toResponse(saved);
+    }
+
+    @Override
+    public UserResponse updateHrProfile(Long userId, UpdateHrProfileRequest request) {
+        User user = userRepository.findByIdAndDeletedFalse(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+        Map<String, Object> before = userSnapshot(user);
+
+        if (user.getRole() != Role.HR) {
+            throw new IllegalArgumentException("This endpoint is allowed only for HR accounts.");
+        }
+
+        String normalizedEmail = request.getEmail().trim();
+        if (userRepository.existsByEmailAndIdNot(normalizedEmail, userId)) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+
+        keycloakAdminService.updateUserProfileAndRole(
+                user.getKeycloakId(),
+                normalizedEmail,
+                request.getFirstName().trim(),
+                request.getLastName().trim(),
+                Role.HR
+        );
+
+        user.setFirstName(request.getFirstName().trim());
+        user.setLastName(request.getLastName().trim());
+        user.setEmail(normalizedEmail);
+        user.setDateOfBirth(request.getDateOfBirth());
+        user.setSex(request.getSex());
+        user.setRole(Role.HR);
+
+        User saved = userRepository.save(user);
+        saveAudit(saved.getId(), "HrProfileUpdated", before, userSnapshot(saved));
+        notifyProfileUpdated(saved, before, userSnapshot(saved));
+        return UserMapper.toResponse(saved);
+    }
+
+    @Override
+    public UserResponse updateGuardianProfile(Long userId, UpdateGuardianProfileRequest request) {
+        User user = userRepository.findByIdAndDeletedFalse(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+        Map<String, Object> before = userSnapshot(user);
+
+        if (user.getRole() != Role.GUARDIAN) {
+            throw new IllegalArgumentException("This endpoint is allowed only for guardian accounts.");
+        }
+
+        String normalizedEmail = request.getEmail().trim();
+        if (userRepository.existsByEmailAndIdNot(normalizedEmail, userId)) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+
+        String normalizedPhone = request.getPhone() == null ? null : request.getPhone().trim();
+        if (normalizedPhone != null && !normalizedPhone.isEmpty() && userRepository.existsByPhoneAndIdNot(normalizedPhone, userId)) {
+            throw new IllegalArgumentException("Phone already exists");
+        }
+
+        keycloakAdminService.updateUserProfileAndRole(
+                user.getKeycloakId(),
+                normalizedEmail,
+                request.getFirstName().trim(),
+                request.getLastName().trim(),
+                Role.GUARDIAN
+        );
+
+        user.setFirstName(request.getFirstName().trim());
+        user.setLastName(request.getLastName().trim());
+        user.setEmail(normalizedEmail);
+        user.setPhone((normalizedPhone == null || normalizedPhone.isEmpty()) ? null : normalizedPhone);
+
+        User saved = userRepository.save(user);
+        saveAudit(saved.getId(), "GuardianProfileUpdated", before, userSnapshot(saved));
+        notifyProfileUpdated(saved, before, userSnapshot(saved));
+        return UserMapper.toResponse(saved);
+    }
+
+    @Override
+    public UserResponse getUserById(Long userId) {
+        User user = userRepository.findByIdAndDeletedFalse(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+        return UserMapper.toResponse(user);
+    }
+
+    @Override
+    public List<UserAuditLogResponse> getUserAuditLogs(Long userId) {
+        return userAuditLogRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(UserAuditLogResponse::from)
+                .toList();
+    }
+
+    @Override
+    public List<UserAuditLogResponse> getAllUserAuditLogs() {
+        return userAuditLogRepository.findTop500ByOrderByCreatedAtDesc()
+                .stream()
+                .map(UserAuditLogResponse::from)
+                .toList();
+    }
+
+    @Override
+    public StaffSearchResponse searchStaff(StaffSearchRequest request) {
+        int page = Math.max(0, request.getPage());
+        int size = Math.min(100, Math.max(1, request.getSize()));
+        String sortBy = (request.getSortBy() == null || request.getSortBy().isBlank()) ? "firstName" : request.getSortBy();
+        Sort.Direction direction = "desc".equalsIgnoreCase(request.getSortDir()) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        Specification<User> spec = (root, query, cb) -> cb.isFalse(root.get("deleted"));
+        spec = spec.and((root, query, cb) -> root.get("role").in(ALLOWED_STAFF_ROLES));
+
+        if (request.getRoles() != null && !request.getRoles().isEmpty()) {
+            spec = spec.and((root, query, cb) -> root.get("role").in(request.getRoles()));
+        }
+        if (request.getStatuses() != null && !request.getStatuses().isEmpty()) {
+            spec = spec.and((root, query, cb) -> root.get("accountStatus").in(request.getStatuses()));
+        }
+        if (request.getEnabled() != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("enabled"), request.getEnabled()));
+        }
+        if (request.getQuery() != null && !request.getQuery().isBlank()) {
+            String like = "%" + request.getQuery().trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("username")), like),
+                    cb.like(cb.lower(root.get("firstName")), like),
+                    cb.like(cb.lower(root.get("lastName")), like),
+                    cb.like(cb.lower(root.get("email")), like),
+                    cb.like(cb.lower(root.get("phone")), like)
+            ));
+        }
+
+        var resultPage = userRepository.findAll(spec, pageable);
+        return StaffSearchResponse.builder()
+                .items(resultPage.getContent().stream().map(UserMapper::toResponse).toList())
+                .totalElements(resultPage.getTotalElements())
+                .totalPages(resultPage.getTotalPages())
+                .page(resultPage.getNumber())
+                .size(resultPage.getSize())
+                .build();
+    }
+
+    @Override
+    public long countPendingUsersOlderThanDays(int days) {
+        int safeDays = Math.max(1, days);
+        return userRepository.countPendingContractOlderThan(LocalDateTime.now().minusDays(safeDays));
+    }
+
+    @Override
+    public UserResponse softDeleteUser(Long userId) {
+        User user = userRepository.findByIdAndDeletedFalse(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+        Map<String, Object> before = userSnapshot(user);
+
+        user.setDeleted(true);
+        user.setDeletedAt(LocalDateTime.now());
+        user.setEnabled(false);
+        user.setAccountStatus(AccountStatus.INACTIVE);
+        User saved = userRepository.save(user);
+        saveAudit(saved.getId(), "UserSoftDeleted", before, userSnapshot(saved));
+        return UserMapper.toResponse(saved);
+    }
+
+    @Override
+    public UserResponse restoreUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+        if (!user.isDeleted()) {
+            return UserMapper.toResponse(user);
+        }
+        Map<String, Object> before = userSnapshot(user);
+
+        user.setDeleted(false);
+        user.setDeletedAt(null);
+        User saved = userRepository.save(user);
+        saveAudit(saved.getId(), "UserRestored", before, userSnapshot(saved));
         return UserMapper.toResponse(saved);
     }
 
     private void validateHrRequest(CreateHrAccountRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (userRepository.existsByUsernameAndDeletedFalse(request.getUsername())) {
             throw new IllegalArgumentException("Username already exists");
         }
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmailAndDeletedFalse(request.getEmail())) {
             throw new IllegalArgumentException("Email already exists");
         }
-        if (userRepository.existsByCin(request.getCin())) {
+        if (userRepository.existsByCinAndDeletedFalse(request.getCin())) {
             throw new IllegalArgumentException("CIN already exists");
         }
-        if (request.getPhone() != null && userRepository.existsByPhone(request.getPhone())) {
+        if (request.getPhone() != null && userRepository.existsByPhoneAndDeletedFalse(request.getPhone())) {
             throw new IllegalArgumentException("Phone already exists");
         }
     }
 
     private void validateStaffRequest(CreateStaffAccountRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (userRepository.existsByUsernameAndDeletedFalse(request.getUsername())) {
             throw new IllegalArgumentException("Username already exists");
         }
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmailAndDeletedFalse(request.getEmail())) {
             throw new IllegalArgumentException("Email already exists");
         }
-        if (userRepository.existsByCin(request.getCin())) {
+        if (userRepository.existsByCinAndDeletedFalse(request.getCin())) {
             throw new IllegalArgumentException("CIN already exists");
         }
-        if (request.getPhone() != null && userRepository.existsByPhone(request.getPhone())) {
+        if (request.getPhone() != null && userRepository.existsByPhoneAndDeletedFalse(request.getPhone())) {
             throw new IllegalArgumentException("Phone already exists");
         }
     }
+
+    private void saveAudit(Long userId, String action, Object oldValue, Object newValue) {
+        userAuditLogRepository.save(
+                UserAuditLog.builder()
+                        .userId(userId)
+                        .action(action)
+                        .actor(resolveActor())
+                        .oldValue(writeJson(oldValue))
+                        .newValue(writeJson(newValue))
+                        .build()
+        );
+    }
+
+    private String resolveActor() {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes != null && attributes.getRequest() != null) {
+            String actorHeader = attributes.getRequest().getHeader("X-Actor-Username");
+            if (actorHeader != null && !actorHeader.isBlank()) {
+                return actorHeader.trim();
+            }
+            String authorization = attributes.getRequest().getHeader("Authorization");
+            String fromToken = extractUsernameFromBearer(authorization);
+            if (fromToken != null && !fromToken.isBlank()) {
+                return fromToken.trim();
+            }
+        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "SYSTEM";
+        }
+        return authentication.getName();
+    }
+
+    private String extractUsernameFromBearer(String authorization) {
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+            return null;
+        }
+        try {
+            String token = authorization.substring(7);
+            String[] parts = token.split("\\.");
+            if (parts.length < 2) {
+                return null;
+            }
+            byte[] decoded = Base64.getUrlDecoder().decode(parts[1]);
+            Map<?, ?> claims = objectMapper.readValue(new String(decoded, StandardCharsets.UTF_8), Map.class);
+            Object preferred = claims.get("preferred_username");
+            if (preferred instanceof String preferredUsername && !preferredUsername.isBlank()) {
+                return preferredUsername;
+            }
+            Object sub = claims.get("sub");
+            return (sub instanceof String) ? (String) sub : null;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private String writeJson(Object value) {
+        if (value == null) return null;
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException ex) {
+            return String.valueOf(value);
+        }
+    }
+
+    private Map<String, Object> userSnapshot(User user) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", user.getId());
+        map.put("username", user.getUsername());
+        map.put("email", user.getEmail());
+        map.put("firstName", user.getFirstName());
+        map.put("lastName", user.getLastName());
+        map.put("role", String.valueOf(user.getRole()));
+        map.put("accountStatus", String.valueOf(user.getAccountStatus()));
+        map.put("enabled", user.isEnabled());
+        return map;
+    }
+
+    private void notifyAccountStatusChanged(User user, Map<String, Object> before, Map<String, Object> after) {
+        String accountStatus = String.valueOf(after.get("accountStatus"));
+        String title;
+        if ("INACTIVE".equalsIgnoreCase(accountStatus)) {
+            title = "Account Deactivated";
+        } else if ("ACTIVE".equalsIgnoreCase(accountStatus)) {
+            title = "Account Activated";
+        } else {
+            title = "Account Status Updated";
+        }
+
+        String changes = buildChangesMessage(before, after);
+        notificationBridgeService.pushNotification(
+                "AccountStatusChanged",
+                title,
+                "Your account status was updated. " + changes,
+                user.getId()
+        );
+    }
+
+    private void notifyProfileUpdated(User user, Map<String, Object> before, Map<String, Object> after) {
+        String changes = buildChangesMessage(before, after);
+        notificationBridgeService.pushNotification(
+                "ProfileUpdated",
+                "Account Profile Updated",
+                "Your account profile was updated. " + changes,
+                user.getId()
+        );
+    }
+
+    private String buildChangesMessage(Map<String, Object> before, Map<String, Object> after) {
+        if (before == null || after == null) {
+            return "No detailed field diff available.";
+        }
+        List<String> changes = new java.util.ArrayList<>();
+        for (String key : after.keySet()) {
+            if ("id".equals(key) || "username".equals(key)) {
+                continue;
+            }
+            Object oldVal = before.get(key);
+            Object newVal = after.get(key);
+            if (!valuesEqual(oldVal, newVal)) {
+                changes.add(humanizeField(key) + ": " + stringifyValue(oldVal) + " -> " + stringifyValue(newVal));
+            }
+        }
+        if (changes.isEmpty()) {
+            return "No visible field changes.";
+        }
+        return "Changed: " + String.join(" | ", changes);
+    }
+
+    private boolean valuesEqual(Object oldVal, Object newVal) {
+        return java.util.Objects.equals(oldVal, newVal);
+    }
+
+    private String stringifyValue(Object value) {
+        if (value == null) return "-";
+        String raw = String.valueOf(value);
+        return raw.isBlank() ? "-" : raw;
+    }
+
+    private String humanizeField(String key) {
+        return switch (key) {
+            case "firstName" -> "First Name";
+            case "lastName" -> "Last Name";
+            case "dateOfBirth" -> "Date Of Birth";
+            case "accountStatus" -> "Account Status";
+            case "enabled" -> "Access";
+            default -> key.replaceAll("([a-z])([A-Z])", "$1 $2");
+        };
+    }
 }
+

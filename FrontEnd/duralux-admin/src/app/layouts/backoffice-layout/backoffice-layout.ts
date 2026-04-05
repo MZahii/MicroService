@@ -6,6 +6,7 @@ import {
   OnInit
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import {
   NavigationEnd,
   Router,
@@ -13,10 +14,11 @@ import {
   RouterLinkActive,
   RouterOutlet
 } from '@angular/router';
-import { filter, Subscription } from 'rxjs';
+import { filter, firstValueFrom, Subscription } from 'rxjs';
 import { AuthStorageService } from '../../core/auth/auth-storage.service';
-import { logout } from '../../core/auth/keycloak.service';
+import { getValidToken, logout } from '../../core/auth/keycloak.service';
 import { TemplateAssetsService } from '../../core/services/template-assets.service';
+import { environment } from '../../../environments/environment';
 
 declare const window: any;
 
@@ -36,6 +38,7 @@ const BACKOFFICE_SCRIPTS: string[] = [
 interface BackofficeNavChild {
   label: string;
   route?: string;
+  queryParams?: Record<string, string>;
   implemented: boolean;
   note?: string;
 }
@@ -47,6 +50,16 @@ interface BackofficeNavItem {
   route?: string;
   exact?: boolean;
   children?: BackofficeNavChild[];
+}
+
+interface HeaderNotification {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  targetUserId?: number;
+  read: boolean;
+  createdAt: string;
 }
 
 @Component({
@@ -64,6 +77,15 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
   private navSub?: Subscription;
 
   userMenuOpen = false;
+  notificationsOpen = false;
+  loadingNotifications = false;
+  notifications: HeaderNotification[] = [];
+  unreadCount = 0;
+  hasNewNotificationPulse = false;
+
+  private notificationsTimer?: ReturnType<typeof setInterval>;
+  private lastNotificationId?: number;
+  private readonly notificationsPollMs = 15000;
 
   openMenus: Record<string, boolean> = {
     accounts: false,
@@ -79,7 +101,8 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
   constructor(
     private authStorage: AuthStorageService,
     private templateAssetsService: TemplateAssetsService,
-    private router: Router
+    private router: Router,
+    private http: HttpClient
   ) {
     this.user = this.authStorage.getUser();
     this.role = this.authStorage.getRole() ?? '';
@@ -96,6 +119,17 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
 
   get isReceptionist(): boolean {
     return this.role === 'RECEPTIONIST';
+  }
+
+  get canViewMyContract(): boolean {
+    return !this.isAdmin;
+  }
+
+  get userId(): number | null {
+    const rawId = this.user?.userId;
+    if (rawId === undefined || rawId === null || rawId === '') return null;
+    const parsed = Number(rawId);
+    return Number.isNaN(parsed) ? null : parsed;
   }
 
   get displayName(): string {
@@ -151,6 +185,14 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
 
     if (this.isAdmin) {
       items.push({
+        key: 'logs',
+        label: 'Audit Logs',
+        icon: 'feather-activity',
+        route: '/backoffice/logs',
+        exact: true
+      });
+
+      items.push({
         key: 'accounts',
         label: 'Accounts',
         icon: 'feather-users',
@@ -163,6 +205,12 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
           {
             label: 'HR List',
             route: '/backoffice/hr-list',
+            implemented: true
+          },
+          {
+            label: 'HR Contracts List',
+            route: '/backoffice/contracts',
+            queryParams: { scope: 'HR' },
             implemented: true
           }
         ]
@@ -196,11 +244,27 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
           label: 'Staff',
           icon: 'feather-briefcase',
           children: [
+            ...(this.isAdmin
+              ? [{
+                label: 'Staff & Roles Details',
+                route: '/backoffice/staff-details',
+                implemented: true
+              } as BackofficeNavChild]
+              : []),
             {
-              label: 'Roles & Staff Details',
-              route: '/backoffice/staff-details',
+              label: 'StaffContracts List',
+              route: '/backoffice/contracts',
               implemented: true
-            }
+            },
+            ...(this.isHr
+              ? [
+                {
+                  label: 'Create Contract',
+                  route: '/backoffice/contracts/create',
+                  implemented: true
+                } as BackofficeNavChild
+              ]
+              : [])
           ]
         },
       );
@@ -254,6 +318,11 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
                 label: 'Create Guardian + Patient Profile',
                 route: '/backoffice/create-guardian-patient',
                 implemented: true
+              } as BackofficeNavChild,
+              {
+                label: 'Existing Guardian + New Patient',
+                route: '/backoffice/existing-guardian-patient',
+                implemented: true
               } as BackofficeNavChild
             ]
             : []),
@@ -285,10 +354,16 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe(() => {
         this.userMenuOpen = false;
+        this.notificationsOpen = false;
         setTimeout(() => {
           this.refreshFeatherIcons();
         }, 120);
       });
+
+    await this.loadNotifications(true);
+    this.notificationsTimer = setInterval(() => {
+      this.loadNotifications();
+    }, this.notificationsPollMs);
   }
 
   ngAfterViewInit(): void {
@@ -299,6 +374,9 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
 
   ngOnDestroy(): void {
     this.navSub?.unsubscribe();
+    if (this.notificationsTimer) {
+      clearInterval(this.notificationsTimer);
+    }
     this.templateAssetsService.unloadGroup('backoffice');
     document.body.classList.remove('backoffice-body');
   }
@@ -326,6 +404,7 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
 
   toggleUserMenu(event: MouseEvent): void {
     event.stopPropagation();
+    this.notificationsOpen = false;
     this.userMenuOpen = !this.userMenuOpen;
 
     setTimeout(() => {
@@ -336,8 +415,82 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement | null;
+    if (!target?.closest('.notifications-menu')) {
+      this.notificationsOpen = false;
+    }
     if (!target?.closest('.user-menu')) {
       this.userMenuOpen = false;
+    }
+  }
+
+  async toggleNotifications(event: MouseEvent): Promise<void> {
+    event.stopPropagation();
+    this.userMenuOpen = false;
+    this.notificationsOpen = !this.notificationsOpen;
+
+    if (this.notificationsOpen) {
+      await this.loadNotifications();
+      if (this.unreadCount > 0) {
+        await this.markAllVisibleAsRead();
+      }
+    }
+  }
+
+  async markAsRead(notificationId: number): Promise<void> {
+    if (!notificationId) return;
+    try {
+      const token = await getValidToken();
+      const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+      await firstValueFrom(this.http.patch(
+        `${environment.apiBaseUrl}/api/observability/notifications/${notificationId}/read`,
+        {},
+        { headers }
+      ));
+      const target = this.notifications.find((n) => n.id === notificationId);
+      if (target) {
+        target.read = true;
+      }
+      this.unreadCount = this.notifications.filter((n) => !n.read).length;
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  }
+
+  async markAllVisibleAsRead(): Promise<void> {
+    const unread = this.notifications.filter((n) => !n.read);
+    if (unread.length === 0) return;
+    await Promise.all(unread.map((n) => this.markAsRead(n.id)));
+  }
+
+  private async loadNotifications(initial = false): Promise<void> {
+    if (this.loadingNotifications) return;
+    this.loadingNotifications = true;
+    try {
+      const token = await getValidToken();
+      const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+      const query = this.userId != null ? `?userId=${this.userId}` : '';
+      const response = await firstValueFrom(this.http.get<HeaderNotification[] | unknown>(
+        `${environment.apiBaseUrl}/api/observability/notifications${query}`,
+        { headers }
+      ));
+      const fetched = Array.isArray(response) ? response : [];
+      this.notifications = fetched.slice(0, 8);
+      this.unreadCount = this.notifications.filter((n) => !n.read).length;
+
+      const newestId = this.notifications[0]?.id;
+      if (!initial && newestId != null && this.lastNotificationId != null && newestId !== this.lastNotificationId) {
+        this.hasNewNotificationPulse = true;
+        setTimeout(() => {
+          this.hasNewNotificationPulse = false;
+        }, 5000);
+      }
+      if (newestId != null) {
+        this.lastNotificationId = newestId;
+      }
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+    } finally {
+      this.loadingNotifications = false;
     }
   }
 

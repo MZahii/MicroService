@@ -37,15 +37,43 @@ public class GatewaySecurityConfig {
                 .authorizeExchange(ex -> ex
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .pathMatchers("/api/auth/login").permitAll()
+                        .pathMatchers("/api/auth/refresh").permitAll()
                         .pathMatchers("/ops/**").permitAll()
                         .pathMatchers("/actuator/**").permitAll()
 
                         .pathMatchers(HttpMethod.POST, "/api/users/hr").hasRole("ADMIN")
+                        .pathMatchers(HttpMethod.POST, "/api/users/staff/search").hasAnyRole("ADMIN", "HR")
+                        .pathMatchers(HttpMethod.PATCH, "/api/users/hr/**").hasRole("ADMIN")
                         .pathMatchers(HttpMethod.POST, "/api/users/internal").hasRole("HR")
                         .pathMatchers(HttpMethod.POST, "/api/users/staff").hasRole("HR")
+                        .pathMatchers(HttpMethod.PATCH, "/api/users/staff/**").hasRole("HR")
                         .pathMatchers(HttpMethod.POST, "/api/users/guardian").hasRole("RECEPTIONIST")
+                        .pathMatchers(HttpMethod.PATCH, "/api/users/guardian/**").hasAnyRole("ADMIN", "RECEPTIONIST")
+                        .pathMatchers(HttpMethod.GET, "/api/users/audit").hasRole("ADMIN")
+                        .pathMatchers(HttpMethod.GET, "/api/users/*/audit").hasAnyRole("ADMIN", "HR")
+                        .pathMatchers(HttpMethod.PATCH, "/api/users/*/soft-delete").hasAnyRole("ADMIN", "HR")
+                        .pathMatchers(HttpMethod.PATCH, "/api/users/*/restore").hasAnyRole("ADMIN", "HR")
                         .pathMatchers(HttpMethod.GET, "/api/users/guardians").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .pathMatchers(HttpMethod.GET, "/api/users/**").hasAnyRole("ADMIN", "HR")
+                        .pathMatchers(HttpMethod.POST, "/api/contracts/**").hasAnyRole("ADMIN", "HR")
+                        .pathMatchers(HttpMethod.PUT, "/api/contracts/**").hasAnyRole("ADMIN", "HR")
+                        .pathMatchers(HttpMethod.PATCH, "/api/contracts/**").hasAnyRole("ADMIN", "HR")
+                        .pathMatchers(HttpMethod.DELETE, "/api/contracts/**").hasAnyRole("ADMIN", "HR")
+                        .pathMatchers(HttpMethod.GET, "/api/contracts").hasAnyRole(
+                                "ADMIN",
+                                "HR",
+                                "DOCTOR",
+                                "NURSE",
+                                "SURGEON",
+                                "PHARMACIST",
+                                "RECEPTIONIST",
+                                "GUARDIAN"
+                        )
+                        .pathMatchers(HttpMethod.GET, "/api/contracts/alerts/action-required").hasAnyRole("ADMIN", "HR", "RECEPTIONIST")
+                        .pathMatchers(HttpMethod.GET, "/api/contracts/**").hasAnyRole("ADMIN", "HR")
+                        .pathMatchers(HttpMethod.GET, "/api/observability/contracts/timeline").hasRole("ADMIN")
+                        .pathMatchers(HttpMethod.GET, "/api/observability/**").hasAnyRole("ADMIN", "HR", "RECEPTIONIST", "DOCTOR", "NURSE", "SURGEON", "PHARMACIST", "GUARDIAN")
+                        .pathMatchers(HttpMethod.PATCH, "/api/observability/**").hasAnyRole("ADMIN", "HR", "RECEPTIONIST", "DOCTOR", "NURSE", "SURGEON", "PHARMACIST", "GUARDIAN")
                         .pathMatchers(HttpMethod.POST, "/api/patients/**").hasRole("RECEPTIONIST")
                         .pathMatchers(HttpMethod.GET, "/api/patients/**").hasAnyRole(
                                 "ADMIN",
@@ -124,6 +152,7 @@ public class GatewaySecurityConfig {
                 "GET",
                 "POST",
                 "PUT",
+                "PATCH",
                 "DELETE",
                 "OPTIONS"
         ));

@@ -37,8 +37,10 @@
                   name="username"
                   [(ngModel)]="staffForm.username"
                   placeholder="Enter username"
+                  minlength="3"
                   required
                 />
+                <small class="text-muted">Minimum 3 characters. Must be unique among staff accounts.</small>
               </div>
 
               <div class="col-md-6 mb-4">
@@ -49,10 +51,14 @@
                   name="cin"
                   [(ngModel)]="staffForm.cin"
                   placeholder="Enter CIN"
+                  inputmode="numeric"
+                  minlength="8"
+                  maxlength="9"
+                  pattern="[0-9]{8,9}"
                   required
                 />
                 <small class="text-muted">
-                  Initial password is CIN. Account remains disabled until contract creation.
+                  CIN must be 8 to 9 digits. Initial password is CIN.
                 </small>
               </div>
 
@@ -64,8 +70,10 @@
                   name="firstName"
                   [(ngModel)]="staffForm.firstName"
                   placeholder="Enter first name"
+                  minlength="3"
                   required
                 />
+                <small class="text-muted">Minimum 3 letters.</small>
               </div>
 
               <div class="col-md-6 mb-4">
@@ -76,8 +84,10 @@
                   name="lastName"
                   [(ngModel)]="staffForm.lastName"
                   placeholder="Enter last name"
+                  minlength="3"
                   required
                 />
+                <small class="text-muted">Minimum 3 letters.</small>
               </div>
 
               <div class="col-md-6 mb-4">
@@ -90,18 +100,27 @@
                   placeholder="Enter email"
                   required
                 />
+                <small class="text-muted">Use a valid email format (example: name@domain.com).</small>
               </div>
 
               <div class="col-md-6 mb-4">
                 <label class="form-label fw-semibold">Phone</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  name="phone"
-                  [(ngModel)]="staffForm.phone"
-                  placeholder="Enter phone number"
-                  required
-                />
+                <div class="phone-group">
+                  <span class="phone-prefix">+216</span>
+                  <input
+                    type="text"
+                    class="form-control"
+                    name="phone"
+                    [(ngModel)]="staffForm.phone"
+                    placeholder="8-digit phone number"
+                    inputmode="numeric"
+                    minlength="8"
+                    maxlength="8"
+                    pattern="[2459][0-9]{7}"
+                    required
+                  />
+                </div>
+                <small class="text-muted">Exactly 8 digits. Must start with 2, 4, 5, or 9.</small>
               </div>
 
               <div class="col-md-6 mb-4">
@@ -111,8 +130,10 @@
                   class="form-control"
                   name="dateOfBirth"
                   [(ngModel)]="staffForm.dateOfBirth"
+                  [max]="maxBirthDate"
                   required
                 />
+                <small class="text-muted">Staff user must be at least 18 years old.</small>
               </div>
 
               <div class="col-md-3 mb-4">
@@ -149,13 +170,13 @@
               <button
                 type="submit"
                 class="btn btn-primary"
-                [disabled]="loading || staffFormRef.invalid"
+                [disabled]="loading || loadingUsers || staffFormRef.invalid"
               >
                 {{ loading ? 'CREATING...' : 'CREATE STAFF ACCOUNT' }}
               </button>
 
-              <a routerLink="/backoffice/dashboard" class="btn btn-light-brand">
-                BACK TO DASHBOARD
+              <a routerLink="/backoffice/staff" class="btn btn-light-brand">
+                BACK TO STAFF LIST
               </a>
             </div>
           </form>

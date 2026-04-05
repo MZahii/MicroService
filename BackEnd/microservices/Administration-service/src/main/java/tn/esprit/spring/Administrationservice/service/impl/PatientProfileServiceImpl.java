@@ -36,6 +36,24 @@ public class PatientProfileServiceImpl implements PatientProfileService {
     }
 
     @Override
+    public PatientProfileResponse update(Long patientId, CreatePatientProfileRequest request) {
+        PatientProfile profile = patientProfileRepository.findById(patientId)
+                .orElseThrow(() -> new IllegalArgumentException("Patient profile not found with id: " + patientId));
+
+        profile.setGuardianUserId(request.getGuardianUserId());
+        profile.setFirstName(request.getFirstName());
+        profile.setLastName(request.getLastName());
+        profile.setDateOfBirth(request.getDateOfBirth());
+        profile.setSex(request.getSex());
+        profile.setBloodType(request.getBloodType());
+        profile.setAllergies(request.getAllergies());
+        profile.setChronicConditions(request.getChronicConditions());
+        profile.setMedicalNotes(request.getMedicalNotes());
+
+        return PatientProfileResponse.from(patientProfileRepository.save(profile));
+    }
+
+    @Override
     public List<PatientProfileResponse> getAll() {
         return patientProfileRepository.findAll()
                 .stream()

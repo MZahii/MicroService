@@ -73,6 +73,34 @@
   color: #374151;
 }
 
+.pagination-row {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rows-per-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #334155;
+  font-size: 14px;
+}
+
+.rows-per-page select {
+  min-width: 86px;
+}
+
+.pagination-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 992px) {
   .filters {
     grid-template-columns: 1fr;

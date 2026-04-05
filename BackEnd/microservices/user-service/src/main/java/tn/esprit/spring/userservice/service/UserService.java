@@ -4,7 +4,14 @@ import tn.esprit.spring.userservice.dto.request.CreateGuardianAccountRequest;
 import tn.esprit.spring.userservice.dto.request.CreateHrAccountRequest;
 import tn.esprit.spring.userservice.dto.request.CreateInternalUserRequest;
 import tn.esprit.spring.userservice.dto.request.CreateStaffAccountRequest;
+import tn.esprit.spring.userservice.dto.request.StaffSearchRequest;
+import tn.esprit.spring.userservice.dto.request.UpdateGuardianProfileRequest;
+import tn.esprit.spring.userservice.dto.request.UpdateHrProfileRequest;
+import tn.esprit.spring.userservice.dto.request.UpdateStaffProfileRequest;
+import tn.esprit.spring.userservice.dto.response.StaffSearchResponse;
+import tn.esprit.spring.userservice.dto.response.UserAuditLogResponse;
 import tn.esprit.spring.userservice.dto.response.UserResponse;
+import tn.esprit.spring.userservice.entity.AccountStatus;
 
 import java.util.List;
 
@@ -17,4 +24,15 @@ public interface UserService {
     List<UserResponse> getGuardians();
 
     UserResponse updateActivation(Long userId, boolean enabled);
+    UserResponse updateAccountStatus(Long userId, AccountStatus accountStatus);
+    UserResponse updateStaffProfile(Long userId, UpdateStaffProfileRequest request);
+    UserResponse updateHrProfile(Long userId, UpdateHrProfileRequest request);
+    UserResponse updateGuardianProfile(Long userId, UpdateGuardianProfileRequest request);
+    UserResponse getUserById(Long userId);
+    List<UserAuditLogResponse> getUserAuditLogs(Long userId);
+    List<UserAuditLogResponse> getAllUserAuditLogs();
+    StaffSearchResponse searchStaff(StaffSearchRequest request);
+    long countPendingUsersOlderThanDays(int days);
+    UserResponse softDeleteUser(Long userId);
+    UserResponse restoreUser(Long userId);
 }

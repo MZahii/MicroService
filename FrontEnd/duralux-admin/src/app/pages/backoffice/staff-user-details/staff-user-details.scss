@@ -1,0 +1,39 @@
+.page-header {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  padding: 20px 30px;
+  margin-bottom: 30px;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+}
+
+.contract-list {
+  display: grid;
+  gap: 12px;
+}
+
+.contract-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fff;
+}
+
+.contract-title {
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.full-row {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 992px) {
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+}

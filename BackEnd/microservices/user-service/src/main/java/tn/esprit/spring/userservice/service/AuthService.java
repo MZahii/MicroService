@@ -11,6 +11,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import tn.esprit.spring.userservice.config.KeycloakAdminConfig;
 import tn.esprit.spring.userservice.dto.request.LoginRequest;
+import tn.esprit.spring.userservice.dto.response.TokenRefreshResponse;
 import tn.esprit.spring.userservice.dto.response.KeycloakTokenResponse;
 import tn.esprit.spring.userservice.dto.response.LoginResponse;
 import tn.esprit.spring.userservice.entity.Role;
@@ -62,6 +63,16 @@ public class AuthService {
                 .build();
     }
 
+    public TokenRefreshResponse refresh(String refreshToken) {
+        KeycloakTokenResponse tokenResponse = refreshTokenFromKeycloak(refreshToken);
+        return TokenRefreshResponse.builder()
+                .accessToken(tokenResponse.getAccessToken())
+                .refreshToken(tokenResponse.getRefreshToken())
+                .tokenType(tokenResponse.getTokenType())
+                .expiresIn(tokenResponse.getExpiresIn())
+                .build();
+    }
+
     private KeycloakTokenResponse requestTokenFromKeycloak(String username, String password) {
         String tokenUrl = keycloakConfig.getServerUrl()
                 + "/realms/" + keycloakConfig.getRealm()
@@ -102,6 +113,48 @@ public class AuthService {
             throw new ResponseStatusException(
                     UNAUTHORIZED,
                     "Invalid username/email or password"
+            );
+        }
+    }
+
+    private KeycloakTokenResponse refreshTokenFromKeycloak(String refreshToken) {
+        String tokenUrl = keycloakConfig.getServerUrl()
+                + "/realms/" + keycloakConfig.getRealm()
+                + "/protocol/openid-connect/token";
+
+        RestTemplate restTemplate = restTemplateBuilder.build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("grant_type", "refresh_token");
+        form.add("client_id", keycloakConfig.getAuth().getClientId());
+        form.add("client_secret", keycloakConfig.getAuth().getClientSecret());
+        form.add("refresh_token", refreshToken);
+
+        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(form, headers);
+
+        try {
+            ResponseEntity<KeycloakTokenResponse> response = restTemplate.exchange(
+                    tokenUrl,
+                    HttpMethod.POST,
+                    requestEntity,
+                    KeycloakTokenResponse.class
+            );
+
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                throw new ResponseStatusException(
+                        UNAUTHORIZED,
+                        "Session expired. Please login again."
+                );
+            }
+
+            return response.getBody();
+        } catch (HttpStatusCodeException ex) {
+            throw new ResponseStatusException(
+                    UNAUTHORIZED,
+                    "Session expired. Please login again."
             );
         }
     }

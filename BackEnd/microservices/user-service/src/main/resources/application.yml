@@ -50,3 +50,6 @@ keycloak:
 
 internal:
   api-key: my-super-secret-internal-key
+
+administration-service:
+  base-url: ${ADMINISTRATION_SERVICE_BASE_URL:http://localhost:8087}

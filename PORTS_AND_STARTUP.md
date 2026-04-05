@@ -11,9 +11,18 @@
 ### Step 1: Start Infrastructure
 ```bash
 cd BackEnd
+# first time only: copy .env.example to .env and set shared Keycloak DB values
+# cp .env.example .env
 docker compose up -d
 ```
 Wait for all services to be healthy (Eureka, Keycloak, Gateway).
+
+Notes:
+- Keycloak DB is now read from `BackEnd/.env` (shared Neon/Postgres recommended).
+- If you want local Keycloak DB only (not shared), run:
+```bash
+docker compose --profile local-keycloak-db up -d
+```
 
 ### Step 2: Configure IntelliJ Run Configuration
 1. Open `UserServiceApplication.java`
@@ -152,7 +161,10 @@ Wait for all services to be healthy (Eureka, Keycloak, Gateway).
 1. **Keycloak** (Docker)
    ```bash
    cd BackEnd/keycloak
-   docker-compose up -d
+   # shared DB mode (recommended): configure BackEnd/.env then run
+   docker compose --env-file ../.env up -d
+   # local DB mode (not shared):
+   # docker compose --env-file ../.env --profile local-keycloak-db up -d
    ```
 
 2. **Eureka Server**

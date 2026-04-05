@@ -1,0 +1,127 @@
+<div class="page-header">
+  <div class="page-header-left d-flex align-items-center">
+    <div class="page-header-title">
+      <h5 class="m-b-10">Audit Logs</h5>
+    </div>
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a routerLink="/backoffice/dashboard">Dashboard</a></li>
+      <li class="breadcrumb-item">Audit Logs</li>
+    </ul>
+  </div>
+</div>
+
+<div class="main-content">
+  <div class="card stretch stretch-full">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h5 class="card-title mb-0">System Logs</h5>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-light" type="button" (click)="printLogs()">Print</button>
+        <button class="btn btn-sm btn-primary" type="button" (click)="downloadPdf()">Download PDF</button>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div *ngIf="errorMessage" class="alert alert-danger mb-3">{{ errorMessage }}</div>
+      <div *ngIf="loading" class="text-muted py-3">Loading logs...</div>
+
+      <div class="filters mb-3" *ngIf="!loading">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Search logs by user, role, action, actor, source, date..."
+          [(ngModel)]="search"
+          (ngModelChange)="onFiltersChanged()"
+        />
+        <select class="form-control" [(ngModel)]="sourceFilter" (ngModelChange)="onFiltersChanged()">
+          <option value="ALL">All Sources</option>
+          <option value="ACCOUNT">Account</option>
+          <option value="CONTRACT">Contract</option>
+        </select>
+      </div>
+
+      <div class="table-responsive" *ngIf="!loading">
+        <table class="table table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Source</th>
+              <th>User</th>
+              <th>Role</th>
+              <th>Action</th>
+              <th>Actor</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let log of paginatedLogs">
+              <td>{{ log.createdAt | date:'yyyy-MM-dd HH:mm:ss' }}</td>
+              <td>{{ log.source }}</td>
+              <td>{{ log.fullName }}</td>
+              <td>{{ log.role }}</td>
+              <td>{{ log.action }}</td>
+              <td>{{ log.actor }}</td>
+              <td class="logs-details-cell">
+                <ng-container *ngIf="getChangedFields(log).length > 0; else rawDetails">
+                  <div class="diff-list">
+                    <div class="diff-item" *ngFor="let diff of getChangedFields(log)">
+                      <div class="diff-field">{{ diff.field }}</div>
+                      <div class="diff-values">
+                        <span class="diff-old">{{ diff.oldValue }}</span>
+                        <span class="diff-arrow">-></span>
+                        <span class="diff-new">{{ diff.newValue }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </ng-container>
+                <ng-template #rawDetails>
+                  <div *ngIf="hasParsedDetails(log)" class="text-muted">No field-level change captured.</div>
+                  <div *ngIf="!hasParsedDetails(log) && hasRawDetails(log)">
+                    <div><strong>Old:</strong> {{ getRawOld(log) }}</div>
+                    <div><strong>New:</strong> {{ getRawNew(log) }}</div>
+                  </div>
+                  <div *ngIf="!hasParsedDetails(log) && !hasRawDetails(log)" class="text-muted">No field changes captured.</div>
+                </ng-template>
+              </td>
+            </tr>
+            <tr *ngIf="filteredLogs.length === 0">
+              <td colspan="7" class="text-center text-muted py-4">No logs found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination-bar" *ngIf="!loading && filteredLogs.length > 0">
+        <div class="pagination-meta">
+          Showing {{ rangeStart }} - {{ rangeEnd }} of {{ filteredLogs.length }}
+        </div>
+        <div class="pagination-controls">
+          <label for="logs-page-size" class="mb-0">Rows:</label>
+          <select
+            id="logs-page-size"
+            class="form-control page-size-select"
+            [(ngModel)]="pageSize"
+            (ngModelChange)="onPageSizeChanged()"
+          >
+            <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
+          </select>
+          <button class="btn btn-sm btn-light" type="button" (click)="previousPage()" [disabled]="currentPage === 1">
+            Prev
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            [class.btn-primary]="page === currentPage"
+            [class.btn-light]="page !== currentPage"
+            *ngFor="let page of pageNumbers"
+            (click)="goToPage(page)"
+          >
+            {{ page }}
+          </button>
+          <button class="btn btn-sm btn-light" type="button" (click)="nextPage()" [disabled]="currentPage === totalPages">
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

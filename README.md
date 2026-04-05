@@ -67,10 +67,21 @@ From project root:
 
 ```powershell
 cd BackEnd
+# first time only: copy .env.example to .env and set shared Keycloak DB values
+# cp .env.example .env
 docker compose -f docker-compose.infra.yml up -d
 ```
 
 This starts Keycloak, Eureka, and infra dependencies.
+
+Important:
+- Keycloak now reads DB credentials from `BackEnd/.env`.
+- To share Keycloak users/realm data across team members, use the same shared Postgres/Neon values in `.env`.
+- If you want local Keycloak DB only (not shared), run:
+
+```powershell
+docker compose --profile local-keycloak-db -f docker-compose.infra.yml up -d
+```
 
 ### Step 3: Run backend apps from IntelliJ
 

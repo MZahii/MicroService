@@ -1,174 +1,125 @@
-<!-- PAGE HEADER -->
 <div class="page-header">
   <div class="page-header-left d-flex align-items-center">
     <div class="page-header-title">
       <h5 class="m-b-10">Dashboard</h5>
     </div>
-
     <ul class="breadcrumb">
-      <li class="breadcrumb-item">
-        <a routerLink="/backoffice/dashboard">Home</a>
-      </li>
+      <li class="breadcrumb-item"><a routerLink="/backoffice/dashboard">Home</a></li>
       <li class="breadcrumb-item">Dashboard</li>
     </ul>
   </div>
-
   <div class="page-header-right ms-auto">
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-      <span class="badge dashboard-role-badge" [ngClass]="roleBadgeClass">
-        {{ role || 'USER' }}
-      </span>
-    </div>
+    <span class="badge dashboard-role-badge" [ngClass]="roleBadgeClass">{{ role || 'USER' }}</span>
   </div>
 </div>
 
-<!-- MAIN -->
 <div class="main-content">
   <div class="row g-4">
-
-    <!-- WELCOME -->
     <div class="col-12">
       <div class="card stretch stretch-full welcome-card overflow-hidden">
-        <div class="card-body">
-          <div class="row align-items-center gy-4">
-            <div class="col-lg-8">
-              <span class="welcome-badge">{{ role || 'USER' }} DASHBOARD</span>
-              <h2 class="welcome-title">Welcome, {{ displayName }}</h2>
-              <p class="welcome-text">
-                {{ roleDescription }}
-              </p>
-            </div>
-
-            <div class="col-lg-4">
-              <div class="profile-mini-card">
-                <div class="profile-mini-header">
-                  <span class="badge" [ngClass]="roleBadgeClass">{{ role }}</span>
-                </div>
-
-                <div class="profile-mini-body">
-                  <div class="profile-line">
-                    <strong>Name:</strong>
-                    <span>{{ displayName }}</span>
-                  </div>
-
-                  <div class="profile-line">
-                    <strong>Email:</strong>
-                    <span>{{ displayEmail }}</span>
-                  </div>
-
-                  <div class="profile-line">
-                    <strong>Status:</strong>
-                    <span class="text-success fw-semibold">Authenticated</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+          <div>
+            <span class="welcome-badge">{{ role || 'USER' }} DASHBOARD</span>
+            <h2 class="welcome-title">Welcome, {{ displayName }}</h2>
+            <p class="welcome-text">{{ roleDescription }}</p>
+          </div>
+          <div class="profile-mini-card">
+            <div class="profile-line"><strong>Email:</strong><span>{{ displayEmail }}</span></div>
+            <div class="profile-line"><strong>Status:</strong><span class="text-success fw-semibold">Authenticated</span></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- STATISTICS -->
-    <div
-      class="col-xxl-3 col-md-6"
-      *ngFor="let stat of statistics"
-    >
-      <div class="card stretch stretch-full">
-        <div class="card-body">
-          <div class="d-flex align-items-start justify-content-between mb-4">
-            <div class="d-flex gap-4 align-items-center">
-              <div class="avatar-text avatar-lg bg-gray-200">
-                <i [class]="stat.icon"></i>
-              </div>
-
-              <div>
-                <div class="fs-4 fw-bold text-dark">{{ stat.value }}</div>
-                <h3 class="fs-13 fw-semibold text-truncate-1-line mb-1">
-                  {{ stat.title }}
-                </h3>
-                <div class="fs-12 text-muted">
-                  {{ stat.subtitle }}
-                </div>
-              </div>
-            </div>
-
-            <i class="feather-more-vertical"></i>
-          </div>
-
-          <div class="pt-2">
-            <div class="d-flex align-items-center justify-content-between">
-              <span class="fs-12 fw-medium text-muted">{{ stat.progressLabel }}</span>
-              <span class="fs-12 text-dark">{{ stat.progressValue }}%</span>
-            </div>
-
-            <div class="progress mt-2 ht-3">
-              <div
-                class="progress-bar"
-                [ngClass]="stat.progressClass"
-                role="progressbar"
-                [style.width.%]="stat.progressValue"
-              ></div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="col-12" *ngIf="statsError">
+      <div class="alert alert-danger mb-0">{{ statsError }}</div>
     </div>
 
-    <!-- ROLE OVERVIEW -->
-    <div class="col-xxl-8">
-      <div class="card stretch stretch-full">
+    <div class="col-12" *ngIf="loadingStats">
+      <div class="text-muted">Loading live statistics...</div>
+    </div>
+
+    <div class="col-12" *ngIf="!loadingStats && (isAdmin || isHr || isReceptionist)">
+      <div class="card stretch stretch-full chart-card">
         <div class="card-header">
-          <h5 class="card-title">Role Overview</h5>
+          <h5 class="card-title mb-0"> Action Required </h5>
         </div>
-
         <div class="card-body">
-          <div class="row g-4">
-            <div class="col-md-6">
-              <div class="dashboard-info-box h-100">
-                <h6 class="fw-bold text-dark mb-3">
-                  {{ isAdmin ? 'What ADMIN can do' : 'What HR can do' }}
-                </h6>
-
-                <ul class="dashboard-list mb-0">
-                  <ng-container *ngIf="isAdmin">
-                    <li>Create HR accounts</li>
-                    <li>Open staff list and related modules</li>
-                    <li>Open patient list and related modules</li>
-                    <li>Open clinic resources and related modules</li>
-                    <li>Supervise the whole platform</li>
-                  </ng-container>
-
-                  <ng-container *ngIf="isHr">
-                    <li>Create staff accounts</li>
-                    <li>Create guardian accounts with linked patient profiles</li>
-                    <li>Create clinic resources</li>
-                    <li>Open staff list and related modules</li>
-                    <li>Open patient list and clinic resource modules</li>
-                  </ng-container>
-                </ul>
+          <div class="row g-3">
+            <div class="col-md-3 col-6">
+              <div class="analytics-pill">
+                <span>Ending In 7 Days</span>
+                <strong>{{ actionAlerts.contractsEndingIn7Days }}</strong>
               </div>
             </div>
+            <div class="col-md-3 col-6">
+              <div class="analytics-pill">
+                <span>Ending In 30 Days</span>
+                <strong>{{ actionAlerts.contractsEndingIn30Days }}</strong>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="analytics-pill">
+                <span>Pending Too Long</span>
+                <strong>{{ actionAlerts.pendingUsersTooLong }}</strong>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="analytics-pill">
+                <span>Profiles Missing Data</span>
+                <strong>{{ actionAlerts.profilesMissingRequiredData }}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-            <div class="col-md-6">
-              <div class="dashboard-info-box h-100">
-                <h6 class="fw-bold text-dark mb-3">Quick actions</h6>
+    <div class="col-12" *ngIf="!loadingStats && expiringContractsPreview.length > 0">
+      <div class="card stretch stretch-full chart-card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Contracts Ending Soon (30 days)</h5>
+        </div>
+        <div class="card-body">
+          <div class="expiring-contracts-grid">
+            <div class="expiring-contract-card" *ngFor="let contract of expiringContractsPreview">
+              <div class="expiring-card-top">
+                <div>
+                  <div class="expiring-ref">{{ contract.contractReference }}</div>
+                  <div class="expiring-name">{{ contract.fullName }}</div>
+                  <div class="expiring-role">{{ contract.role }}</div>
+                </div>
+                <span
+                  class="expiry-chip"
+                  [ngClass]="getExpirySeverity(contract.daysLeft)"
+                >
+                  {{ getDaysLeftLabel(contract.daysLeft) }}
+                </span>
+              </div>
 
-                <div class="d-grid gap-2">
-                  <a routerLink="/backoffice/staff" class="btn btn-light">
-                    <i class="feather-users me-2"></i>
-                    Open Staff Module
+              <div class="expiring-date-line">
+                <span>End Date</span>
+                <strong>{{ contract.endDate }}</strong>
+              </div>
+
+              <div class="expiry-progress">
+                <span
+                  class="expiry-progress-fill"
+                  [ngClass]="getExpirySeverity(contract.daysLeft)"
+                  [style.width.%]="getExpiryProgress(contract.daysLeft)"
+                ></span>
+              </div>
+
+              <div class="expiring-card-actions">
+                <span class="badge bg-light text-dark">{{ contract.status }}</span>
+                  <a
+                    *ngIf="canOpenExpiringAccounts"
+                    class="btn btn-sm btn-light-brand"
+                    [routerLink]="['/backoffice/staff', contract.staffUserId]"
+                    [queryParams]="{ returnTo: 'contracts' }"
+                  >
+                    Open Account
                   </a>
-
-                  <a routerLink="/backoffice/patients" class="btn btn-light">
-                    <i class="feather-heart me-2"></i>
-                    Open Patients Module
-                  </a>
-
-                  <a routerLink="/backoffice/clinic-resources" class="btn btn-light">
-                    <i class="feather-grid me-2"></i>
-                    Open Clinic Resources Module
-                  </a>
-                </div>
               </div>
             </div>
           </div>
@@ -176,117 +127,495 @@
       </div>
     </div>
 
-    <!-- ACCESS CARD -->
-    <div class="col-xxl-4">
-      <div class="card stretch stretch-full">
-        <div class="card-header">
-          <h5 class="card-title">Connected Account</h5>
-        </div>
-
-        <div class="card-body">
-          <div class="account-role-banner">
-            <span class="badge" [ngClass]="roleBadgeClass">{{ role }}</span>
-            <h4 class="mb-1">{{ displayName }}</h4>
-            <p class="mb-0 text-muted">{{ roleDescription }}</p>
-          </div>
-
-          <div class="account-details">
-            <div class="account-detail-row">
-              <strong>Username:</strong>
-              <span>{{ user?.username || 'N/A' }}</span>
-            </div>
-
-            <div class="account-detail-row">
-              <strong>Email:</strong>
-              <span>{{ displayEmail }}</span>
-            </div>
-
-            <div class="account-detail-row">
-              <strong>Main Role:</strong>
-              <span>{{ role }}</span>
-            </div>
-
-            <div class="account-detail-row">
-              <strong>Status:</strong>
-              <span class="badge bg-soft-success text-success">Authenticated</span>
-            </div>
-          </div>
+    <ng-container *ngIf="!loadingStats && isAdmin">
+      <div class="col-xxl-3 col-md-6">
+        <div class="card stretch stretch-full metric-card metric-gradient">
+          <div class="metric-label">Total Accounts</div>
+          <div class="metric-value">{{ allUsers.length }}</div>
+          <div class="metric-sub">HR + Staff + Guardians</div>
         </div>
       </div>
-    </div>
-
-    <!-- MODULES -->
-    <div class="col-12">
-      <div class="card stretch stretch-full">
-        <div class="card-header">
-          <h5 class="card-title">Management Modules</h5>
+      <div class="col-xxl-3 col-md-6">
+        <div class="card stretch stretch-full metric-card metric-gradient">
+          <div class="metric-label">Total Staff</div>
+          <div class="metric-value">{{ totalStaff }}</div>
+          <div class="metric-sub">Operational teams</div>
         </div>
+      </div>
+      <div class="col-xxl-3 col-md-6">
+        <div class="card stretch stretch-full metric-card metric-gradient">
+          <div class="metric-label">Total Contracts</div>
+          <div class="metric-value">{{ totalContracts }}</div>
+          <div class="metric-sub">HR + Staff contracts</div>
+        </div>
+      </div>
+      <div class="col-xxl-3 col-md-6">
+        <div class="card stretch stretch-full metric-card metric-gradient">
+          <div class="metric-label">Patient Profiles</div>
+          <div class="metric-value">{{ totalPatients }}</div>
+          <div class="metric-sub">Linked to {{ linkedGuardians }} guardians</div>
+        </div>
+      </div>
 
-        <div class="card-body">
-          <div class="row g-4">
-            <div
-              class="col-lg-4"
-              *ngFor="let item of quickLinks"
-            >
-              <div class="module-card h-100" *ngIf="item.visible">
-                <div class="module-icon">
-                  <i [class]="item.icon"></i>
+      <div class="col-12">
+        <div class="card stretch stretch-full analytics-summary-card">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-lg-3 col-sm-6">
+                <div class="analytics-pill">
+                  <span>Contract Coverage</span>
+                  <strong>{{ contractCoverage }}%</strong>
                 </div>
-
-                <h5>{{ item.label }}</h5>
-                <p>{{ item.description }}</p>
-
-                <a [routerLink]="item.link" class="btn btn-light w-100">
-                  Open {{ item.label }}
-                </a>
+              </div>
+              <div class="col-lg-3 col-sm-6">
+                <div class="analytics-pill">
+                  <span>Enabled Accounts</span>
+                  <strong>{{ enabledUsersRate }}%</strong>
+                </div>
+              </div>
+              <div class="col-lg-3 col-sm-6">
+                <div class="analytics-pill">
+                  <span>Guardians Linked</span>
+                  <strong>{{ patientCoverageRate }}%</strong>
+                </div>
+              </div>
+              <div class="col-lg-3 col-sm-6">
+                <div class="analytics-pill">
+                  <span>Patients This Month</span>
+                  <strong>{{ monthPatients }}</strong>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- TABLE -->
-    <div class="col-12">
-      <div class="card stretch stretch-full">
-        <div class="card-header">
-          <h5 class="card-title">Current Permissions Overview</h5>
-        </div>
-
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover mb-0">
-              <thead>
-              <tr class="border-b">
-                <th>Module</th>
-                <th>Action</th>
-                <th>Role</th>
-                <th>Status</th>
-              </tr>
-              </thead>
-
-              <tbody>
-              <tr *ngFor="let item of latestItems">
-                <td>{{ item.module }}</td>
-                <td>{{ item.action }}</td>
-                <td>
-                  <span class="badge" [ngClass]="roleBadgeClass">{{ item.role }}</span>
-                </td>
-                <td>
-                  <span class="badge bg-soft-success text-success">{{ item.status }}</span>
-                </td>
-              </tr>
-              </tbody>
-            </table>
+      <div class="col-xxl-6 col-md-12">
+        <div class="card stretch stretch-full chart-card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Staff Role Distribution</h5>
+          </div>
+          <div class="card-body">
+            <div class="bar-list">
+              <div class="bar-item" *ngFor="let roleItem of roleBreakdownWithPercent">
+                <div class="bar-meta">
+                  <span>{{ roleItem.role }}</span>
+                  <strong>{{ roleItem.count }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill role" [style.width.%]="roleItem.percent"></span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div class="card-footer">
-          <small class="text-muted">
-            Later, these modules will be connected to the real backend APIs from your team.
-          </small>
+      <div class="col-xxl-6 col-md-12">
+        <div class="card stretch stretch-full chart-card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Contract Status</h5>
+          </div>
+          <div class="card-body">
+            <div class="bar-list">
+              <div class="bar-item" *ngFor="let status of contractStatusBreakdown">
+                <div class="bar-meta">
+                  <span>{{ status.label }}</span>
+                  <strong>{{ status.value }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill" [ngClass]="status.css" [style.width.%]="status.percent"></span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+
+      <div class="col-xxl-4 col-md-6">
+        <div class="card stretch stretch-full chart-card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Account Access</h5>
+          </div>
+          <div class="card-body">
+            <div class="bar-list">
+              <div class="bar-item">
+                <div class="bar-meta">
+                  <span>Enabled</span>
+                  <strong>{{ enabledUsers }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill active" [style.width.%]="enabledUsersRate"></span>
+                </div>
+              </div>
+              <div class="bar-item">
+                <div class="bar-meta">
+                  <span>Disabled</span>
+                  <strong>{{ disabledUsers }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill inactive" [style.width.%]="100 - enabledUsersRate"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xxl-4 col-md-6">
+        <div class="card stretch stretch-full chart-card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">HR Accounts Status</h5>
+          </div>
+          <div class="card-body">
+            <div class="bar-list">
+              <div class="bar-item" *ngFor="let status of [
+                { label: 'Active', value: activeHr, css: 'active', percent: totalHr ? (activeHr * 100 / totalHr) : 0 },
+                { label: 'Pending', value: pendingHr, css: 'pending', percent: totalHr ? (pendingHr * 100 / totalHr) : 0 },
+                { label: 'Inactive', value: inactiveHr, css: 'inactive', percent: totalHr ? (inactiveHr * 100 / totalHr) : 0 }
+              ]">
+                <div class="bar-meta">
+                  <span>{{ status.label }}</span>
+                  <strong>{{ status.value }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill" [ngClass]="status.css" [style.width.%]="status.percent"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xxl-4 col-md-12">
+        <div class="card stretch stretch-full chart-card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Patients & Guardians</h5>
+          </div>
+          <div class="card-body">
+            <div class="bar-list">
+              <div class="bar-item" *ngFor="let sex of patientSexBreakdown">
+                <div class="bar-meta">
+                  <span>{{ sex.label }}</span>
+                  <strong>{{ sex.value }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill" [ngClass]="sex.css" [style.width.%]="sex.percent"></span>
+                </div>
+              </div>
+            </div>
+            <div class="mini-stats mt-3">
+              <div>Guardians: <strong>{{ totalGuardians }}</strong></div>
+              <div>Linked: <strong>{{ linkedGuardians }}</strong></div>
+              <div>Avg Kids/Guardian: <strong>{{ averageKidsPerGuardian }}</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="!loadingStats && isHr">
+      <div class="col-xxl-3 col-md-6">
+        <div class="card stretch stretch-full metric-card metric-gradient">
+          <div class="metric-label">Total Staff</div>
+          <div class="metric-value">{{ totalStaff }}</div>
+          <div class="metric-sub">Operational workforce</div>
+        </div>
+      </div>
+      <div class="col-xxl-3 col-md-6">
+        <div class="card stretch stretch-full metric-card metric-gradient">
+          <div class="metric-label">Contracts</div>
+          <div class="metric-value">{{ totalContracts }}</div>
+          <div class="metric-sub">All registered contracts</div>
+        </div>
+      </div>
+      <div class="col-xxl-3 col-md-6">
+        <div class="card stretch stretch-full metric-card metric-gradient">
+          <div class="metric-label">Active Contracts</div>
+          <div class="metric-value">{{ activeContracts }}</div>
+          <div class="metric-sub">{{ activeContractsRate }}% of contracts</div>
+        </div>
+      </div>
+      <div class="col-xxl-3 col-md-6">
+        <div class="card stretch stretch-full metric-card metric-gradient">
+          <div class="metric-label">Coverage</div>
+          <div class="metric-value">{{ contractCoverage }}%</div>
+          <div class="metric-sub">Staff with at least one contract</div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card stretch stretch-full analytics-summary-card">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-lg-3 col-sm-6">
+                <div class="analytics-pill">
+                  <span>Staff Active Rate</span>
+                  <strong>{{ activeStaffRate }}%</strong>
+                </div>
+              </div>
+              <div class="col-lg-3 col-sm-6">
+                <div class="analytics-pill">
+                  <span>Active Contracts Rate</span>
+                  <strong>{{ activeContractsRate }}%</strong>
+                </div>
+              </div>
+              <div class="col-lg-3 col-sm-6">
+                <div class="analytics-pill">
+                  <span>Without Contract</span>
+                  <strong>{{ staffWithoutContractCount }}</strong>
+                </div>
+              </div>
+              <div class="col-lg-3 col-sm-6">
+                <div class="analytics-pill">
+                  <span>Pending Accounts</span>
+                  <strong>{{ pendingStaff }}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xxl-6 col-md-12">
+        <div class="card stretch stretch-full chart-card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Staff Status</h5>
+          </div>
+          <div class="card-body">
+            <div class="bar-list">
+              <div class="bar-item" *ngFor="let status of staffStatusBreakdown">
+                <div class="bar-meta">
+                  <span>{{ status.label }}</span>
+                  <strong>{{ status.value }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill" [ngClass]="status.css" [style.width.%]="status.percent"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xxl-6 col-md-12">
+        <div class="card stretch stretch-full chart-card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Contract Status</h5>
+          </div>
+          <div class="card-body">
+            <div class="bar-list">
+              <div class="bar-item" *ngFor="let status of contractStatusBreakdown">
+                <div class="bar-meta">
+                  <span>{{ status.label }}</span>
+                  <strong>{{ status.value }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill" [ngClass]="status.css" [style.width.%]="status.percent"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card stretch stretch-full chart-card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Role Distribution</h5>
+          </div>
+          <div class="card-body">
+            <div class="bar-list">
+              <div class="bar-item" *ngFor="let roleItem of roleBreakdownWithPercent">
+                <div class="bar-meta">
+                  <span>{{ roleItem.role }}</span>
+                  <strong>{{ roleItem.count }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill role" [style.width.%]="roleItem.percent"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="!loadingStats && isReceptionist">
+      <div class="col-xxl-3 col-md-6">
+        <div class="card stretch stretch-full metric-card metric-gradient">
+          <div class="metric-label">Total Guardians</div>
+          <div class="metric-value">{{ totalGuardians }}</div>
+          <div class="metric-sub">Registered family accounts</div>
+        </div>
+      </div>
+      <div class="col-xxl-3 col-md-6">
+        <div class="card stretch stretch-full metric-card metric-gradient">
+          <div class="metric-label">Total Patients</div>
+          <div class="metric-value">{{ totalPatients }}</div>
+          <div class="metric-sub">Linked patient profiles</div>
+        </div>
+      </div>
+      <div class="col-xxl-3 col-md-6">
+        <div class="card stretch stretch-full metric-card metric-gradient">
+          <div class="metric-label">Patients This Month</div>
+          <div class="metric-value">{{ monthPatients }}</div>
+          <div class="metric-sub">Created in current month</div>
+        </div>
+      </div>
+      <div class="col-xxl-3 col-md-6">
+        <div class="card stretch stretch-full metric-card metric-gradient">
+          <div class="metric-label">Patients Today</div>
+          <div class="metric-value">{{ todayPatients }}</div>
+          <div class="metric-sub">New today</div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card stretch stretch-full analytics-summary-card">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-lg-3 col-sm-6">
+                <div class="analytics-pill">
+                  <span>Guardian Linking Rate</span>
+                  <strong>{{ guardianLinkingRate }}%</strong>
+                </div>
+              </div>
+              <div class="col-lg-3 col-sm-6">
+                <div class="analytics-pill">
+                  <span>Avg Kids / Guardian</span>
+                  <strong>{{ averageKidsPerGuardian }}</strong>
+                </div>
+              </div>
+              <div class="col-lg-3 col-sm-6">
+                <div class="analytics-pill">
+                  <span>Blood Type Filled</span>
+                  <strong>{{ bloodTypeFilledRate }}%</strong>
+                </div>
+              </div>
+              <div class="col-lg-3 col-sm-6">
+                <div class="analytics-pill">
+                  <span>With Allergies</span>
+                  <strong>{{ withAllergiesPatients }}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xxl-6 col-md-12">
+        <div class="card stretch stretch-full chart-card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Patient Sex Distribution</h5>
+          </div>
+          <div class="card-body">
+            <div class="bar-list">
+              <div class="bar-item" *ngFor="let sex of patientSexBreakdown">
+                <div class="bar-meta">
+                  <span>{{ sex.label }}</span>
+                  <strong>{{ sex.value }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill" [ngClass]="sex.css" [style.width.%]="sex.percent"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xxl-6 col-md-12">
+        <div class="card stretch stretch-full chart-card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Patient Age Groups</h5>
+          </div>
+          <div class="card-body">
+            <div class="bar-list">
+              <div class="bar-item" *ngFor="let age of patientAgeBreakdown">
+                <div class="bar-meta">
+                  <span>{{ age.label }}</span>
+                  <strong>{{ age.value }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill" [ngClass]="age.css" [style.width.%]="age.percent"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xxl-6 col-md-12">
+        <div class="card stretch stretch-full chart-card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Guardian Linking Status</h5>
+          </div>
+          <div class="card-body">
+            <div class="bar-list">
+              <div class="bar-item">
+                <div class="bar-meta">
+                  <span>Guardians With Profiles</span>
+                  <strong>{{ linkedGuardians }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill active" [style.width.%]="guardianLinkingRate"></span>
+                </div>
+              </div>
+              <div class="bar-item">
+                <div class="bar-meta">
+                  <span>Guardians Without Profiles</span>
+                  <strong>{{ unlinkedGuardians }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill inactive" [style.width.%]="100 - guardianLinkingRate"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xxl-6 col-md-12">
+        <div class="card stretch stretch-full chart-card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Medical Data Quality</h5>
+          </div>
+          <div class="card-body">
+            <div class="bar-list">
+              <div class="bar-item">
+                <div class="bar-meta">
+                  <span>Blood Type Filled</span>
+                  <strong>{{ bloodTypeFilledPatients }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill role" [style.width.%]="bloodTypeFilledRate"></span>
+                </div>
+              </div>
+              <div class="bar-item">
+                <div class="bar-meta">
+                  <span>Blood Type Missing</span>
+                  <strong>{{ bloodTypeMissingPatients }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill ended" [style.width.%]="100 - bloodTypeFilledRate"></span>
+                </div>
+              </div>
+              <div class="bar-item">
+                <div class="bar-meta">
+                  <span>Profiles With Allergies</span>
+                  <strong>{{ withAllergiesPatients }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill pending" [style.width.%]="totalPatients ? (withAllergiesPatients * 100 / totalPatients) : 0"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    
   </div>
 </div>

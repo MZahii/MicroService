@@ -6,11 +6,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.CreatedResponseUtil;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.RealmResource;
+import org.keycloak.admin.client.resource.UserResource;
+import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.stereotype.Service;
 import tn.esprit.spring.userservice.config.KeycloakAdminConfig;
+import tn.esprit.spring.userservice.entity.Role;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -111,6 +115,45 @@ public class KeycloakAdminService {
         realmResource.users().get(keycloakId).update(userRepresentation);
 
         log.info("Keycloak user {} activation changed to {}", keycloakId, enabled);
+    }
+
+    public void updateUserProfileAndRole(
+            String keycloakId,
+            String email,
+            String firstName,
+            String lastName,
+            Role role
+    ) {
+        RealmResource realmResource = keycloak.realm(keycloakConfig.getRealm());
+        UserResource userResource = realmResource.users().get(keycloakId);
+        UserRepresentation userRepresentation = userResource.toRepresentation();
+
+        if (userRepresentation == null) {
+            throw new IllegalArgumentException("Keycloak user not found: " + keycloakId);
+        }
+
+        userRepresentation.setEmail(email);
+        userRepresentation.setFirstName(firstName);
+        userRepresentation.setLastName(lastName);
+        userResource.update(userRepresentation);
+
+        List<RoleRepresentation> currentRoles = userResource.roles().realmLevel().listAll();
+        List<String> managedRoleNames = Arrays.stream(Role.values())
+                .map(Enum::name)
+                .toList();
+
+        List<RoleRepresentation> rolesToRemove = currentRoles.stream()
+                .filter(r -> managedRoleNames.contains(r.getName()))
+                .toList();
+
+        if (!rolesToRemove.isEmpty()) {
+            userResource.roles().realmLevel().remove(rolesToRemove);
+        }
+
+        userResource.roles().realmLevel()
+                .add(List.of(realmResource.roles().get(role.name()).toRepresentation()));
+
+        log.info("Keycloak user {} profile and role updated to {}", keycloakId, role);
     }
 
     private String safeReadBody(Response response) {

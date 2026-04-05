@@ -117,6 +117,132 @@
   min-height: 70px;
 }
 
+.notifications-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.notifications-trigger {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  overflow: visible;
+}
+
+.notifications-trigger:hover {
+  transform: scale(1.03);
+}
+
+.notifications-trigger.has-unread {
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.35));
+}
+
+.notifications-trigger.glow {
+  box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.2);
+}
+
+.notifications-trigger-img {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.unread-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.notifications-dropdown {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: 0;
+  width: 360px;
+  max-height: 420px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+  z-index: 1000;
+}
+
+.notifications-head {
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef2f7;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notifications-body {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.notifications-loading,
+.notifications-empty {
+  padding: 14px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.notification-item {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fff;
+  text-align: left;
+  padding: 12px 14px;
+}
+
+.notification-item.unread {
+  background: #fff8eb;
+}
+
+.notification-item:hover {
+  background: #f8fafc;
+}
+
+.notification-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.notification-title {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.notification-message {
+  color: #64748b;
+  font-size: 13px;
+}
+
 /* user dropdown */
 .user-menu {
   position: relative;
@@ -186,6 +312,7 @@
   align-items: center;
   gap: 12px;
   text-align: left;
+  text-decoration: none;
   transition: background 0.2s ease;
 }
 
@@ -237,5 +364,9 @@
 
   .user-menu-dropdown {
     width: 260px;
+  }
+
+  .notifications-dropdown {
+    width: 300px;
   }
 }

@@ -23,6 +23,17 @@ export interface LoginResponse {
   lastName: string;
 }
 
+export interface TokenRefreshRequest {
+  refreshToken: string;
+}
+
+export interface TokenRefreshResponse {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresIn: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -32,5 +43,9 @@ export class AuthApiService {
 
   login(payload: LoginRequest): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.baseUrl}/api/auth/login`, payload);
+  }
+
+  refresh(payload: TokenRefreshRequest): Observable<TokenRefreshResponse> {
+    return this.http.post<TokenRefreshResponse>(`${this.baseUrl}/api/auth/refresh`, payload);
   }
 }

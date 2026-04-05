@@ -21,6 +21,14 @@ public class PatientProfileController {
         return patientProfileService.create(request);
     }
 
+    @PatchMapping("/{patientId}")
+    public PatientProfileResponse update(
+            @PathVariable Long patientId,
+            @Valid @RequestBody CreatePatientProfileRequest request
+    ) {
+        return patientProfileService.update(patientId, request);
+    }
+
     @GetMapping
     public List<PatientProfileResponse> getAll() {
         return patientProfileService.getAll();

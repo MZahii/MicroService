@@ -8,12 +8,19 @@ import { Dashboard } from './pages/backoffice/dashboard/dashboard';
 import { CreateHr } from './pages/backoffice/create-hr/create-hr';
 import { CreateStaff } from './pages/backoffice/create-staff/create-staff';
 import { StaffList } from './pages/backoffice/staff-list/staff-list';
+import { StaffUserDetails } from './pages/backoffice/staff-user-details/staff-user-details';
 import { HrList } from './pages/backoffice/hr-list/hr-list';
 import { StaffRolesDetails } from './pages/backoffice/staff-roles-details/staff-roles-details';
 import { CreateGuardianPatient } from './pages/backoffice/create-guardian-patient/create-guardian-patient';
+import { ExistingGuardianPatient } from './pages/backoffice/existing-guardian-patient/existing-guardian-patient';
 import { PatientsList } from './pages/backoffice/patients-list/patients-list';
 import { GuardiansLinkedProfiles } from './pages/backoffice/guardians-linked-profiles/guardians-linked-profiles';
+import { ContractsList } from './pages/backoffice/contracts-list/contracts-list';
+import { CreateContract } from './pages/backoffice/create-contract/create-contract';
 import { FrontofficeHomeComponent } from './pages/frontoffice/frontoffice-home/frontoffice-home';
+import { FrontofficePatientDetailsComponent } from './pages/frontoffice/frontoffice-patient-details/frontoffice-patient-details';
+import { MyContractComponent } from './pages/shared/my-contract/my-contract';
+import { LogsComponent } from './pages/backoffice/logs/logs';
 
 import { HomePageComponent } from './pages/public/home-page/home-page';
 import { AboutPageComponent } from './pages/public/about-page/about-page';
@@ -82,6 +89,12 @@ export const routes: Routes = [
         data: { roles: ['ADMIN', 'HR'] }
       },
       {
+        path: 'staff/:id',
+        component: StaffUserDetails,
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'HR'] }
+      },
+      {
         path: 'staff-details',
         component: StaffRolesDetails,
         canActivate: [roleGuard],
@@ -90,6 +103,12 @@ export const routes: Routes = [
       {
         path: 'create-guardian-patient',
         component: CreateGuardianPatient,
+        canActivate: [roleGuard],
+        data: { roles: ['RECEPTIONIST'] }
+      },
+      {
+        path: 'existing-guardian-patient',
+        component: ExistingGuardianPatient,
         canActivate: [roleGuard],
         data: { roles: ['RECEPTIONIST'] }
       },
@@ -104,6 +123,30 @@ export const routes: Routes = [
         component: GuardiansLinkedProfiles,
         canActivate: [roleGuard],
         data: { roles: ['ADMIN', 'RECEPTIONIST'] }
+      },
+      {
+        path: 'contracts',
+        component: ContractsList,
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'HR'] }
+      },
+      {
+        path: 'contracts/create',
+        component: CreateContract,
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'HR'] }
+      },
+      {
+        path: 'my-contract',
+        component: MyContractComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['HR', 'DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST'] }
+      },
+      {
+        path: 'logs',
+        component: LogsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] }
       }
     ]
   },
@@ -116,7 +159,9 @@ export const routes: Routes = [
     data: { roles: ['GUARDIAN'] },
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
-      { path: 'home', component: FrontofficeHomeComponent }
+      { path: 'home', component: FrontofficeHomeComponent },
+      { path: 'patients/:id', component: FrontofficePatientDetailsComponent },
+      { path: 'my-contract', component: MyContractComponent }
     ]
   },
 

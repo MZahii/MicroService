@@ -56,6 +56,7 @@
                   *ngIf="child.implemented && child.route"
                   class="nxl-link"
                   [routerLink]="child.route"
+                  [queryParams]="child.queryParams"
                   routerLinkActive="active"
                 >
                   {{ child.label }}
@@ -106,6 +107,53 @@
 
     <div class="header-right ms-auto">
       <div class="d-flex align-items-center gap-3 flex-wrap">
+        <div class="notifications-menu" [class.open]="notificationsOpen">
+          <button
+            type="button"
+            class="notifications-trigger"
+            [class.has-unread]="unreadCount > 0"
+            [class.glow]="hasNewNotificationPulse"
+            (click)="toggleNotifications($event)"
+            title="Notifications"
+          >
+            <img
+              src="assets/frontoffice/img/notification.png"
+              alt="Notifications"
+              class="notifications-trigger-img"
+            />
+            <span class="unread-badge" *ngIf="unreadCount > 0">{{ unreadCount > 9 ? '9+' : unreadCount }}</span>
+          </button>
+
+          <div class="notifications-dropdown" *ngIf="notificationsOpen">
+            <div class="notifications-head">
+              <h6 class="mb-0">Notifications</h6>
+              <small class="text-muted">{{ unreadCount }} unread</small>
+            </div>
+
+            <div class="notifications-body">
+              <div class="notifications-loading" *ngIf="loadingNotifications">Loading...</div>
+
+              <button
+                *ngFor="let n of notifications"
+                type="button"
+                class="notification-item"
+                [class.unread]="!n.read"
+                (click)="markAsRead(n.id)"
+              >
+                <div class="notification-top">
+                  <span class="notification-title">{{ n.title }}</span>
+                  <small>{{ n.createdAt | date:'MM-dd HH:mm' }}</small>
+                </div>
+                <div class="notification-message">{{ n.message }}</div>
+              </button>
+
+              <div class="notifications-empty" *ngIf="!loadingNotifications && notifications.length === 0">
+                No notifications yet.
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="user-menu" [class.open]="userMenuOpen">
           <button
             type="button"
@@ -135,6 +183,19 @@
             </div>
 
             <div class="user-menu-divider"></div>
+
+            <a
+              *ngIf="canViewMyContract"
+              class="user-menu-item"
+              routerLink="/backoffice/my-contract"
+              (click)="userMenuOpen = false"
+            >
+              <i class="feather-file-text"></i>
+              <div>
+                <span>My Contract</span>
+                <small>View your contract details</small>
+              </div>
+            </a>
 
             <button type="button" class="user-menu-item disabled-item">
               <i class="feather-settings"></i>

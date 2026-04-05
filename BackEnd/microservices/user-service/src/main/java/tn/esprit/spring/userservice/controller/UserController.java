@@ -7,6 +7,12 @@ import tn.esprit.spring.userservice.dto.request.CreateGuardianAccountRequest;
 import tn.esprit.spring.userservice.dto.request.CreateHrAccountRequest;
 import tn.esprit.spring.userservice.dto.request.CreateInternalUserRequest;
 import tn.esprit.spring.userservice.dto.request.CreateStaffAccountRequest;
+import tn.esprit.spring.userservice.dto.request.UpdateGuardianProfileRequest;
+import tn.esprit.spring.userservice.dto.request.UpdateHrProfileRequest;
+import tn.esprit.spring.userservice.dto.request.StaffSearchRequest;
+import tn.esprit.spring.userservice.dto.request.UpdateStaffProfileRequest;
+import tn.esprit.spring.userservice.dto.response.StaffSearchResponse;
+import tn.esprit.spring.userservice.dto.response.UserAuditLogResponse;
 import tn.esprit.spring.userservice.dto.response.UserResponse;
 import tn.esprit.spring.userservice.service.UserService;
 
@@ -34,6 +40,30 @@ public class UserController {
         return userService.createStaff(request);
     }
 
+    @PatchMapping("/staff/{userId}")
+    public UserResponse updateStaffProfile(
+            @PathVariable Long userId,
+            @Valid @RequestBody UpdateStaffProfileRequest request
+    ) {
+        return userService.updateStaffProfile(userId, request);
+    }
+
+    @PatchMapping("/hr/{userId}")
+    public UserResponse updateHrProfile(
+            @PathVariable Long userId,
+            @Valid @RequestBody UpdateHrProfileRequest request
+    ) {
+        return userService.updateHrProfile(userId, request);
+    }
+
+    @PatchMapping("/guardian/{userId}")
+    public UserResponse updateGuardianProfile(
+            @PathVariable Long userId,
+            @Valid @RequestBody UpdateGuardianProfileRequest request
+    ) {
+        return userService.updateGuardianProfile(userId, request);
+    }
+
     @GetMapping
     public List<UserResponse> getAllUsers() {
         return userService.getAllUsers();
@@ -44,8 +74,33 @@ public class UserController {
         return userService.getGuardians();
     }
 
+    @PostMapping("/staff/search")
+    public StaffSearchResponse searchStaff(@RequestBody StaffSearchRequest request) {
+        return userService.searchStaff(request);
+    }
+
+    @GetMapping("/{userId}/audit")
+    public List<UserAuditLogResponse> getUserAuditLogs(@PathVariable Long userId) {
+        return userService.getUserAuditLogs(userId);
+    }
+
+    @GetMapping("/audit")
+    public List<UserAuditLogResponse> getAllUserAuditLogs() {
+        return userService.getAllUserAuditLogs();
+    }
+
     @PostMapping("/guardian")
     public UserResponse createGuardian(@Valid @RequestBody CreateGuardianAccountRequest request) {
         return userService.createGuardian(request);
+    }
+
+    @PatchMapping("/{userId}/soft-delete")
+    public UserResponse softDelete(@PathVariable Long userId) {
+        return userService.softDeleteUser(userId);
+    }
+
+    @PatchMapping("/{userId}/restore")
+    public UserResponse restore(@PathVariable Long userId) {
+        return userService.restoreUser(userId);
     }
 }

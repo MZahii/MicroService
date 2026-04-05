@@ -27,3 +27,9 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}
+
+internal:
+  api-key: ${INTERNAL_API_KEY:my-super-secret-internal-key}
+
+user-service:
+  base-url: ${USER_SERVICE_BASE_URL:http://localhost:8090}

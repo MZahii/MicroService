@@ -157,6 +157,278 @@
   min-height: 68px;
 }
 
+.metric-card {
+  border: 1px solid #e9eef5;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.metric-gradient {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.metric-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.metric-value {
+  font-size: 30px;
+  font-weight: 800;
+  color: #1d4ed8;
+  line-height: 1.1;
+}
+
+.metric-sub {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.metric-row {
+  font-size: 14px;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+.analytics-summary-card {
+  border: 1px solid #e9eef5;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #f8fbff 0%, #ffffff 100%);
+}
+
+.analytics-pill {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #ffffff;
+}
+
+.analytics-pill span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.analytics-pill strong {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.chart-card {
+  border: 1px solid #e9eef5;
+  border-radius: 16px;
+}
+
+.bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bar-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bar-meta strong {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.bar-track {
+  height: 10px;
+  width: 100%;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #3d5af1;
+}
+
+.bar-fill.role {
+  background: linear-gradient(90deg, #3d5af1 0%, #60a5fa 100%);
+}
+
+.bar-fill.active {
+  background: linear-gradient(90deg, #16a34a 0%, #4ade80 100%);
+}
+
+.bar-fill.pending {
+  background: linear-gradient(90deg, #f59e0b 0%, #facc15 100%);
+}
+
+.bar-fill.inactive {
+  background: linear-gradient(90deg, #64748b 0%, #94a3b8 100%);
+}
+
+.bar-fill.suspended {
+  background: linear-gradient(90deg, #f59e0b 0%, #f97316 100%);
+}
+
+.bar-fill.ended {
+  background: linear-gradient(90deg, #dc2626 0%, #f87171 100%);
+}
+
+.bar-fill.male {
+  background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+}
+
+.bar-fill.female {
+  background: linear-gradient(90deg, #db2777 0%, #f472b6 100%);
+}
+
+.mini-stats {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.mini-stats strong {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.expiring-contracts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.expiring-contract-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.expiring-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.expiring-ref {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.expiring-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.expiring-role {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.expiry-chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.expiry-chip.critical {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.expiry-chip.warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.expiry-chip.normal {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.expiring-date-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 10px;
+}
+
+.expiring-date-line strong {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.expiry-progress {
+  height: 8px;
+  width: 100%;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.expiry-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #16a34a;
+}
+
+.expiry-progress-fill.critical {
+  background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+}
+
+.expiry-progress-fill.warning {
+  background: linear-gradient(90deg, #f59e0b 0%, #f97316 100%);
+}
+
+.expiry-progress-fill.normal {
+  background: linear-gradient(90deg, #16a34a 0%, #22c55e 100%);
+}
+
+.expiring-card-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
 @media (max-width: 991.98px) {
   .welcome-title {
     font-size: 24px;
@@ -165,5 +437,15 @@
   .profile-line,
   .account-detail-row {
     flex-direction: column;
+  }
+
+  .mini-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .expiring-date-line {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 }

@@ -35,8 +35,10 @@
                   class="form-control"
                   name="guardianUsername"
                   [(ngModel)]="form.guardianUsername"
+                  minlength="3"
                   required
                 />
+                <small class="text-muted">Minimum 3 characters.</small>
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Guardian Email</label>
@@ -47,6 +49,7 @@
                   [(ngModel)]="form.guardianEmail"
                   required
                 />
+                <small class="text-muted">Valid email required (example: name@domain.com).</small>
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Guardian CIN</label>
@@ -54,17 +57,30 @@
                   class="form-control"
                   name="guardianCin"
                   [(ngModel)]="form.guardianCin"
+                  inputmode="numeric"
+                  minlength="8"
+                  maxlength="9"
+                  pattern="[0-9]{8,9}"
                   required
                 />
+                <small class="text-muted">CIN must be 8 to 9 digits.</small>
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Guardian Phone</label>
-                <input
-                  class="form-control"
-                  name="guardianPhone"
-                  [(ngModel)]="form.guardianPhone"
-                  required
-                />
+                <div class="phone-group">
+                  <span class="phone-prefix">+216</span>
+                  <input
+                    class="form-control"
+                    name="guardianPhone"
+                    [(ngModel)]="form.guardianPhone"
+                    inputmode="numeric"
+                    minlength="8"
+                    maxlength="8"
+                    pattern="[2459][0-9]{7}"
+                    required
+                  />
+                </div>
+                <small class="text-muted">8 digits, starts with 2/4/5/9.</small>
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Guardian First Name</label>
@@ -72,8 +88,10 @@
                   class="form-control"
                   name="guardianFirstName"
                   [(ngModel)]="form.guardianFirstName"
+                  minlength="3"
                   required
                 />
+                <small class="text-muted">Minimum 3 letters.</small>
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Guardian Last Name</label>
@@ -81,8 +99,10 @@
                   class="form-control"
                   name="guardianLastName"
                   [(ngModel)]="form.guardianLastName"
+                  minlength="3"
                   required
                 />
+                <small class="text-muted">Minimum 3 letters.</small>
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Guardian Date of Birth</label>
@@ -91,8 +111,10 @@
                   class="form-control"
                   name="guardianDateOfBirth"
                   [(ngModel)]="form.guardianDateOfBirth"
+                  [max]="maxGuardianBirthDate"
                   required
                 />
+                <small class="text-muted">Guardian must be at least 18 years old.</small>
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Guardian Sex</label>
@@ -117,8 +139,10 @@
                   class="form-control"
                   name="patientFirstName"
                   [(ngModel)]="form.patientFirstName"
+                  minlength="3"
                   required
                 />
+                <small class="text-muted">Minimum 3 letters.</small>
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Patient Last Name</label>
@@ -126,8 +150,10 @@
                   class="form-control"
                   name="patientLastName"
                   [(ngModel)]="form.patientLastName"
+                  minlength="3"
                   required
                 />
+                <small class="text-muted">Minimum 3 letters.</small>
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Patient Date of Birth</label>
@@ -136,8 +162,10 @@
                   class="form-control"
                   name="patientDateOfBirth"
                   [(ngModel)]="form.patientDateOfBirth"
+                  [max]="maxPatientBirthDate"
                   required
                 />
+                <small class="text-muted">Date of birth cannot be in the future.</small>
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Patient Sex</label>
@@ -154,30 +182,24 @@
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Blood Type (Optional)</label>
-                <input
-                  class="form-control"
-                  name="patientBloodType"
-                  [(ngModel)]="form.patientBloodType"
-                  placeholder="e.g. A+, O-"
-                />
+                <select class="form-control" name="patientBloodType" [(ngModel)]="form.patientBloodType">
+                  <option value="">Select blood type</option>
+                  <option *ngFor="let type of bloodTypeOptions" [value]="type">{{ type }}</option>
+                </select>
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Allergies (Optional)</label>
-                <input
-                  class="form-control"
-                  name="patientAllergies"
-                  [(ngModel)]="form.patientAllergies"
-                  placeholder="e.g. Penicillin, peanuts"
-                />
+                <select class="form-control" name="patientAllergies" [(ngModel)]="form.patientAllergies">
+                  <option value="">Select allergy</option>
+                  <option *ngFor="let allergy of allergyOptions" [value]="allergy">{{ allergy }}</option>
+                </select>
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Chronic Conditions (Optional)</label>
-                <input
-                  class="form-control"
-                  name="patientChronicConditions"
-                  [(ngModel)]="form.patientChronicConditions"
-                  placeholder="e.g. Asthma"
-                />
+                <select class="form-control" name="patientChronicConditions" [(ngModel)]="form.patientChronicConditions">
+                  <option value="">Select condition</option>
+                  <option *ngFor="let condition of chronicConditionOptions" [value]="condition">{{ condition }}</option>
+                </select>
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Medical Notes (Optional)</label>
@@ -194,7 +216,6 @@
               <button class="btn btn-primary" type="submit" [disabled]="loading || f.invalid">
                 {{ loading ? 'CREATING...' : 'CREATE GUARDIAN + PATIENT' }}
               </button>
-              <a routerLink="/backoffice/dashboard" class="btn btn-light-brand">BACK TO DASHBOARD</a>
             </div>
           </form>
         </div>

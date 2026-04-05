@@ -1,10 +1,15 @@
 import {
   AfterViewInit,
-  Component
+  Component,
+  OnInit
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthStorageService } from '../../../core/auth/auth-storage.service';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { firstValueFrom, forkJoin } from 'rxjs';
+import { environment } from '../../../../environments/environment';
+import { getValidToken } from '../../../core/auth/keycloak.service';
 
 declare global {
   interface Window {
@@ -19,10 +24,86 @@ declare global {
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
-export class Dashboard implements AfterViewInit {
-  currentYear = new Date().getFullYear();
+export class Dashboard implements AfterViewInit, OnInit {
+  loadingStats = false;
+  statsError = '';
+  allUsers: any[] = [];
+  allContracts: any[] = [];
+  allPatients: any[] = [];
+  allGuardians: any[] = [];
+  actionAlerts = {
+    contractsEndingIn7Days: 0,
+    contractsEndingIn30Days: 0,
+    pendingUsersTooLong: 0,
+    profilesMissingRequiredData: 0
+  };
+  latestNotifications: Array<{ id: number; type: string; title: string; message: string; createdAt: string }> = [];
 
-  constructor(private authStorage: AuthStorageService) {}
+  get expiringContractsPreview(): Array<{
+    id: number;
+    staffUserId: number;
+    fullName: string;
+    role: string;
+    contractReference: string;
+    endDate: string;
+    daysLeft: number;
+    status: string;
+  }> {
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const maxDate = new Date(startOfToday);
+    maxDate.setDate(maxDate.getDate() + 30);
+
+    return this.allContracts
+      .filter((contract) => ['ACTIVE', 'SUSPENDED'].includes(String(contract.status ?? '')))
+      .map((contract) => {
+        const staffUserId = Number(contract.staffUserId);
+        const user = this.allUsers.find((u) => Number(u.id) === staffUserId);
+        const fullName = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || user?.username || `User #${staffUserId}`;
+        const end = new Date(contract.endDate ?? '');
+        const startOfEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+        const daysLeft = Math.ceil((startOfEnd.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24));
+        return {
+          id: Number(contract.id),
+          staffUserId,
+          fullName,
+          role: String(user?.role ?? '-'),
+          contractReference: String(contract.contractReference ?? `#${contract.id ?? '-'}`),
+          endDate: String(contract.endDate ?? ''),
+          daysLeft,
+          status: String(contract.status ?? '')
+        };
+      })
+      .filter((item) => Number.isFinite(item.daysLeft) && item.daysLeft >= 0 && new Date(item.endDate).getTime() <= maxDate.getTime())
+      .sort((a, b) => a.daysLeft - b.daysLeft)
+      .slice(0, 8);
+  }
+
+  get canOpenExpiringAccounts(): boolean {
+    return this.isAdmin || this.isHr;
+  }
+
+  getExpirySeverity(daysLeft: number): 'critical' | 'warning' | 'normal' {
+    if (daysLeft <= 3) return 'critical';
+    if (daysLeft <= 10) return 'warning';
+    return 'normal';
+  }
+
+  getDaysLeftLabel(daysLeft: number): string {
+    if (daysLeft <= 0) return 'Today';
+    if (daysLeft === 1) return '1 day left';
+    return `${daysLeft} days left`;
+  }
+
+  getExpiryProgress(daysLeft: number): number {
+    const ratio = Math.max(0, Math.min(1, (30 - daysLeft) / 30));
+    return Math.round(ratio * 100);
+  }
+
+  constructor(
+    private authStorage: AuthStorageService,
+    private http: HttpClient
+  ) {}
 
   get user(): any | null {
     return this.authStorage.getUser();
@@ -48,7 +129,6 @@ export class Dashboard implements AfterViewInit {
     if (this.user?.firstName && this.user?.lastName) {
       return `${this.user.firstName} ${this.user.lastName}`;
     }
-
     return this.user?.username ?? 'User';
   }
 
@@ -61,204 +141,329 @@ export class Dashboard implements AfterViewInit {
   }
 
   get roleDescription(): string {
-    if (this.isAdmin) {
-      return 'Global administration and platform supervision';
-    }
-
-    if (this.isHr) {
-      return 'Human resources and operational management';
-    }
-
-    if (this.isReceptionist) {
-      return 'Reception and patient onboarding operations';
-    }
-
+    if (this.isAdmin) return 'Global administration and platform supervision';
+    if (this.isHr) return 'Human resources and operational management';
+    if (this.isReceptionist) return 'Reception and patient onboarding operations';
     return 'Connected backoffice user';
   }
 
-  get mainActionLabel(): string {
-    if (this.isAdmin) {
-      return 'Create HR Account';
-    }
-
-    if (this.isHr) {
-      return 'Create Staff Account';
-    }
-
-    if (this.isReceptionist) {
-      return 'Create Guardian + Patient';
-    }
-
-    return 'Open Management';
+  get staffUsers(): any[] {
+    return this.allUsers.filter((user) =>
+      ['DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST'].includes(user.role)
+    );
   }
 
-  get mainActionLink(): string {
-    if (this.isAdmin) {
-      return '/backoffice/create-hr';
-    }
-
-    if (this.isHr) {
-      return '/backoffice/create-staff';
-    }
-
-    if (this.isReceptionist) {
-      return '/backoffice/create-guardian-patient';
-    }
-
-    return '/backoffice/dashboard';
+  get totalStaff(): number {
+    return this.staffUsers.length;
   }
 
-  get statistics(): Array<{
-    title: string;
-    value: string;
-    subtitle: string;
-    progressLabel: string;
-    progressValue: number;
-    icon: string;
-    progressClass: string;
-  }> {
+  get activeStaff(): number {
+    return this.staffUsers.filter(u => u.accountStatus === 'ACTIVE').length;
+  }
+
+  get pendingStaff(): number {
+    return this.staffUsers.filter(u => u.accountStatus === 'PENDING_CONTRACT').length;
+  }
+
+  get inactiveStaff(): number {
+    return this.staffUsers.filter(u => u.accountStatus === 'INACTIVE').length;
+  }
+
+  get totalContracts(): number {
+    return this.allContracts.length;
+  }
+
+  get activeContracts(): number {
+    return this.allContracts.filter(c => c.status === 'ACTIVE').length;
+  }
+
+  get suspendedContracts(): number {
+    return this.allContracts.filter(c => c.status === 'SUSPENDED').length;
+  }
+
+  get endedContracts(): number {
+    return this.allContracts.filter(c => c.status === 'ENDED' || c.status === 'EXPIRED').length;
+  }
+
+  get contractCoverage(): number {
+    if (!this.totalStaff) return 0;
+    const withContract = new Set(this.allContracts.map(c => c.staffUserId)).size;
+    return Math.round((withContract / this.totalStaff) * 100);
+  }
+
+  get activeStaffRate(): number {
+    if (!this.totalStaff) return 0;
+    return Math.round((this.activeStaff / this.totalStaff) * 100);
+  }
+
+  get activeContractsRate(): number {
+    if (!this.totalContracts) return 0;
+    return Math.round((this.activeContracts / this.totalContracts) * 100);
+  }
+
+  get roleBreakdown(): Array<{ role: string; count: number }> {
+    const roles = ['DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST'];
+    return roles.map(role => ({
+      role,
+      count: this.staffUsers.filter(u => u.role === role).length
+    }));
+  }
+
+  get roleBreakdownWithPercent(): Array<{ role: string; count: number; percent: number }> {
+    const total = this.totalStaff || 1;
+    return this.roleBreakdown.map((item) => ({
+      ...item,
+      percent: Math.round((item.count / total) * 100)
+    }));
+  }
+
+  get hrUsers(): any[] {
+    return this.allUsers.filter((user) => user.role === 'HR');
+  }
+
+  get totalHr(): number {
+    return this.hrUsers.length;
+  }
+
+  get activeHr(): number {
+    return this.hrUsers.filter((u) => u.accountStatus === 'ACTIVE').length;
+  }
+
+  get pendingHr(): number {
+    return this.hrUsers.filter((u) => u.accountStatus === 'PENDING_CONTRACT').length;
+  }
+
+  get inactiveHr(): number {
+    return this.hrUsers.filter((u) => u.accountStatus === 'INACTIVE').length;
+  }
+
+  get enabledUsers(): number {
+    return this.allUsers.filter((u) => !!u.enabled).length;
+  }
+
+  get disabledUsers(): number {
+    return Math.max(0, this.allUsers.length - this.enabledUsers);
+  }
+
+  get enabledUsersRate(): number {
+    if (!this.allUsers.length) return 0;
+    return Math.round((this.enabledUsers / this.allUsers.length) * 100);
+  }
+
+  get staffWithContractCount(): number {
+    const staffIds = new Set(this.staffUsers.map((user) => user.id));
+    const contracted = new Set(
+      this.allContracts
+        .map((contract) => contract.staffUserId)
+        .filter((staffUserId) => staffIds.has(staffUserId))
+    );
+    return contracted.size;
+  }
+
+  get staffWithoutContractCount(): number {
+    return Math.max(0, this.totalStaff - this.staffWithContractCount);
+  }
+
+  get patientCoverageRate(): number {
+    if (!this.totalGuardians) return 0;
+    return Math.round((this.linkedGuardians / this.totalGuardians) * 100);
+  }
+
+  get patientSexBreakdown(): Array<{ label: string; value: number; percent: number; css: string }> {
+    const total = this.totalPatients || 1;
     return [
-      {
-        title: 'Staff Management',
-        value: 'Module',
-        subtitle: 'Accounts, roles and staff follow-up',
-        progressLabel: this.isAdmin ? 'Admin overview' : 'HR operational access',
-        progressValue: 100,
-        icon: 'feather-users',
-        progressClass: 'bg-primary'
-      },
-      {
-        title: 'Patients',
-        value: 'Module',
-        subtitle: 'Guardians, children and linked profiles',
-        progressLabel: 'Patient and guardian workflow',
-        progressValue: 100,
-        icon: 'feather-heart',
-        progressClass: 'bg-success'
-      },
-      {
-        title: 'Clinic Resources',
-        value: 'Module',
-        subtitle: 'Rooms, beds, dialysis machines and equipment',
-        progressLabel: 'Clinic resource management',
-        progressValue: 100,
-        icon: 'feather-home',
-        progressClass: 'bg-info'
-      },
-      {
-        title: 'Security Status',
-        value: 'OK',
-        subtitle: 'Gateway + Keycloak + roles',
-        progressLabel: 'Authentication enabled',
-        progressValue: 100,
-        icon: 'feather-shield',
-        progressClass: 'bg-warning'
-      }
+      { label: 'Male', value: this.malePatients, percent: Math.round((this.malePatients / total) * 100), css: 'male' },
+      { label: 'Female', value: this.femalePatients, percent: Math.round((this.femalePatients / total) * 100), css: 'female' }
     ];
   }
 
-  get quickLinks(): Array<{ label: string; description: string; link: string; icon: string; visible: boolean }> {
+  get staffStatusBreakdown(): Array<{ label: string; value: number; percent: number; css: string }> {
+    const total = this.totalStaff || 1;
     return [
-      {
-        label: 'Staff',
-        description: this.isAdmin
-          ? 'View staff list and staff-related management'
-          : 'Manage staff accounts and related operations',
-        link: '/backoffice/staff',
-        icon: 'feather-users',
-        visible: this.isAdmin || this.isHr
-      },
-      {
-        label: 'Patients',
-        description: this.isAdmin
-          ? 'View patients and guardians overview'
-          : 'Patient and guardian operations',
-        link: '/backoffice/patients',
-        icon: 'feather-user',
-        visible: this.isAdmin || this.isReceptionist
-      },
-      {
-        label: 'Clinic Resources',
-        description: this.isAdmin
-          ? 'View clinic resources and structure'
-          : 'Create and manage clinic resources',
-        link: '/backoffice/clinic-resources',
-        icon: 'feather-grid',
-        visible: this.isAdmin || this.isHr
-      },
-      {
-        label: 'Create HR Account',
-        description: 'Reserved for platform administration',
-        link: '/backoffice/create-hr',
-        icon: 'feather-user-plus',
-        visible: this.isAdmin
-      },
-      {
-        label: 'Create Staff Account',
-        description: 'Reserved for HR operational flow',
-        link: '/backoffice/create-staff',
-        icon: 'feather-briefcase',
-        visible: this.isHr
-      },
-      {
-        label: 'Create Guardian + Patient',
-        description: 'Create guardian account and linked child profile',
-        link: '/backoffice/create-guardian-patient',
-        icon: 'feather-heart',
-        visible: this.isReceptionist
-      }
+      { label: 'Active', value: this.activeStaff, percent: Math.round((this.activeStaff / total) * 100), css: 'active' },
+      { label: 'Pending', value: this.pendingStaff, percent: Math.round((this.pendingStaff / total) * 100), css: 'pending' },
+      { label: 'Inactive', value: this.inactiveStaff, percent: Math.round((this.inactiveStaff / total) * 100), css: 'inactive' }
     ];
   }
 
-  get latestItems(): Array<{ module: string; action: string; role: string; status: string }> {
-    if (this.isAdmin) {
-      return [
-        {
-          module: 'Staff',
-          action: 'Create HR accounts',
-          role: 'ADMIN',
-          status: 'Allowed'
-        },
-        {
-          module: 'Patients',
-          action: 'View patient and guardian modules',
-          role: 'ADMIN',
-          status: 'Allowed'
-        },
-        {
-          module: 'Clinic Resources',
-          action: 'View clinic resource modules',
-          role: 'ADMIN',
-          status: 'Allowed'
-        }
-      ];
-    }
-
+  get contractStatusBreakdown(): Array<{ label: string; value: number; percent: number; css: string }> {
+    const total = this.totalContracts || 1;
     return [
-      {
-        module: 'Staff',
-        action: 'Create and manage staff accounts',
-        role: 'HR',
-        status: 'Allowed'
-      },
-      {
-        module: 'Clinic Resources',
-        action: 'Create and manage clinic resources',
-        role: 'HR',
-        status: 'Allowed'
-      }
+      { label: 'Active', value: this.activeContracts, percent: Math.round((this.activeContracts / total) * 100), css: 'active' },
+      { label: 'Suspended', value: this.suspendedContracts, percent: Math.round((this.suspendedContracts / total) * 100), css: 'suspended' },
+      { label: 'Ended/Expired', value: this.endedContracts, percent: Math.round((this.endedContracts / total) * 100), css: 'ended' }
     ];
+  }
+
+  
+
+  get totalPatients(): number {
+    return this.allPatients.length;
+  }
+
+  get totalGuardians(): number {
+    return this.allGuardians.length;
+  }
+
+  get malePatients(): number {
+    return this.allPatients.filter(p => p.sex === 'MALE').length;
+  }
+
+  get femalePatients(): number {
+    return this.allPatients.filter(p => p.sex === 'FEMALE').length;
+  }
+
+  get linkedGuardians(): number {
+    const guardianSet = new Set(this.allPatients.map(p => p.guardianUserId));
+    return guardianSet.size;
+  }
+
+  get unlinkedGuardians(): number {
+    return Math.max(0, this.totalGuardians - this.linkedGuardians);
+  }
+
+  get averageKidsPerGuardian(): number {
+    if (!this.totalGuardians) return 0;
+    return Number((this.totalPatients / this.totalGuardians).toFixed(2));
+  }
+
+  get todayPatients(): number {
+    const today = new Date().toISOString().slice(0, 10);
+    return this.allPatients.filter(p => (p.createdAt ?? '').slice(0, 10) === today).length;
+  }
+
+  get monthPatients(): number {
+    const now = new Date();
+    return this.allPatients.filter(p => {
+      const created = new Date(p.createdAt ?? '');
+      return !Number.isNaN(created.getTime())
+        && created.getFullYear() === now.getFullYear()
+        && created.getMonth() === now.getMonth();
+    }).length;
+  }
+
+  get minorsPatients(): number {
+    const now = new Date();
+    return this.allPatients.filter((patient) => {
+      const dob = new Date(patient.dateOfBirth ?? '');
+      if (Number.isNaN(dob.getTime())) return false;
+      let age = now.getFullYear() - dob.getFullYear();
+      const monthDiff = now.getMonth() - dob.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < dob.getDate())) {
+        age--;
+      }
+      return age < 18;
+    }).length;
+  }
+
+  get adultsPatients(): number {
+    return Math.max(0, this.totalPatients - this.minorsPatients);
+  }
+
+  get withAllergiesPatients(): number {
+    return this.allPatients.filter((patient) => {
+      const allergies = (patient.allergies ?? '').toString().trim();
+      return allergies.length > 0 && allergies !== '-';
+    }).length;
+  }
+
+  get bloodTypeFilledPatients(): number {
+    return this.allPatients.filter((patient) => {
+      const bloodType = (patient.bloodType ?? '').toString().trim();
+      return bloodType.length > 0 && bloodType !== '-';
+    }).length;
+  }
+
+  get bloodTypeMissingPatients(): number {
+    return Math.max(0, this.totalPatients - this.bloodTypeFilledPatients);
+  }
+
+  get bloodTypeFilledRate(): number {
+    if (!this.totalPatients) return 0;
+    return Math.round((this.bloodTypeFilledPatients / this.totalPatients) * 100);
+  }
+
+  get guardianLinkingRate(): number {
+    if (!this.totalGuardians) return 0;
+    return Math.round((this.linkedGuardians / this.totalGuardians) * 100);
+  }
+
+  get patientAgeBreakdown(): Array<{ label: string; value: number; percent: number; css: string }> {
+    const total = this.totalPatients || 1;
+    return [
+      { label: 'Minors (<18)', value: this.minorsPatients, percent: Math.round((this.minorsPatients / total) * 100), css: 'pending' },
+      { label: 'Adults (18+)', value: this.adultsPatients, percent: Math.round((this.adultsPatients / total) * 100), css: 'inactive' }
+    ];
+  }
+
+  async ngOnInit(): Promise<void> {
+    await this.loadGlobalStats();
   }
 
   ngAfterViewInit(): void {
     setTimeout(() => {
       try {
-        if (window.feather) {
-          window.feather.replace();
-        }
-      } catch (error) {
-        console.error('Feather init error:', error);
+        if (window.feather) window.feather.replace();
+      } catch {
+        // noop
       }
     }, 100);
+  }
+
+  private async loadGlobalStats(): Promise<void> {
+    if (!(this.isAdmin || this.isHr || this.isReceptionist)) return;
+    this.loadingStats = true;
+    this.statsError = '';
+    try {
+      const token = await getValidToken();
+      const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+      if (this.isAdmin || this.isHr) {
+        const response = await firstValueFrom(forkJoin({
+          users: this.http.get<any[] | unknown>(`${environment.apiBaseUrl}/api/users`, { headers }),
+          contracts: this.http.get<any[] | unknown>(`${environment.apiBaseUrl}/api/contracts`, { headers })
+        }));
+        this.allUsers = Array.isArray(response?.users) ? response.users : [];
+        this.allContracts = Array.isArray(response?.contracts) ? response.contracts : [];
+      }
+
+      if (this.isReceptionist || this.isAdmin) {
+        const response = await firstValueFrom(forkJoin({
+          patients: this.http.get<any[] | unknown>(`${environment.apiBaseUrl}/api/patients`, { headers }),
+          guardians: this.http.get<any[] | unknown>(`${environment.apiBaseUrl}/api/users/guardians`, { headers })
+        }));
+        this.allPatients = Array.isArray(response?.patients) ? response.patients : [];
+        this.allGuardians = Array.isArray(response?.guardians) ? response.guardians : [];
+      }
+
+      if (this.isAdmin || this.isHr || this.isReceptionist) {
+        try {
+          const alerts = await firstValueFrom(
+            this.http.get<any>(`${environment.apiBaseUrl}/api/contracts/alerts/action-required?pendingDays=7`, { headers })
+          );
+          this.actionAlerts = {
+            contractsEndingIn7Days: Number(alerts?.contractsEndingIn7Days ?? 0),
+            contractsEndingIn30Days: Number(alerts?.contractsEndingIn30Days ?? 0),
+            pendingUsersTooLong: Number(alerts?.pendingUsersTooLong ?? 0),
+            profilesMissingRequiredData: Number(alerts?.profilesMissingRequiredData ?? 0)
+          };
+        } catch {
+          // keep defaults when alerts endpoint is unavailable
+        }
+
+        try {
+          const userId = Number(this.user?.userId);
+          const notifications = await firstValueFrom(
+            this.http.get<any[] | unknown>(`${environment.apiBaseUrl}/api/observability/notifications?userId=${userId}`, { headers })
+          );
+          this.latestNotifications = Array.isArray(notifications) ? notifications.slice(0, 6) : [];
+        } catch {
+          this.latestNotifications = [];
+        }
+      }
+    } catch {
+      this.statsError = 'Failed to load live statistics.';
+    } finally {
+      this.loadingStats = false;
+    }
   }
 }

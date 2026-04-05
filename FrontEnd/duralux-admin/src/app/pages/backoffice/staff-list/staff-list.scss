@@ -7,8 +7,129 @@
 
 .filters {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
   gap: 12px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stats-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+}
+
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.circle-wrap {
+  width: 84px;
+  height: 84px;
+  border-radius: 999px;
+  background: conic-gradient(#2563eb 0deg 280deg, #e2e8f0 280deg 360deg);
+  display: grid;
+  place-items: center;
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+.circle-contract {
+  background: conic-gradient(#14b8a6 0deg 250deg, #e2e8f0 250deg 360deg);
+}
+
+.circle-enabled {
+  background: conic-gradient(#22c55e 0deg 300deg, #e2e8f0 300deg 360deg);
+}
+
+.circle-value {
+  width: 62px;
+  height: 62px;
+  border-radius: 999px;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.chart-legend {
+  font-size: 12px;
+  color: #64748b;
+  text-align: center;
+}
+
+.stats-label {
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stats-value {
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 700;
+  color: #1d4ed8;
+  margin-top: 6px;
+}
+
+.role-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.role-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+}
+
+.role-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.role-total {
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 700;
+  color: #1d4ed8;
+  margin-top: 6px;
+}
+
+.role-line {
+  color: #334155;
+  font-size: 14px;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.page-size {
+  width: 90px;
+}
+
+.inline-select {
+  min-width: 170px;
+  font-weight: 600;
 }
 
 .status-pill {
@@ -45,6 +166,14 @@
 }
 
 @media (max-width: 992px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .role-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .filters {
     grid-template-columns: 1fr;
   }
