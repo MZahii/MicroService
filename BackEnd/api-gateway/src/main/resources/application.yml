@@ -37,6 +37,11 @@ spring:
               filters:
                 - StripPrefix=1
 
+            - id: communication-service-api
+              uri: lb://communication-service
+              predicates:
+                - Path=/api/communication/**,/api/appointments/**
+
             - id: user-service-api
               uri: lb://user-service
               predicates:

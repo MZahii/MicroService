@@ -92,7 +92,9 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
     staff: false,
     patients: false,
     clinic: false,
-    procedures: false
+    procedures: false,
+    communication: false,
+    appointments: false
   };
 
   // updated with your real files
@@ -120,6 +122,14 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
 
   get isReceptionist(): boolean {
     return this.role === 'RECEPTIONIST';
+  }
+
+  get isNurse(): boolean {
+    return this.role === 'NURSE';
+  }
+
+  get isDoctor(): boolean {
+    return this.role === 'DOCTOR';
   }
 
   get isSurgeon(): boolean {
@@ -348,6 +358,41 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
             implemented: true
           }
         ]
+      });
+    }
+
+    if (this.isReceptionist || this.isNurse || this.isDoctor) {
+      items.push({
+        key: 'communication',
+        label: 'Communication',
+        icon: 'feather-message-square',
+        children: [
+          {
+            label: 'Inbox',
+            route: '/backoffice/communication/inbox',
+            implemented: true
+          },
+          {
+            label: 'Templates',
+            route: '/backoffice/communication/templates',
+            implemented: true
+          },
+          {
+            label: 'Analytics',
+            route: '/backoffice/communication/analytics',
+            implemented: true
+          }
+        ]
+      });
+    }
+
+    if (this.isReceptionist) {
+      items.push({
+        key: 'appointments',
+        label: 'Appointment Requests',
+        icon: 'feather-calendar',
+        route: '/backoffice/appointments/requests',
+        exact: true
       });
     }
 

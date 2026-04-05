@@ -21,6 +21,11 @@ import { FrontofficeHomeComponent } from './pages/frontoffice/frontoffice-home/f
 import { FrontofficePatientDetailsComponent } from './pages/frontoffice/frontoffice-patient-details/frontoffice-patient-details';
 import { MyContractComponent } from './pages/shared/my-contract/my-contract';
 import { LogsComponent } from './pages/backoffice/logs/logs';
+import { CommunicationInboxComponent } from './pages/backoffice/communication-inbox/communication-inbox';
+import { CommunicationDetailsComponent } from './pages/backoffice/communication-details/communication-details';
+import { CommunicationTemplatesComponent } from './pages/backoffice/communication-templates/communication-templates';
+import { CommunicationAnalyticsComponent } from './pages/backoffice/communication-analytics/communication-analytics';
+import { AppointmentsRequestsComponent } from './pages/backoffice/appointments-requests/appointments-requests';
 import { ProcedureDialysisComponent } from './pages/backoffice/procedure-dialysis/procedure-dialysis';
 import { ProcedureDialysisOutcomesComponent } from './pages/backoffice/procedure-dialysis-outcomes/procedure-dialysis-outcomes';
 import { ProcedureDialysisPrescriptionsComponent } from './pages/backoffice/procedure-dialysis-prescriptions/procedure-dialysis-prescriptions';
@@ -28,6 +33,11 @@ import { ProcedureDialysisSessionsComponent } from './pages/backoffice/procedure
 import { ProcedureSurgicalComponent } from './pages/backoffice/procedure-surgical/procedure-surgical';
 import { ProcedureSurgicalAdvancedComponent } from './pages/backoffice/procedure-surgical-advanced/procedure-surgical-advanced';
 import { GuardianTrackingComponent } from './pages/frontoffice/guardian-tracking/guardian-tracking';
+import { CommunicationListComponent } from './pages/frontoffice/communication-list/communication-list';
+import { CommunicationNewComponent } from './pages/frontoffice/communication-new/communication-new';
+import { CommunicationThreadComponent } from './pages/frontoffice/communication-thread/communication-thread';
+import { FrontofficeAppointmentsComponent } from './pages/frontoffice/appointments/appointments';
+import { FrontofficeProfileComponent } from './pages/frontoffice/profile/profile';
 
 import { HomePageComponent } from './pages/public/home-page/home-page';
 import { AboutPageComponent } from './pages/public/about-page/about-page';
@@ -144,6 +154,36 @@ export const routes: Routes = [
         data: { roles: ['ADMIN', 'HR'] }
       },
       {
+        path: 'communication/inbox',
+        component: CommunicationInboxComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['RECEPTIONIST', 'NURSE', 'DOCTOR'] }
+      },
+      {
+        path: 'communication/templates',
+        component: CommunicationTemplatesComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['RECEPTIONIST', 'NURSE', 'DOCTOR'] }
+      },
+      {
+        path: 'communication/analytics',
+        component: CommunicationAnalyticsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['RECEPTIONIST', 'NURSE', 'DOCTOR'] }
+      },
+      {
+        path: 'communication/:id',
+        component: CommunicationDetailsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['RECEPTIONIST', 'NURSE', 'DOCTOR'] }
+      },
+      {
+        path: 'appointments/requests',
+        component: AppointmentsRequestsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['RECEPTIONIST'] }
+      },
+      {
         path: 'my-contract',
         component: MyContractComponent,
         canActivate: [roleGuard],
@@ -203,6 +243,11 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', component: FrontofficeHomeComponent },
+      { path: 'communication', component: CommunicationListComponent },
+      { path: 'communication/new', component: CommunicationNewComponent },
+      { path: 'communication/:id', component: CommunicationThreadComponent },
+      { path: 'appointments', component: FrontofficeAppointmentsComponent },
+      { path: 'profile', component: FrontofficeProfileComponent },
       { path: 'patients/:id', component: FrontofficePatientDetailsComponent },
       { path: 'my-contract', component: MyContractComponent },
       { path: 'tracking', component: GuardianTrackingComponent }

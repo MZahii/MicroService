@@ -5,9 +5,9 @@ spring:
   application:
     name: communication-service
   datasource:
-    url: jdbc:postgresql://${COMM_DB_HOST}:${COMM_DB_PORT}/${COMM_DB_NAME}?sslmode=require
-    username: ${COMM_DB_USER}
-    password: ${COMM_DB_PASSWORD}
+    url: ${COMM_DB_URL:jdbc:postgresql://ep-cool-breeze-agqhhjlc.c-2.eu-central-1.aws.neon.tech/nephros_communication_service_db?sslmode=require&channel_binding=require}
+    username: ${COMM_DB_USER:neondb_owner}
+    password: ${COMM_DB_PASSWORD:npg_Zb1Kda5LPlin}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

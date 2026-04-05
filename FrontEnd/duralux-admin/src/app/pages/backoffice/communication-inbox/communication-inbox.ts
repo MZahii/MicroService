@@ -1,0 +1,373 @@
+import { CommonModule } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { AuthStorageService } from '../../../core/auth/auth-storage.service';
+import { finalize } from 'rxjs';
+import {
+  CommunicationApiService,
+  FollowUpMessage,
+  MessageQueue,
+  MessageStatus,
+  MessageType,
+  PatientDirectoryItem,
+  PriorityLevel
+} from '../../../core/services/communication-api.service';
+
+type InboxTab = 'MY_QUEUE' | 'ALL_MESSAGES' | 'URGENT';
+type AssignedFilter = 'ALL' | 'ME' | 'UNASSIGNED' | 'ASSIGNED';
+
+interface InboxFiltersState {
+  search: string;
+  patientId: number | null;
+  dateFrom: string;
+  dateTo: string;
+  assigned: AssignedFilter;
+  statuses: MessageStatus[];
+  priorities: PriorityLevel[];
+  types: MessageType[];
+}
+
+@Component({
+  selector: 'app-communication-inbox',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterLink],
+  templateUrl: './communication-inbox.html',
+  styleUrl: './communication-inbox.scss'
+})
+export class CommunicationInboxComponent implements OnInit {
+  loading = true;
+  actionLoadingId = '';
+  errorMessage = '';
+  items: FollowUpMessage[] = [];
+  activeTab: InboxTab = 'MY_QUEUE';
+  showFilters = false;
+  page = 1;
+  readonly pageSize = 12;
+
+  patientsById: Record<number, string> = {};
+
+  draftFilters: InboxFiltersState = this.createDefaultFilters();
+  appliedFilters: InboxFiltersState = this.createDefaultFilters();
+
+  readonly statuses: MessageStatus[] = ['PENDING', 'READ', 'IN_PROGRESS', 'ESCALATED', 'RESPONDED', 'CLOSED'];
+  readonly priorities: PriorityLevel[] = ['HIGH', 'NORMAL'];
+  readonly types: MessageType[] = ['ADMINISTRATIVE', 'APPOINTMENT', 'QUESTION', 'COMPLAINT', 'MEDICAL', 'LAB_RESULT', 'OTHER'];
+  readonly assignedFilters: AssignedFilter[] = ['ALL', 'ME', 'UNASSIGNED', 'ASSIGNED'];
+
+  get pendingCount(): number {
+    return this.items.filter((item) => item.status === 'PENDING').length;
+  }
+
+  get urgentOpenCount(): number {
+    return this.items.filter((item) => item.priority === 'HIGH' && !this.isClosed(item.status)).length;
+  }
+
+  get respondedTodayCount(): number {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    return this.items.filter((item) => {
+      const firstStaffReply = this.getFirstStaffReplyDate(item);
+      return !!firstStaffReply && firstStaffReply.getTime() >= start.getTime();
+    }).length;
+  }
+
+  get avgResponseHours(): string {
+    const samples = this.items
+      .map((item) => {
+        const firstReply = this.getFirstStaffReplyDate(item);
+        if (!firstReply) {
+          return null;
+        }
+        const created = new Date(item.createdAt);
+        return (firstReply.getTime() - created.getTime()) / 3600000;
+      })
+      .filter((value): value is number => typeof value === 'number' && value >= 0);
+
+    if (samples.length === 0) {
+      return '-';
+    }
+    const average = samples.reduce((sum, value) => sum + value, 0) / samples.length;
+    return `${average.toFixed(1)} h`;
+  }
+
+  get urgentTabCount(): number {
+    return this.items.filter((item) => item.priority === 'HIGH').length;
+  }
+
+  constructor(
+    private authStorage: AuthStorageService,
+    private communicationApi: CommunicationApiService
+  ) {}
+
+  ngOnInit(): void {
+    this.loadPatientsDirectory();
+    this.load();
+  }
+
+  private createDefaultFilters(): InboxFiltersState {
+    return {
+      search: '',
+      patientId: null,
+      dateFrom: '',
+      dateTo: '',
+      assigned: 'ALL',
+      statuses: [],
+      priorities: [],
+      types: []
+    };
+  }
+
+  private loadPatientsDirectory(): void {
+    this.communicationApi.getPatientsDirectory().subscribe({
+      next: (patients) => {
+        this.patientsById = patients.reduce((acc: Record<number, string>, patient: PatientDirectoryItem) => {
+          acc[patient.id] = `${patient.firstName} ${patient.lastName}`.trim();
+          return acc;
+        }, {});
+      },
+      error: () => {
+        this.patientsById = {};
+      }
+    });
+  }
+
+  get currentUserKeycloakId(): string {
+    return this.authStorage.getUser()?.keycloakId ?? '';
+  }
+
+  get patientOptions(): Array<{ id: number; name: string }> {
+    return Object.entries(this.patientsById)
+      .map(([id, name]) => ({ id: Number(id), name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  getPatientDisplay(patientId: number): string {
+    return this.patientsById[patientId] ?? `#${patientId}`;
+  }
+
+  get queue(): MessageQueue {
+    const role = this.authStorage.getRole();
+    if (role === 'NURSE') return 'NURSE';
+    if (role === 'DOCTOR') return 'DOCTOR';
+    return 'RECEPTIONIST';
+  }
+
+  get filteredItems(): FollowUpMessage[] {
+    const q = this.appliedFilters.search.trim().toLowerCase();
+    return this.items
+      .filter((item) => this.matchesTab(item))
+      .filter((item) => this.appliedFilters.statuses.length === 0 || this.appliedFilters.statuses.includes(item.status))
+      .filter((item) => this.appliedFilters.priorities.length === 0 || this.appliedFilters.priorities.includes(item.priority))
+      .filter((item) => this.appliedFilters.types.length === 0 || this.appliedFilters.types.includes(item.messageType))
+      .filter((item) => {
+        if (this.appliedFilters.assigned === 'ALL') return true;
+        if (this.appliedFilters.assigned === 'UNASSIGNED') return !item.assignedToUserKeycloakId;
+        if (this.appliedFilters.assigned === 'ASSIGNED') return !!item.assignedToUserKeycloakId;
+        return item.assignedToUserKeycloakId === this.currentUserKeycloakId;
+      })
+      .filter((item) => {
+        if (!q) return true;
+        const patientName = this.getPatientDisplay(item.patientId).toLowerCase();
+        return (
+          patientName.includes(q) ||
+          (item.subject ?? '').toLowerCase().includes(q) ||
+          item.messageText.toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) => this.sortMessages(a, b));
+  }
+
+  get activeFilterTags(): string[] {
+    const tags: string[] = [];
+    this.appliedFilters.statuses.forEach((status) => tags.push(`Status: ${status}`));
+    this.appliedFilters.priorities.forEach((priority) => tags.push(`Priority: ${priority}`));
+    this.appliedFilters.types.forEach((type) => tags.push(`Type: ${type}`));
+    if (this.appliedFilters.patientId) {
+      tags.push(`Patient: ${this.getPatientDisplay(this.appliedFilters.patientId)}`);
+    }
+    if (this.appliedFilters.dateFrom) {
+      tags.push(`From: ${this.appliedFilters.dateFrom}`);
+    }
+    if (this.appliedFilters.dateTo) {
+      tags.push(`To: ${this.appliedFilters.dateTo}`);
+    }
+    if (this.appliedFilters.assigned !== 'ALL') {
+      tags.push(`Assigned: ${this.appliedFilters.assigned}`);
+    }
+    if (this.appliedFilters.search.trim()) {
+      tags.push(`Search: ${this.appliedFilters.search.trim()}`);
+    }
+    return tags;
+  }
+
+  private matchesTab(item: FollowUpMessage): boolean {
+    if (this.activeTab === 'URGENT') {
+      return item.priority === 'HIGH';
+    }
+    if (this.activeTab === 'MY_QUEUE') {
+      return !!this.currentUserKeycloakId && item.assignedToUserKeycloakId === this.currentUserKeycloakId;
+    }
+    return true;
+  }
+
+  private sortMessages(a: FollowUpMessage, b: FollowUpMessage): number {
+    if (a.priority !== b.priority) {
+      if (a.priority === 'HIGH') return -1;
+      if (b.priority === 'HIGH') return 1;
+    }
+
+    const aPending = a.status === 'PENDING';
+    const bPending = b.status === 'PENDING';
+    if (aPending !== bPending) {
+      return aPending ? -1 : 1;
+    }
+
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  }
+
+  private getFirstStaffReplyDate(item: FollowUpMessage): Date | null {
+    const staffReply = item.replies
+      .filter((reply) => reply.senderRole !== 'GUARDIAN')
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0];
+    return staffReply ? new Date(staffReply.createdAt) : null;
+  }
+
+  private isClosed(status: MessageStatus): boolean {
+    return status === 'CLOSED';
+  }
+
+  selectTab(tab: InboxTab): void {
+    this.activeTab = tab;
+    this.page = 1;
+  }
+
+  toggleFilters(): void {
+    this.showFilters = !this.showFilters;
+  }
+
+  clearAllFilters(): void {
+    this.draftFilters = this.createDefaultFilters();
+    this.applyFilters();
+  }
+
+  applyFilters(): void {
+    this.appliedFilters = {
+      ...this.draftFilters,
+      statuses: [...this.draftFilters.statuses],
+      priorities: [...this.draftFilters.priorities],
+      types: [...this.draftFilters.types]
+    };
+    this.page = 1;
+    this.load();
+  }
+
+  removeTag(tag: string): void {
+    if (tag.startsWith('Status: ')) {
+      const value = tag.replace('Status: ', '') as MessageStatus;
+      this.draftFilters.statuses = this.draftFilters.statuses.filter((entry) => entry !== value);
+    } else if (tag.startsWith('Priority: ')) {
+      const value = tag.replace('Priority: ', '') as PriorityLevel;
+      this.draftFilters.priorities = this.draftFilters.priorities.filter((entry) => entry !== value);
+    } else if (tag.startsWith('Type: ')) {
+      const value = tag.replace('Type: ', '') as MessageType;
+      this.draftFilters.types = this.draftFilters.types.filter((entry) => entry !== value);
+    } else if (tag.startsWith('Patient: ')) {
+      this.draftFilters.patientId = null;
+    } else if (tag.startsWith('From: ')) {
+      this.draftFilters.dateFrom = '';
+    } else if (tag.startsWith('To: ')) {
+      this.draftFilters.dateTo = '';
+    } else if (tag.startsWith('Assigned: ')) {
+      this.draftFilters.assigned = 'ALL';
+    } else if (tag.startsWith('Search: ')) {
+      this.draftFilters.search = '';
+    }
+    this.applyFilters();
+  }
+
+  isChecked<T>(value: T, selected: T[]): boolean {
+    return selected.includes(value);
+  }
+
+  toggleChecked<T>(value: T, selected: T[]): void {
+    const index = selected.indexOf(value);
+    if (index === -1) {
+      selected.push(value);
+    } else {
+      selected.splice(index, 1);
+    }
+  }
+
+  getMessagePreview(item: FollowUpMessage): string {
+    const source = item.messageText || '';
+    if (source.length <= 80) {
+      return source;
+    }
+    return `${source.slice(0, 80)}...`;
+  }
+
+  canTake(item: FollowUpMessage): boolean {
+    return item.status === 'PENDING' && !item.assignedToUserKeycloakId;
+  }
+
+  take(item: FollowUpMessage): void {
+    if (!this.canTake(item) || this.actionLoadingId) {
+      return;
+    }
+    this.actionLoadingId = item.id;
+    this.errorMessage = '';
+    this.communicationApi.takeMessage(item.id)
+      .pipe(finalize(() => {
+        this.actionLoadingId = '';
+      }))
+      .subscribe({
+        next: () => {
+          this.load();
+        },
+        error: (err) => {
+          this.errorMessage = err?.error?.message || 'Failed to take message.';
+        }
+      });
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredItems.length / this.pageSize));
+  }
+
+  get pagedItems(): FollowUpMessage[] {
+    const safePage = Math.min(this.page, this.totalPages);
+    const start = (safePage - 1) * this.pageSize;
+    return this.filteredItems.slice(start, start + this.pageSize);
+  }
+
+  previousPage(): void {
+    this.page = Math.max(1, this.page - 1);
+  }
+
+  nextPage(): void {
+    this.page = Math.min(this.totalPages, this.page + 1);
+  }
+
+  load(): void {
+    this.loading = true;
+    this.communicationApi.getInbox({
+      queue: this.queue,
+      patientId: this.appliedFilters.patientId ?? undefined,
+      dateFrom: this.appliedFilters.dateFrom ? new Date(`${this.appliedFilters.dateFrom}T00:00:00`).toISOString() : undefined,
+      dateTo: this.appliedFilters.dateTo ? new Date(`${this.appliedFilters.dateTo}T23:59:59`).toISOString() : undefined
+    }).pipe(
+      finalize(() => {
+        this.loading = false;
+      })
+    ).subscribe({
+      next: (items) => {
+        this.items = items;
+        this.page = 1;
+      },
+      error: (err) => {
+        this.errorMessage = err?.error?.message || 'Failed to load inbox.';
+      }
+    });
+  }
+}
