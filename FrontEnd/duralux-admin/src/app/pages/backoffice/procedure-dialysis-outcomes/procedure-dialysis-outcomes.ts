@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -32,7 +32,10 @@ export class ProcedureDialysisOutcomesComponent implements OnInit {
   editValidated: Record<number, boolean> = {};
   editSummary: Record<number, string> = {};
 
-  constructor(private procedureApi: ProcedureApiService) {}
+  constructor(
+    private procedureApi: ProcedureApiService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.loadInitialData();
@@ -74,16 +77,19 @@ export class ProcedureDialysisOutcomesComponent implements OnInit {
           next: (plans) => {
             this.plans = plans ?? [];
             this.loadOutcomes();
+            this.refreshView();
           },
           error: (err: { error?: { message?: string }; message?: string }) => {
             this.loading = false;
             this.errorMessage = err?.error?.message || err?.message || 'Failed to load dialysis plans.';
+            this.refreshView();
           }
         });
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.loading = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to load dialysis sessions.';
+        this.refreshView();
       }
     });
   }
@@ -101,10 +107,12 @@ export class ProcedureDialysisOutcomesComponent implements OnInit {
         }
 
         this.loading = false;
+        this.refreshView();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.loading = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to load dialysis outcomes.';
+        this.refreshView();
       }
     });
   }
@@ -125,11 +133,13 @@ export class ProcedureDialysisOutcomesComponent implements OnInit {
       next: () => {
         this.successMessage = 'Dialysis outcome created successfully.';
         this.saving = false;
+        this.refreshView();
         this.loadOutcomes();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.saving = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to create dialysis outcome.';
+        this.refreshView();
       }
     });
   }
@@ -144,11 +154,17 @@ export class ProcedureDialysisOutcomesComponent implements OnInit {
     this.procedureApi.validateDialysisOutcome(outcome.id, { validated, summary }).subscribe({
       next: () => {
         this.successMessage = 'Dialysis outcome updated successfully.';
+        this.refreshView();
         this.loadOutcomes();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.errorMessage = err?.error?.message || err?.message || 'Failed to validate dialysis outcome.';
+        this.refreshView();
       }
     });
+  }
+
+  private refreshView(): void {
+    this.cdr.detectChanges();
   }
 }

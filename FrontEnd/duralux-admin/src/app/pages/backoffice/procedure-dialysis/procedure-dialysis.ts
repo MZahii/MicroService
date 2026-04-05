@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -44,7 +44,10 @@ export class ProcedureDialysisComponent implements OnInit {
 
   editState: Record<number, string> = {};
 
-  constructor(private procedureApi: ProcedureApiService) {}
+  constructor(
+    private procedureApi: ProcedureApiService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.loadPlans();
@@ -79,10 +82,12 @@ export class ProcedureDialysisComponent implements OnInit {
           return acc;
         }, {});
         this.loading = false;
+        this.refreshView();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.loading = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to load dialysis plans.';
+        this.refreshView();
       }
     });
   }
@@ -164,11 +169,13 @@ export class ProcedureDialysisComponent implements OnInit {
         };
         this.successMessage = 'Dialysis plan created successfully.';
         this.saving = false;
+        this.refreshView();
         this.loadPlans();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.saving = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to create dialysis plan.';
+        this.refreshView();
       }
     });
   }
@@ -187,10 +194,12 @@ export class ProcedureDialysisComponent implements OnInit {
     this.procedureApi.updateDialysisPlan(plan.id, { status }).subscribe({
       next: () => {
         this.successMessage = 'Dialysis plan updated successfully.';
+        this.refreshView();
         this.loadPlans();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.errorMessage = err?.error?.message || err?.message || 'Failed to update dialysis plan.';
+        this.refreshView();
       }
     });
   }
@@ -206,12 +215,18 @@ export class ProcedureDialysisComponent implements OnInit {
     this.procedureApi.updateDialysisPlan(plan.id, { status: 'ARCHIVED' }).subscribe({
       next: () => {
         this.successMessage = 'Dialysis plan archived successfully.';
+        this.refreshView();
         this.loadPlans();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.errorMessage = err?.error?.message || err?.message || 'Failed to archive dialysis plan.';
+        this.refreshView();
       }
     });
+  }
+
+  private refreshView(): void {
+    this.cdr.detectChanges();
   }
 
 }

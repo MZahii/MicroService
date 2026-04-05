@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -100,7 +100,10 @@ export class ProcedureSurgicalComponent implements OnInit {
   editStatus: Record<number, string> = {};
   editOfferStatus: Record<number, string> = {};
 
-  constructor(private procedureApi: ProcedureApiService) {}
+  constructor(
+    private procedureApi: ProcedureApiService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.loadCases();
@@ -148,10 +151,12 @@ export class ProcedureSurgicalComponent implements OnInit {
         }
 
         this.loading = false;
+        this.refreshView();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.loading = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to load surgical cases.';
+        this.refreshView();
       }
     });
   }
@@ -245,11 +250,13 @@ export class ProcedureSurgicalComponent implements OnInit {
         };
         this.successMessage = 'Surgical case created successfully.';
         this.saving = false;
+        this.refreshView();
         this.loadCases();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.saving = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to create surgical case.';
+        this.refreshView();
       }
     });
   }
@@ -268,10 +275,12 @@ export class ProcedureSurgicalComponent implements OnInit {
     this.procedureApi.updateSurgicalCase(surgicalCase.id, { status }).subscribe({
       next: () => {
         this.successMessage = 'Surgical case status updated.';
+        this.refreshView();
         this.loadCases();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.errorMessage = err?.error?.message || err?.message || 'Failed to update surgical case.';
+        this.refreshView();
       }
     });
   }
@@ -290,10 +299,12 @@ export class ProcedureSurgicalComponent implements OnInit {
     this.procedureApi.updateTransplantOffer(surgicalCase.id, { offerStatus }).subscribe({
       next: () => {
         this.successMessage = 'Transplant offer updated.';
+        this.refreshView();
         this.loadCases();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.errorMessage = err?.error?.message || err?.message || 'Failed to update transplant offer.';
+        this.refreshView();
       }
     });
   }
@@ -309,10 +320,12 @@ export class ProcedureSurgicalComponent implements OnInit {
     this.procedureApi.updateSurgicalCase(surgicalCase.id, { status: 'ARCHIVED' }).subscribe({
       next: () => {
         this.successMessage = 'Surgical case archived successfully.';
+        this.refreshView();
         this.loadCases();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.errorMessage = err?.error?.message || err?.message || 'Failed to archive surgical case.';
+        this.refreshView();
       }
     });
   }
@@ -337,5 +350,9 @@ export class ProcedureSurgicalComponent implements OnInit {
 
   isLockedCase(surgicalCase: SurgicalCase): boolean {
     return surgicalCase.status === 'BLOCKED_PREOP' || surgicalCase.status === 'POSTOP_UNSTABLE';
+  }
+
+  private refreshView(): void {
+    this.cdr.detectChanges();
   }
 }

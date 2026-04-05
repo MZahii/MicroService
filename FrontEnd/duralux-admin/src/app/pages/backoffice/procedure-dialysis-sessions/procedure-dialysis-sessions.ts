@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -27,7 +27,10 @@ export class ProcedureDialysisSessionsComponent implements OnInit {
   searchTerm = '';
   selectedPlanId = '';
 
-  constructor(private procedureApi: ProcedureApiService) {}
+  constructor(
+    private procedureApi: ProcedureApiService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.loadInitialData();
@@ -65,10 +68,12 @@ export class ProcedureDialysisSessionsComponent implements OnInit {
           this.selectedPlanId = String(this.plans[0].id);
         }
         this.loadSessions();
+        this.refreshView();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.loading = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to load dialysis plans.';
+        this.refreshView();
       }
     });
   }
@@ -78,10 +83,12 @@ export class ProcedureDialysisSessionsComponent implements OnInit {
       next: (sessions) => {
         this.sessions = sessions ?? [];
         this.loading = false;
+        this.refreshView();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.loading = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to load dialysis sessions.';
+        this.refreshView();
       }
     });
   }
@@ -106,12 +113,18 @@ export class ProcedureDialysisSessionsComponent implements OnInit {
       next: () => {
         this.successMessage = 'Dialysis sessions generated from plan successfully.';
         this.saving = false;
+        this.refreshView();
         this.loadSessions();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.saving = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to generate sessions from plan.';
+        this.refreshView();
       }
     });
+  }
+
+  private refreshView(): void {
+    this.cdr.detectChanges();
   }
 }

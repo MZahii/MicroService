@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -30,7 +30,10 @@ export class ProcedureDialysisPrescriptionsComponent implements OnInit {
 
   editDetails: Record<number, string> = {};
 
-  constructor(private procedureApi: ProcedureApiService) {}
+  constructor(
+    private procedureApi: ProcedureApiService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.loadInitialData();
@@ -67,10 +70,12 @@ export class ProcedureDialysisPrescriptionsComponent implements OnInit {
           this.selectedPlanId = String(this.plans[0].id);
         }
         this.loadPrescriptions();
+        this.refreshView();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.loading = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to load dialysis plans.';
+        this.refreshView();
       }
     });
   }
@@ -84,10 +89,12 @@ export class ProcedureDialysisPrescriptionsComponent implements OnInit {
           this.editDetails[prescription.id] = prescription.details ?? '';
         }
         this.loading = false;
+        this.refreshView();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.loading = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to load dialysis prescriptions.';
+        this.refreshView();
       }
     });
   }
@@ -115,11 +122,13 @@ export class ProcedureDialysisPrescriptionsComponent implements OnInit {
         this.successMessage = 'Dialysis prescription created successfully.';
         this.createDetails = '';
         this.saving = false;
+        this.refreshView();
         this.loadPrescriptions();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.saving = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to create dialysis prescription.';
+        this.refreshView();
       }
     });
   }
@@ -138,11 +147,17 @@ export class ProcedureDialysisPrescriptionsComponent implements OnInit {
     this.procedureApi.updateDialysisPrescription(prescription.id, { details }).subscribe({
       next: () => {
         this.successMessage = 'Dialysis prescription updated successfully.';
+        this.refreshView();
         this.loadPrescriptions();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.errorMessage = err?.error?.message || err?.message || 'Failed to update dialysis prescription.';
+        this.refreshView();
       }
     });
+  }
+
+  private refreshView(): void {
+    this.cdr.detectChanges();
   }
 }

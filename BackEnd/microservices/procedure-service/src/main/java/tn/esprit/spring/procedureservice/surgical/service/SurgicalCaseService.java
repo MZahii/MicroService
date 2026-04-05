@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.stereotype.Service;
+import tn.esprit.spring.procedureservice.notification.service.ResendEmailService;
 import tn.esprit.spring.procedureservice.shared.exception.BusinessException;
 import tn.esprit.spring.procedureservice.shared.exception.NotFoundException;
 import tn.esprit.spring.procedureservice.surgical.domain.entity.PreOpAssessment;
@@ -30,10 +31,16 @@ public class SurgicalCaseService {
 
     private final SurgicalCaseRepository repository;
     private final PreOpAssessmentRepository preOpAssessmentRepository;
+    private final ResendEmailService resendEmailService;
 
-    public SurgicalCaseService(SurgicalCaseRepository repository, PreOpAssessmentRepository preOpAssessmentRepository) {
+    public SurgicalCaseService(
+        SurgicalCaseRepository repository,
+        PreOpAssessmentRepository preOpAssessmentRepository,
+        ResendEmailService resendEmailService
+    ) {
         this.repository = repository;
         this.preOpAssessmentRepository = preOpAssessmentRepository;
+        this.resendEmailService = resendEmailService;
     }
 
     public SurgicalCase create(CreateSurgicalCaseRequest request) {
@@ -58,7 +65,9 @@ public class SurgicalCaseService {
         surgicalCase.setOperatingRoom(request.operatingRoom());
         surgicalCase.setStatus(request.status());
         surgicalCase.setOfferStatus("PENDING");
-        return repository.save(surgicalCase);
+        SurgicalCase saved = repository.save(surgicalCase);
+        resendEmailService.sendSurgicalCaseCreatedNotification(saved);
+        return saved;
     }
 
     public SurgicalCase update(Long id, UpdateSurgicalCaseRequest request) {
@@ -68,7 +77,9 @@ public class SurgicalCaseService {
             throw new BusinessException("Invalid surgical case status: " + requestedStatus);
         }
 
-        if (isLockedStatus(surgicalCase.getStatus()) && !surgicalCase.getStatus().equals(requestedStatus)) {
+        if (isLockedStatus(surgicalCase.getStatus())
+            && !"ARCHIVED".equals(requestedStatus)
+            && !surgicalCase.getStatus().equals(requestedStatus)) {
             throw new BusinessException("Case is " + surgicalCase.getStatus() + ". Status is locked and cannot be updated.");
         }
 

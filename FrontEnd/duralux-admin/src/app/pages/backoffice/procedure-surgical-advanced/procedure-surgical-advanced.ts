@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -44,7 +44,10 @@ export class ProcedureSurgicalAdvancedComponent implements OnInit {
     note: ''
   };
 
-  constructor(private procedureApi: ProcedureApiService) {}
+  constructor(
+    private procedureApi: ProcedureApiService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.loadAll();
@@ -121,10 +124,12 @@ export class ProcedureSurgicalAdvancedComponent implements OnInit {
           this.selectedCaseId = String(this.surgicalCases[0].id);
         }
         this.loadObservations();
+        this.refreshView();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.loading = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to load surgical cases.';
+        this.refreshView();
       }
     });
   }
@@ -137,16 +142,19 @@ export class ProcedureSurgicalAdvancedComponent implements OnInit {
           next: (postOps) => {
             this.postOps = postOps ?? [];
             this.loading = false;
+            this.refreshView();
           },
           error: (err: { error?: { message?: string }; message?: string }) => {
             this.loading = false;
             this.errorMessage = err?.error?.message || err?.message || 'Failed to load post-op observations.';
+            this.refreshView();
           }
         });
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.loading = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to load pre-op assessments.';
+        this.refreshView();
       }
     });
   }
@@ -175,11 +183,13 @@ export class ProcedureSurgicalAdvancedComponent implements OnInit {
       next: () => {
         this.successMessage = `Pre-Op submitted. Decision: ${this.preOpDecisionLabel}. Case status updated automatically.`;
         this.saving = false;
+        this.refreshView();
         this.loadAll();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.saving = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to submit pre-op.';
+        this.refreshView();
       }
     });
   }
@@ -208,12 +218,18 @@ export class ProcedureSurgicalAdvancedComponent implements OnInit {
       next: () => {
         this.successMessage = `Post-Op submitted. Decision: ${this.postOpDecisionLabel}. Care tasks may be auto-generated if unstable.`;
         this.saving = false;
+        this.refreshView();
         this.loadAll();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.saving = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to submit post-op.';
+        this.refreshView();
       }
     });
+  }
+
+  private refreshView(): void {
+    this.cdr.detectChanges();
   }
 }
