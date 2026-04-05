@@ -1,0 +1,68 @@
+.empty-state {
+  padding: 1rem 0;
+  color: #6c757d;
+  text-align: center;
+}
+
+.section-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #0d6efd;
+}
+
+.urgency-badge {
+  background: #e9ecef;
+  color: #495057;
+  font-weight: 600;
+
+  &.urgent {
+    background: #ffe3e3;
+    color: #c92a2a;
+  }
+}
+
+.table td,
+.table th {
+  vertical-align: middle;
+}
+
+.surgical-table {
+  min-width: 1120px;
+
+  .patient-col {
+    min-width: 210px;
+  }
+
+  .procedure-col {
+    min-width: 210px;
+  }
+
+  .urgency-col {
+    min-width: 100px;
+  }
+
+  .planning-col {
+    min-width: 190px;
+  }
+
+  .team-col {
+    min-width: 140px;
+  }
+
+  .status-col {
+    min-width: 165px;
+  }
+
+  .actions-col,
+  .actions-cell {
+    min-width: 230px;
+  }
+}
+
+.status-select {
+  min-width: 155px;
+  font-size: 0.85rem;
+}

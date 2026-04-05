@@ -233,7 +233,9 @@
     </p>
 
     <p>
-      <span>{{ isAdmin ? 'NephrosPaidi Admin Dashboard' : 'NephrosPaidi HR Dashboard' }}</span>
+      <span>
+        {{ isAdmin ? 'NephrosPaidi Admin Dashboard' : isHr ? 'NephrosPaidi HR Dashboard' : isSurgeon ? 'NephrosPaidi Procedure Dashboard' : 'NephrosPaidi Backoffice' }}
+      </span>
     </p>
 
     <div class="d-flex align-items-center gap-4">

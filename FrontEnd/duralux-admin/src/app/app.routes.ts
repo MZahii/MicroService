@@ -21,6 +21,13 @@ import { FrontofficeHomeComponent } from './pages/frontoffice/frontoffice-home/f
 import { FrontofficePatientDetailsComponent } from './pages/frontoffice/frontoffice-patient-details/frontoffice-patient-details';
 import { MyContractComponent } from './pages/shared/my-contract/my-contract';
 import { LogsComponent } from './pages/backoffice/logs/logs';
+import { ProcedureDialysisComponent } from './pages/backoffice/procedure-dialysis/procedure-dialysis';
+import { ProcedureDialysisOutcomesComponent } from './pages/backoffice/procedure-dialysis-outcomes/procedure-dialysis-outcomes';
+import { ProcedureDialysisPrescriptionsComponent } from './pages/backoffice/procedure-dialysis-prescriptions/procedure-dialysis-prescriptions';
+import { ProcedureDialysisSessionsComponent } from './pages/backoffice/procedure-dialysis-sessions/procedure-dialysis-sessions';
+import { ProcedureSurgicalComponent } from './pages/backoffice/procedure-surgical/procedure-surgical';
+import { ProcedureSurgicalAdvancedComponent } from './pages/backoffice/procedure-surgical-advanced/procedure-surgical-advanced';
+import { GuardianTrackingComponent } from './pages/frontoffice/guardian-tracking/guardian-tracking';
 
 import { HomePageComponent } from './pages/public/home-page/home-page';
 import { AboutPageComponent } from './pages/public/about-page/about-page';
@@ -147,6 +154,42 @@ export const routes: Routes = [
         component: LogsComponent,
         canActivate: [roleGuard],
         data: { roles: ['ADMIN'] }
+      },
+      {
+        path: 'procedures/dialysis',
+        component: ProcedureDialysisComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['SURGEON'] }
+      },
+      {
+        path: 'procedures/dialysis-sessions',
+        component: ProcedureDialysisSessionsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['SURGEON'] }
+      },
+      {
+        path: 'procedures/dialysis-outcomes',
+        component: ProcedureDialysisOutcomesComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['SURGEON'] }
+      },
+      {
+        path: 'procedures/dialysis-prescriptions',
+        component: ProcedureDialysisPrescriptionsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['SURGEON'] }
+      },
+      {
+        path: 'procedures/surgical',
+        component: ProcedureSurgicalComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['SURGEON'] }
+      },
+      {
+        path: 'procedures/surgical-advanced',
+        component: ProcedureSurgicalAdvancedComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['SURGEON'] }
       }
     ]
   },
@@ -161,7 +204,8 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', component: FrontofficeHomeComponent },
       { path: 'patients/:id', component: FrontofficePatientDetailsComponent },
-      { path: 'my-contract', component: MyContractComponent }
+      { path: 'my-contract', component: MyContractComponent },
+      { path: 'tracking', component: GuardianTrackingComponent }
     ]
   },
 

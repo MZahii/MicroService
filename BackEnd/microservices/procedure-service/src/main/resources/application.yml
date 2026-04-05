@@ -4,8 +4,32 @@ server:
 spring:
   application:
     name: procedure-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:ep-cool-breeze-agqhhjlc-pooler.c-2.eu-central-1.aws.neon.tech}/${PROCEDURE_SERVICE_DB:procedure_db}?sslmode=require&channel_binding=require
+    username: ${DB_USER:neondb_owner}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
 
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka
+
+resend:
+  enabled: ${RESEND_ENABLED:false}
+  api-key: ${RESEND_API_KEY:}
+  from-email: ${RESEND_FROM_EMAIL:onboarding@resend.dev}
+  demo-recipient: ${RESEND_DEMO_RECIPIENT:}

@@ -91,7 +91,8 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
     accounts: false,
     staff: false,
     patients: false,
-    clinic: false
+    clinic: false,
+    procedures: false
   };
 
   // updated with your real files
@@ -121,6 +122,10 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
     return this.role === 'RECEPTIONIST';
   }
 
+  get isSurgeon(): boolean {
+    return this.role === 'SURGEON';
+  }
+
   get canViewMyContract(): boolean {
     return !this.isAdmin;
   }
@@ -145,7 +150,10 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   get roleBadgeClass(): string {
-    return this.isAdmin ? 'bg-soft-primary text-primary' : 'bg-soft-warning text-warning';
+    if (this.isAdmin) return 'bg-soft-primary text-primary';
+    if (this.isHr) return 'bg-soft-warning text-warning';
+    if (this.isSurgeon) return 'bg-soft-success text-success';
+    return 'bg-soft-secondary text-muted';
   }
 
   get headerTitle(): string {
@@ -155,6 +163,10 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
 
     if (this.isHr) {
       return 'HR Operations Dashboard';
+    }
+
+    if (this.isSurgeon) {
+      return 'Procedure Service Workspace';
     }
 
     return 'Backoffice Dashboard';
@@ -167,6 +179,10 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
 
     if (this.isHr) {
       return 'Manage staff, guardians, patient profiles, and clinic resources.';
+    }
+
+    if (this.isSurgeon) {
+      return 'Manage surgical and dialysis workflows from your procedure-service module.';
     }
 
     return 'Manage your backoffice workspace.';
@@ -329,6 +345,46 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
           {
             label: 'Guardians & Linked Profiles',
             route: '/backoffice/guardians-linked',
+            implemented: true
+          }
+        ]
+      });
+    }
+
+    if (this.isSurgeon) {
+      items.push({
+        key: 'procedures',
+        label: 'Procedure Service',
+        icon: 'feather-activity',
+        children: [
+          {
+            label: 'Surgical Management',
+            route: '/backoffice/procedures/surgical',
+            implemented: true
+          },
+          {
+            label: 'Surgical Advanced',
+            route: '/backoffice/procedures/surgical-advanced',
+            implemented: true
+          },
+          {
+            label: 'Dialysis Management',
+            route: '/backoffice/procedures/dialysis',
+            implemented: true
+          },
+          {
+            label: 'Dialysis Sessions',
+            route: '/backoffice/procedures/dialysis-sessions',
+            implemented: true
+          },
+          {
+            label: 'Dialysis Outcomes',
+            route: '/backoffice/procedures/dialysis-outcomes',
+            implemented: true
+          },
+          {
+            label: 'Dialysis Prescriptions',
+            route: '/backoffice/procedures/dialysis-prescriptions',
             implemented: true
           }
         ]
