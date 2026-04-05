@@ -1,10 +1,10 @@
-CREATE TABLE dialysis_plans (
+CREATE TABLE IF NOT EXISTS dialysis_plans (
     id BIGSERIAL PRIMARY KEY,
     patient_id VARCHAR(255) NOT NULL,
     status VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE dialysis_prescriptions (
+CREATE TABLE IF NOT EXISTS dialysis_prescriptions (
     id BIGSERIAL PRIMARY KEY,
     plan_id BIGINT NOT NULL,
     details TEXT,
@@ -12,7 +12,7 @@ CREATE TABLE dialysis_prescriptions (
         FOREIGN KEY (plan_id) REFERENCES dialysis_plans (id)
 );
 
-CREATE TABLE dialysis_sessions (
+CREATE TABLE IF NOT EXISTS dialysis_sessions (
     id BIGSERIAL PRIMARY KEY,
     plan_id BIGINT NOT NULL,
     session_date TIMESTAMP,
@@ -21,7 +21,7 @@ CREATE TABLE dialysis_sessions (
         FOREIGN KEY (plan_id) REFERENCES dialysis_plans (id)
 );
 
-CREATE TABLE dialysis_outcomes (
+CREATE TABLE IF NOT EXISTS dialysis_outcomes (
     id BIGSERIAL PRIMARY KEY,
     session_id BIGINT NOT NULL,
     validated BOOLEAN NOT NULL DEFAULT FALSE,
@@ -30,14 +30,14 @@ CREATE TABLE dialysis_outcomes (
         FOREIGN KEY (session_id) REFERENCES dialysis_sessions (id)
 );
 
-CREATE TABLE surgical_cases (
+CREATE TABLE IF NOT EXISTS surgical_cases (
     id BIGSERIAL PRIMARY KEY,
     patient_id VARCHAR(255) NOT NULL,
     status VARCHAR(50) NOT NULL,
     offer_status VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE preop_assessments (
+CREATE TABLE IF NOT EXISTS preop_assessments (
     id BIGSERIAL PRIMARY KEY,
     surgical_case_id BIGINT NOT NULL,
     notes TEXT,
@@ -45,7 +45,7 @@ CREATE TABLE preop_assessments (
         FOREIGN KEY (surgical_case_id) REFERENCES surgical_cases (id)
 );
 
-CREATE TABLE postop_observations (
+CREATE TABLE IF NOT EXISTS postop_observations (
     id BIGSERIAL PRIMARY KEY,
     surgical_case_id BIGINT NOT NULL,
     notes TEXT,
@@ -53,7 +53,7 @@ CREATE TABLE postop_observations (
         FOREIGN KEY (surgical_case_id) REFERENCES surgical_cases (id)
 );
 
-CREATE TABLE surgical_complications (
+CREATE TABLE IF NOT EXISTS surgical_complications (
     id BIGSERIAL PRIMARY KEY,
     surgical_case_id BIGINT NOT NULL,
     description TEXT,
@@ -61,7 +61,7 @@ CREATE TABLE surgical_complications (
         FOREIGN KEY (surgical_case_id) REFERENCES surgical_cases (id)
 );
 
-CREATE TABLE care_tasks (
+CREATE TABLE IF NOT EXISTS care_tasks (
     id BIGSERIAL PRIMARY KEY,
     surgical_case_id BIGINT NOT NULL,
     title VARCHAR(255),
