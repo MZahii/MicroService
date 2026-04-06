@@ -1,0 +1,93 @@
+package tn.esprit.spring.pharmacyservice.controller;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import tn.esprit.spring.pharmacyservice.dto.SupplierDTO;
+import tn.esprit.spring.pharmacyservice.dto.SupplyOrderDTO;
+import tn.esprit.spring.pharmacyservice.service.SupplierService;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/suppliers")
+@RequiredArgsConstructor
+@Tag(name = "Suppliers", description = "Supplier & supply order management")
+public class SupplierController {
+
+    private final SupplierService supplierService;
+
+    @PostMapping
+    //@PreAuthorize("hasAnyRole('PHARMACIST','PLATFORM_ADMIN')")
+    @Operation(summary = "Register a supplier")
+    public ResponseEntity<SupplierDTO> create(@RequestBody SupplierDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(supplierService.createSupplier(dto));
+    }
+
+    @GetMapping
+    @Operation(summary = "List all suppliers")
+    public ResponseEntity<List<SupplierDTO>> getAll() {
+        return ResponseEntity.ok(supplierService.getAllSuppliers());
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get supplier by ID")
+    public ResponseEntity<SupplierDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(supplierService.getSupplier(id));
+    }
+
+    @PutMapping("/{id}")
+    //@PreAuthorize("hasAnyRole('PHARMACIST','PLATFORM_ADMIN')")
+    @Operation(summary = "Update supplier")
+    public ResponseEntity<SupplierDTO> update(@PathVariable Long id, @RequestBody SupplierDTO dto) {
+        return ResponseEntity.ok(supplierService.updateSupplier(id, dto));
+    }
+
+    @DeleteMapping("/{id}")
+    //@PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @Operation(summary = "Delete supplier")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        supplierService.deleteSupplier(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ─── Orders ───────────────────────────────────────────────────────────────
+
+    @PostMapping("/{id}/orders")
+    //@PreAuthorize("hasAnyRole('PHARMACIST','PLATFORM_ADMIN')")
+    @Operation(summary = "Place a supply order")
+    public ResponseEntity<SupplyOrderDTO> placeOrder(@PathVariable Long id, @RequestBody SupplyOrderDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(supplierService.placeOrder(id, dto));
+    }
+
+    @GetMapping("/{id}/orders")
+    @Operation(summary = "List orders for a supplier")
+    public ResponseEntity<List<SupplyOrderDTO>> getOrders(@PathVariable Long id) {
+        return ResponseEntity.ok(supplierService.getOrdersForSupplier(id));
+    }
+
+    @PatchMapping("/orders/{orderId}/deliver")
+    //@PreAuthorize("hasAnyRole('PHARMACIST','PLATFORM_ADMIN')")
+    @Operation(summary = "Mark order as delivered (triggers stock update)")
+    public ResponseEntity<SupplyOrderDTO> markDelivered(@PathVariable Long orderId) {
+        return ResponseEntity.ok(supplierService.markDelivered(orderId));
+    }
+
+    @PatchMapping("/orders/{orderId}/cancel")
+    //@PreAuthorize("hasAnyRole('PHARMACIST','PLATFORM_ADMIN')")
+    @Operation(summary = "Cancel a pending order")
+    public ResponseEntity<SupplyOrderDTO> cancel(@PathVariable Long orderId) {
+        return ResponseEntity.ok(supplierService.cancelOrder(orderId));
+    }
+
+    @GetMapping("/orders")
+    @Operation(summary = "Filter orders by status (PENDING | DELIVERED | CANCELLED)")
+    public ResponseEntity<List<SupplyOrderDTO>> byStatus(@RequestParam String status) {
+        return ResponseEntity.ok(supplierService.getOrdersByStatus(status));
+    }
+}
