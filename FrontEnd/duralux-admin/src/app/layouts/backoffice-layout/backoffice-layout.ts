@@ -92,6 +92,7 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
     staff: false,
     patients: false,
     clinic: false,
+    pharmacy: false,
     procedures: false,
     communication: false,
     appointments: false
@@ -134,6 +135,10 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
 
   get isSurgeon(): boolean {
     return this.role === 'SURGEON';
+  }
+
+  get isPharmacist(): boolean {
+    return this.role === 'PHARMACIST';
   }
 
   get canViewMyContract(): boolean {
@@ -380,6 +385,36 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
           {
             label: 'Analytics',
             route: '/backoffice/communication/analytics',
+            implemented: true
+          }
+        ]
+      });
+    }
+
+    if (this.isPharmacist || this.isAdmin || this.isNurse) {
+      items.push({
+        key: 'pharmacy',
+        label: 'Pharmacy',
+        icon: 'feather-package',
+        children: [
+          {
+            label: 'Medications',
+            route: '/backoffice/pharmacy/medications',
+            implemented: true
+          },
+          {
+            label: 'Stock',
+            route: '/backoffice/pharmacy/stock',
+            implemented: true
+          },
+          {
+            label: 'Suppliers',
+            route: '/backoffice/pharmacy/suppliers',
+            implemented: true
+          },
+          {
+            label: 'Dispensations',
+            route: '/backoffice/pharmacy/dispensations',
             implemented: true
           }
         ]

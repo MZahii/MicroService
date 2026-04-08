@@ -37,6 +37,13 @@ spring:
               filters:
                 - StripPrefix=1
 
+            - id: pharmacy-service-api
+              uri: lb://pharmacy-service
+              predicates:
+                - Path=/pharmacy/**
+              filters:
+                - StripPrefix=1
+
             - id: communication-service-api
               uri: lb://communication-service
               predicates:

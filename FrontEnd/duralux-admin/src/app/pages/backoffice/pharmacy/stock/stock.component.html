@@ -1,0 +1,373 @@
+<div class="nxl-content-page">
+
+  <div class="nxl-head-breadcrumb d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h4 class="mb-0">Stock Management</h4>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a routerLink="/backoffice/dashboard">Dashboard</a></li>
+          <li class="breadcrumb-item active">Stock</li>
+        </ol>
+      </nav>
+    </div>
+    <div class="d-flex gap-2">
+      <a routerLink="/backoffice/pharmacy/dispensations"
+         class="btn btn-soft-info btn-sm d-flex align-items-center gap-1">
+        <i data-feather="list" style="width:14px;height:14px"></i> Dispensation History
+      </a>
+      <button class="btn btn-soft-secondary btn-sm" (click)="showInit=true; initBatchId=0; initQty=0">
+        <i data-feather="download" style="width:14px;height:14px" class="me-1"></i> Initialize
+      </button>
+    </div>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card border-0 bg-soft-primary cursor-pointer" (click)="activeTab.set('all')">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="avatar avatar-lg bg-primary text-white rounded">
+            <i data-feather="archive" style="width:22px;height:22px"></i>
+          </div>
+          <div>
+            <div class="fs-4 fw-bold text-primary">{{ stocks().length }}</div>
+            <div class="small text-muted">Total stock entries</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 bg-soft-warning cursor-pointer" (click)="activeTab.set('low')">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="avatar avatar-lg bg-warning text-white rounded">
+            <i data-feather="alert-triangle" style="width:22px;height:22px"></i>
+          </div>
+          <div>
+            <div class="fs-4 fw-bold text-warning">{{ lowStock().length }}</div>
+            <div class="small text-muted">Low stock (≤10 units)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 bg-soft-danger cursor-pointer" (click)="activeTab.set('out')">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="avatar avatar-lg bg-danger text-white rounded">
+            <i data-feather="x-circle" style="width:22px;height:22px"></i>
+          </div>
+          <div>
+            <div class="fs-4 fw-bold text-danger">{{ outOfStock().length }}</div>
+            <div class="small text-muted">Out of stock</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 bg-soft-secondary cursor-pointer" (click)="activeTab.set('expired')">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="avatar avatar-lg bg-secondary text-white rounded">
+            <i data-feather="clock" style="width:22px;height:22px"></i>
+          </div>
+          <div>
+            <div class="fs-4 fw-bold text-secondary">{{ expiredBatches().length }}</div>
+            <div class="small text-muted">Expired batches</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerte lots expirés -->
+  <div class="alert alert-secondary d-flex align-items-center justify-content-between mb-3"
+       *ngIf="expiredBatches().length > 0 && activeTab() !== 'expired'" role="alert">
+    <div class="d-flex align-items-center gap-2">
+      <i data-feather="clock" style="width:18px;height:18px;flex-shrink:0"></i>
+      <div>
+        <strong>{{ expiredBatches().length }} expired batch(es)</strong> detected — consider removing them from inventory.
+        <button class="btn btn-link btn-sm text-secondary p-0 ms-2 fw-semibold"
+          (click)="activeTab.set('expired')">View history</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alertes visuelles -->
+  <div class="alert alert-danger d-flex align-items-center justify-content-between mb-3"
+       *ngIf="outOfStock().length > 0 && !alertOutDismissed" role="alert">
+    <div class="d-flex align-items-center gap-2">
+      <i data-feather="x-octagon" style="width:18px;height:18px;flex-shrink:0"></i>
+      <div>
+        <strong>{{ outOfStock().length }} medication(s) out of stock</strong> —
+        immediate restocking required.
+        <button class="btn btn-link btn-sm text-danger p-0 ms-2 fw-semibold"
+          (click)="activeTab.set('out')">View list</button>
+      </div>
+    </div>
+    <button type="button" class="btn-close" (click)="alertOutDismissed=true" aria-label="Close"></button>
+  </div>
+
+  <div class="alert alert-warning d-flex align-items-center justify-content-between mb-3"
+       *ngIf="lowStock().length > 0 && !alertLowDismissed" role="alert">
+    <div class="d-flex align-items-center gap-2">
+      <i data-feather="alert-triangle" style="width:18px;height:18px;flex-shrink:0"></i>
+      <div>
+        <strong>{{ lowStock().length }} medication(s) running low</strong> —
+        stock is at or below 10 units.
+        <button class="btn btn-link btn-sm text-warning p-0 ms-2 fw-semibold"
+          (click)="activeTab.set('low')">View list</button>
+      </div>
+    </div>
+    <button type="button" class="btn-close" (click)="alertLowDismissed=true" aria-label="Close"></button>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab()==='all'" (click)="activeTab.set('all')">
+        All <span class="badge bg-soft-primary text-primary ms-1">{{ stocks().length }}</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab()==='low'" (click)="activeTab.set('low')">
+        Low Stock <span class="badge bg-soft-warning text-warning ms-1">{{ lowStock().length }}</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab()==='out'" (click)="activeTab.set('out')">
+        Out of Stock <span class="badge bg-soft-danger text-danger ms-1">{{ outOfStock().length }}</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab()==='expired'" (click)="activeTab.set('expired')">
+        <i data-feather="clock" style="width:13px;height:13px" class="me-1"></i>Expired History
+        <span class="badge bg-soft-secondary text-secondary ms-1">{{ expiredBatches().length }}</span>
+      </button>
+    </li>
+  </ul>
+
+  <!-- Expired Batches Table -->
+  <div class="card" *ngIf="activeTab() === 'expired'">
+    <div class="card-header bg-soft-secondary d-flex align-items-center gap-2">
+      <i data-feather="clock" style="width:16px;height:16px"></i>
+      <span class="fw-semibold">Expired Batches History</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Batch ID</th>
+              <th>Medication</th>
+              <th>Batch Number</th>
+              <th>Manufacture Date</th>
+              <th>Expiration Date</th>
+              <th>Quantity</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let b of expiredBatches()" class="table-secondary">
+              <td class="ps-3 text-muted small">{{ b.batchId }}</td>
+              <td class="fw-semibold">{{ batchMedicationMap[b.batchId!] || '—' }}</td>
+              <td class="font-monospace">{{ b.batchNumber }}</td>
+              <td class="small text-muted">{{ b.manufactureDate | date:'dd/MM/yyyy' }}</td>
+              <td>
+                <span class="text-danger fw-semibold">{{ b.expirationDate | date:'dd/MM/yyyy' }}</span>
+              </td>
+              <td>{{ b.quantity }}</td>
+              <td>
+                <span class="badge bg-secondary">
+                  <i data-feather="alert-octagon" style="width:11px;height:11px" class="me-1"></i>Expired
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="expiredBatches().length === 0">
+              <td colspan="7" class="text-center py-5 text-muted">
+                <i data-feather="check-circle" style="width:32px;height:32px;opacity:.3" class="d-block mx-auto mb-2"></i>
+                No expired batches found
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stock Table -->
+  <div class="card" *ngIf="activeTab() !== 'expired'">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Stock ID</th>
+              <th>Medication</th>
+              <th>Quantity Available</th>
+              <th>Level</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of currentList"
+                [class.table-danger]="stockLevel(s)==='out'"
+                [class.table-warning]="stockLevel(s)==='low'">
+              <td class="ps-3 text-muted small">{{ s.stockId }}</td>
+              <td class="fw-semibold">{{ batchMedicationMap[s.batchId] || s.batchId }}</td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height:6px;max-width:150px">
+                    <div class="progress-bar"
+                      [class.bg-success]="stockLevel(s)==='ok'"
+                      [class.bg-warning]="stockLevel(s)==='low'"
+                      [class.bg-danger]="stockLevel(s)==='out'"
+                         [style.width.%]="100"
+                    >
+                      <!--                      [style.width.%]="Math.min((s.quantityAvailable / 200) * 100, 100)"-->
+
+                    </div>
+                  </div>
+                  <span class="fw-semibold">{{ s.quantityAvailable }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="badge"
+                  [class.bg-soft-success]="stockLevel(s)==='ok'" [class.text-success]="stockLevel(s)==='ok'"
+                  [class.bg-soft-warning]="stockLevel(s)==='low'" [class.text-warning]="stockLevel(s)==='low'"
+                  [class.bg-soft-danger]="stockLevel(s)==='out'" [class.text-danger]="stockLevel(s)==='out'">
+                  {{ stockLevel(s) === 'ok' ? 'OK' : stockLevel(s) === 'low' ? 'Low' : 'Out of Stock' }}
+                </span>
+              </td>
+              <td>
+                <div class="d-flex gap-1">
+                  <button class="btn btn-soft-warning btn-sm"
+                    (click)="showAdjust=true; adjustBatchId=s.batchId; adjustDelta=0; adjustReason=''">
+                    <i data-feather="sliders" style="width:13px;height:13px"></i> Adjust
+                  </button>
+                  <button class="btn btn-primary btn-sm"
+                    (click)="showDispense=true; dispenseForm={batchId: s.batchId}">
+                    <i data-feather="send" style="width:13px;height:13px"></i> Dispense
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="currentList.length === 0">
+              <td colspan="5" class="text-center py-5 text-muted">
+                <i data-feather="inbox" style="width:32px;height:32px;opacity:.3" class="d-block mx-auto mb-2"></i>
+                No entries in this category
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Dispense Modal ─────────────────────────────────────────────────── -->
+<div class="modal fade" [class.show]="showDispense" [style.display]="showDispense ? 'block' : 'none'">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-primary">
+          <i data-feather="send" style="width:16px;height:16px" class="me-2"></i>Dispense Medication
+        </h5>
+        <button class="btn-close" (click)="showDispense=false"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Batch ID <span class="text-danger">*</span></label>
+          <input type="number" class="form-control" [(ngModel)]="dispenseForm.batchId" placeholder="e.g. 1"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Quantity <span class="text-danger">*</span></label>
+          <input type="number" class="form-control" [(ngModel)]="dispenseForm.quantity" min="1"/>
+        </div>
+<!--        <div class="mb-3">-->
+<!--          <label class="form-label fw-semibold">Patient ID</label>-->
+<!--          <input class="form-control" [(ngModel)]="dispenseForm.patientId" placeholder="P001"/>-->
+<!--        </div>-->
+<!--        <div class="mb-3">-->
+<!--          <label class="form-label fw-semibold">Prescription ID</label>-->
+<!--          <input class="form-control" [(ngModel)]="dispenseForm.prescriptionId" placeholder="RX001"/>-->
+<!--        </div>-->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" (click)="showDispense=false">Cancel</button>
+        <button class="btn btn-primary" (click)="dispense()"
+          [disabled]="!dispenseForm.batchId || !dispenseForm.quantity">Confirm Dispense</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade show" *ngIf="showDispense" (click)="showDispense=false"></div>
+
+<!-- ─── Init Modal ────────────────────────────────────────────────────── -->
+<div class="modal fade" [class.show]="showInit" [style.display]="showInit ? 'block' : 'none'">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Initialize Stock for Batch</h5>
+        <button class="btn-close" (click)="showInit=false"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Batch ID</label>
+          <input type="number" class="form-control" [(ngModel)]="initBatchId"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Initial Quantity</label>
+          <input type="number" class="form-control" [(ngModel)]="initQty" min="1"/>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" (click)="showInit=false">Cancel</button>
+        <button class="btn btn-primary" (click)="initStock()" [disabled]="!initBatchId || !initQty">Initialize</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade show" *ngIf="showInit" (click)="showInit=false"></div>
+
+<!-- ─── Adjust Modal ──────────────────────────────────────────────────── -->
+<div class="modal fade" [class.show]="showAdjust" [style.display]="showAdjust ? 'block' : 'none'">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Manual Stock Adjustment</h5>
+        <button class="btn-close" (click)="showAdjust=false"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-soft-warning small">
+          Use positive delta to add stock, negative to remove.
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Batch ID</label>
+          <input type="number" class="form-control" [(ngModel)]="adjustBatchId"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Delta</label>
+          <input type="number" class="form-control" [(ngModel)]="adjustDelta" placeholder="+50 or -10"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Reason</label>
+          <input class="form-control" [(ngModel)]="adjustReason" placeholder="e.g. inventory correction"/>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" (click)="showAdjust=false">Cancel</button>
+        <button class="btn btn-warning" (click)="adjust()" [disabled]="!adjustBatchId || adjustDelta===0">Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade show" *ngIf="showAdjust" (click)="showAdjust=false"></div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999" *ngIf="toast()">
+  <div class="toast show align-items-center text-white border-0"
+    [class.bg-success]="toastOk()" [class.bg-danger]="!toastOk()">
+    <div class="d-flex">
+      <div class="toast-body fw-semibold">{{ toast() }}</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" (click)="toast.set('')"></button>
+    </div>
+  </div>
+</div>
