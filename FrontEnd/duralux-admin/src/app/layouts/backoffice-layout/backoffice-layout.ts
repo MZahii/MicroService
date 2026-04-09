@@ -95,7 +95,8 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
     pharmacy: false,
     procedures: false,
     communication: false,
-    appointments: false
+    appointments: false,
+    doctorClinical: false
   };
 
   // updated with your real files
@@ -424,10 +425,45 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
     if (this.isReceptionist) {
       items.push({
         key: 'appointments',
-        label: 'Appointment Requests',
+        label: 'Appointments',
         icon: 'feather-calendar',
-        route: '/backoffice/appointments/requests',
-        exact: true
+        children: [
+          {
+            label: 'Appointments Board',
+            route: '/backoffice/appointments',
+            implemented: true
+          },
+          {
+            label: 'Clinical Appointments',
+            route: '/backoffice/appointments-clinical',
+            implemented: true
+          },
+          {
+            label: 'Appointment Requests',
+            route: '/backoffice/appointments/requests',
+            implemented: true
+          }
+        ]
+      });
+    }
+
+    if (this.isDoctor) {
+      items.push({
+        key: 'doctorClinical',
+        label: 'Clinical Workspace',
+        icon: 'feather-activity',
+        children: [
+          {
+            label: 'Today Appointments',
+            route: '/backoffice/doctor/today',
+            implemented: true
+          },
+          {
+            label: 'Consultations',
+            route: '/backoffice/consultations',
+            implemented: true
+          }
+        ]
       });
     }
 

@@ -26,6 +26,7 @@ import { CommunicationDetailsComponent } from './pages/backoffice/communication-
 import { CommunicationTemplatesComponent } from './pages/backoffice/communication-templates/communication-templates';
 import { CommunicationAnalyticsComponent } from './pages/backoffice/communication-analytics/communication-analytics';
 import { AppointmentsRequestsComponent } from './pages/backoffice/appointments-requests/appointments-requests';
+import { Appointments } from './pages/backoffice/appointments/appointments';
 import { ProcedureDialysisComponent } from './pages/backoffice/procedure-dialysis/procedure-dialysis';
 import { ProcedureDialysisOutcomesComponent } from './pages/backoffice/procedure-dialysis-outcomes/procedure-dialysis-outcomes';
 import { ProcedureDialysisPrescriptionsComponent } from './pages/backoffice/procedure-dialysis-prescriptions/procedure-dialysis-prescriptions';
@@ -38,6 +39,17 @@ import { CommunicationNewComponent } from './pages/frontoffice/communication-new
 import { CommunicationThreadComponent } from './pages/frontoffice/communication-thread/communication-thread';
 import { FrontofficeAppointmentsComponent } from './pages/frontoffice/appointments/appointments';
 import { FrontofficeProfileComponent } from './pages/frontoffice/profile/profile';
+import { DoctorComponent } from './pages/backoffice/doctor/doctor.component';
+import { ConsultationsListPage } from './features/clinical/consultations/consultations-list.page';
+import { ConsultationDetailsPage as ClinicalConsultationDetailsPage } from './features/clinical/consultations/consultation-details.page';
+import { ConsultationWorkspacePage } from './features/clinical/consultations/consultation-workspace.page';
+import { ReceptionistAppointmentsPage } from './features/clinical/appointments/receptionist-appointments.page';
+import { DoctorTodayAppointmentsPage } from './features/clinical/appointments/doctor-today-appointments.page';
+import { CalendarPage } from './frontoffice/pages/calendar/calendar.page';
+import { ConsultationsPage as GuardianConsultationsPage } from './frontoffice/pages/consultations/consultations.page';
+import { ConsultationDetailsPage as GuardianConsultationDetailsPage } from './frontoffice/pages/consultation-details/consultation-details.page';
+import { ProfilePage } from './frontoffice/pages/profile/profile.page';
+import { MessagesPage } from './frontoffice/pages/messages/messages.page';
 
 import { HomePageComponent } from './pages/public/home-page/home-page';
 import { AboutPageComponent } from './pages/public/about-page/about-page';
@@ -184,6 +196,53 @@ export const routes: Routes = [
         data: { roles: ['RECEPTIONIST'] }
       },
       {
+        path: 'appointments',
+        component: Appointments,
+        canActivate: [roleGuard],
+        data: { roles: ['RECEPTIONIST'] }
+      },
+      {
+        path: 'appointments-clinical',
+        component: ReceptionistAppointmentsPage,
+        canActivate: [roleGuard],
+        data: { roles: ['RECEPTIONIST'] }
+      },
+      {
+        path: 'doctor',
+        pathMatch: 'full',
+        redirectTo: 'doctor/today'
+      },
+      {
+        path: 'doctor/today',
+        component: DoctorTodayAppointmentsPage,
+        canActivate: [roleGuard],
+        data: { roles: ['DOCTOR'] }
+      },
+      {
+        path: 'doctor/:id',
+        component: DoctorComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['DOCTOR'] }
+      },
+      {
+        path: 'consultations',
+        component: ConsultationsListPage,
+        canActivate: [roleGuard],
+        data: { roles: ['DOCTOR'] }
+      },
+      {
+        path: 'consultations/:id',
+        component: ClinicalConsultationDetailsPage,
+        canActivate: [roleGuard],
+        data: { roles: ['DOCTOR'] }
+      },
+      {
+        path: 'consultations/:id/workspace',
+        component: ConsultationWorkspacePage,
+        canActivate: [roleGuard],
+        data: { roles: ['DOCTOR'] }
+      },
+      {
         path: 'my-contract',
         component: MyContractComponent,
         canActivate: [roleGuard],
@@ -251,11 +310,16 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', component: FrontofficeHomeComponent },
+      { path: 'calendar', component: CalendarPage },
+      { path: 'consultations', component: GuardianConsultationsPage },
+      { path: 'consultations/:id', component: GuardianConsultationDetailsPage },
+      { path: 'messages', component: MessagesPage },
       { path: 'communication', component: CommunicationListComponent },
       { path: 'communication/new', component: CommunicationNewComponent },
       { path: 'communication/:id', component: CommunicationThreadComponent },
       { path: 'appointments', component: FrontofficeAppointmentsComponent },
-      { path: 'profile', component: FrontofficeProfileComponent },
+      { path: 'profile', component: ProfilePage },
+      { path: 'profile-legacy', component: FrontofficeProfileComponent },
       { path: 'patients/:id', component: FrontofficePatientDetailsComponent },
       { path: 'my-contract', component: MyContractComponent },
       { path: 'tracking', component: GuardianTrackingComponent }

@@ -1,0 +1,26 @@
+.consultation-details {
+  .info-block {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #eef0f3;
+  }
+
+  .info-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+  }
+
+  .info-value {
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .detail-section {
+    padding: 1rem 1.25rem;
+    background: #f9fafb;
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+  }
+}

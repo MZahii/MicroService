@@ -1,0 +1,353 @@
+<div class="page-header">
+  <div class="page-header-left d-flex align-items-center">
+    <div class="page-header-title">
+      <h5 class="m-b-10">Consultation Workspace</h5>
+    </div>
+
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a routerLink="/backoffice/dashboard">Home</a>
+      </li>
+      <li class="breadcrumb-item">
+        <a routerLink="/backoffice/consultations">Consultations</a>
+      </li>
+      <li class="breadcrumb-item">Workspace</li>
+    </ul>
+  </div>
+</div>
+
+<div class="main-content consultation-workspace">
+  <div class="row g-4">
+    <div class="col-xxl-3 col-lg-4">
+      <div class="card stretch stretch-full">
+        <div class="card-header">
+          <h5 class="card-title">Patient Info</h5>
+        </div>
+        <div class="card-body">
+          <div class="info-line">
+            <span>Patient</span>
+            <strong>{{ getPatientLabel(consultation?.patientId) }}</strong>
+          </div>
+          <div class="info-line">
+            <span>Consultation ID</span>
+            <strong>{{ consultationId }}</strong>
+          </div>
+          <div class="info-line" *ngIf="consultation?.dateTime">
+            <span>Scheduled</span>
+            <strong>{{ consultation?.dateTime | date:'medium' }}</strong>
+          </div>
+          <div class="info-line" *ngIf="consultation?.status">
+            <span>Status</span>
+            <span class="badge" [ngClass]="statusBadge(consultation?.status)">{{ consultation?.status }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card stretch stretch-full mt-4">
+        <div class="card-header">
+          <h5 class="card-title">Renal Metrics</h5>
+        </div>
+        <div class="card-body">
+          <div class="metric-row">
+            <span>eGFR (Schwartz)</span>
+            <strong>{{ egfrValue !== null ? (egfrValue + ' mL/min/1.73m2') : '-' }}</strong>
+          </div>
+          <div class="metric-row">
+            <span>CKD Stage</span>
+            <strong>{{ ckdStage }}</strong>
+          </div>
+          <div class="metric-row" *ngIf="previousEgfr !== null">
+            <span>Previous eGFR</span>
+            <strong>{{ previousEgfr }} mL/min/1.73m2</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="card stretch stretch-full mt-4">
+        <div class="card-header">
+          <h5 class="card-title">Quality Score</h5>
+        </div>
+        <div class="card-body">
+          <div class="score-row">
+            <span>Score</span>
+            <strong>{{ completenessScore }}/100</strong>
+          </div>
+          <div class="mt-2">
+            <span class="badge" [ngClass]="completenessClass">{{ completenessLabel }}</span>
+          </div>
+          <div class="alert-list" *ngIf="alerts.length; else noAlerts">
+            <div class="alert-item" *ngFor="let item of alerts">{{ item }}</div>
+          </div>
+          <ng-template #noAlerts>
+            <div class="text-muted mt-2">No alerts triggered.</div>
+          </ng-template>
+        </div>
+      </div>
+
+      <div class="card stretch stretch-full mt-4">
+        <div class="card-header">
+          <h5 class="card-title">History</h5>
+        </div>
+        <div class="card-body">
+          <div *ngIf="patientHistory.length === 0" class="text-muted">No prior consultations.</div>
+          <div class="history-item" *ngFor="let item of patientHistory | slice:0:5">
+            <div>
+              <div class="fw-semibold">{{ item.id }}</div>
+              <div class="text-muted small">{{ item.dateTime | date:'short' }}</div>
+            </div>
+            <a class="btn btn-light btn-sm" [routerLink]="['/backoffice/consultations', item.id, 'workspace']">Open</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xxl-9 col-lg-8">
+      <div class="card stretch stretch-full">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div>
+            <h5 class="card-title mb-1">Consultation #{{ consultationId }}</h5>
+            <div class="text-muted small">
+              Patient: {{ getPatientLabel(consultation?.patientId) }}
+              <span *ngIf="consultation?.dateTime">• Scheduled {{ consultation?.dateTime | date:'medium' }}</span>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge" [ngClass]="statusBadge(consultation?.status)">{{ consultation?.status || 'OPEN' }}</span>
+            <span class="badge" [ngClass]="completenessClass">{{ completenessScore }}/100</span>
+          </div>
+        </div>
+
+        <div class="card-body" *ngIf="loading">
+          <div class="text-muted">Loading consultation workspace...</div>
+        </div>
+
+        <div class="card-body" *ngIf="error">
+          <div class="alert alert-danger mb-0">{{ error }}</div>
+        </div>
+
+        <div class="card-body" *ngIf="!loading && !error">
+          <div *ngIf="infoMessage" class="alert alert-info">{{ infoMessage }}</div>
+
+          <ul class="nav nav-tabs consultation-tabs">
+            <li class="nav-item">
+              <button class="nav-link" [class.active]="activeTab === 'notes'" (click)="setTab('notes')">Clinical Notes</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" [class.active]="activeTab === 'diagnosis'" (click)="setTab('diagnosis')">Diagnosis</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" [class.active]="activeTab === 'plan'" (click)="setTab('plan')">Plan</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" [class.active]="activeTab === 'labs'" (click)="setTab('labs')">Lab Requests</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" [class.active]="activeTab === 'prescriptions'" (click)="setTab('prescriptions')">Prescriptions</button>
+            </li>
+          </ul>
+
+          <div class="tab-content">
+            <div class="tab-pane" [class.active]="activeTab === 'notes'">
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label">Subjective</label>
+                  <textarea class="form-control" rows="3" [(ngModel)]="draft.soap.subjective" placeholder="Symptoms, complaints, history..."></textarea>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Objective</label>
+                  <textarea class="form-control" rows="3" [(ngModel)]="draft.soap.objective" placeholder="Exam findings, vitals, labs..."></textarea>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Assessment</label>
+                  <textarea class="form-control" rows="3" [(ngModel)]="draft.soap.assessment" placeholder="Clinical assessment summary..."></textarea>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Plan (SOAP)</label>
+                  <textarea class="form-control" rows="3" [(ngModel)]="draft.soap.plan" placeholder="Immediate plan linked to assessment..."></textarea>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">Height (cm)</label>
+                  <input type="number" class="form-control" [(ngModel)]="draft.metrics.heightCm" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Creatinine (mg/dL)</label>
+                  <input type="number" class="form-control" [(ngModel)]="draft.metrics.creatinineMgDl" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Weight (kg)</label>
+                  <input type="number" class="form-control" [(ngModel)]="draft.metrics.weightKg" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Age (years)</label>
+                  <input type="number" class="form-control" [(ngModel)]="draft.metrics.ageYears" />
+                </div>
+              </div>
+            </div>
+
+            <div class="tab-pane" [class.active]="activeTab === 'diagnosis'">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h6 class="mb-0">Diagnosis List</h6>
+                <button class="btn btn-light btn-sm" (click)="addDiagnosis()">Add</button>
+              </div>
+              <div *ngIf="draft.diagnosisList.length === 0" class="text-muted">No diagnosis added yet.</div>
+              <div class="diagnosis-item" *ngFor="let item of draft.diagnosisList; let i = index">
+                <div class="row g-2 align-items-end">
+                  <div class="col-md-4">
+                    <label class="form-label">Diagnosis</label>
+                    <input class="form-control" [(ngModel)]="item.label" placeholder="e.g., Nephrotic syndrome" />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Code</label>
+                    <input class="form-control" [(ngModel)]="item.code" placeholder="ICD" />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Severity</label>
+                    <select class="form-select" [(ngModel)]="item.severity">
+                      <option value="Mild">Mild</option>
+                      <option value="Moderate">Moderate</option>
+                      <option value="Severe">Severe</option>
+                    </select>
+                  </div>
+                  <div class="col-md-2">
+                    <button class="btn btn-outline-danger w-100" (click)="removeDiagnosis(i)">Remove</button>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">Notes</label>
+                    <input class="form-control" [(ngModel)]="item.notes" placeholder="Add notes" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="tab-pane" [class.active]="activeTab === 'plan'">
+              <label class="form-label">Treatment Plan</label>
+              <textarea class="form-control" rows="4" [(ngModel)]="draft.treatmentPlan" placeholder="Treatment plan and follow-up instructions..."></textarea>
+
+              <label class="form-label mt-3">Guardian Instructions</label>
+              <textarea class="form-control" rows="3" [(ngModel)]="draft.guardianInstructions" placeholder="Education, home care, warning signs..."></textarea>
+
+              <div class="row g-3 mt-2">
+                <div class="col-md-6">
+                  <label class="form-label">Follow-up Date</label>
+                  <input type="datetime-local" class="form-control" [(ngModel)]="draft.followUpDate" [min]="minFollowUpDate" />
+                </div>
+              </div>
+
+              <div class="followup-card mt-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <h6 class="mb-0">Schedule Follow-up Appointment</h6>
+                  <span class="badge bg-soft-info text-info">Provisional</span>
+                </div>
+                <div class="row g-2">
+                  <div class="col-md-6">
+                    <label class="form-label">Date/Time</label>
+                    <input type="datetime-local" class="form-control" [(ngModel)]="followUpForm.scheduledAt" [min]="minFollowUpDate" />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Duration (min)</label>
+                    <input type="number" class="form-control" min="10" max="180" [(ngModel)]="followUpForm.durationMinutes" />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Reason</label>
+                    <input type="text" class="form-control" [(ngModel)]="followUpForm.reason" placeholder="Follow-up" />
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <button class="btn btn-primary btn-sm" (click)="scheduleFollowUp()">Schedule Follow-up</button>
+                  <span class="text-danger ms-2" *ngIf="followUpError">{{ followUpError }}</span>
+                  <span class="text-success ms-2" *ngIf="followUpSuccess">{{ followUpSuccess }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="tab-pane" [class.active]="activeTab === 'labs'">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h6 class="mb-0">Lab Requests</h6>
+                <button class="btn btn-light btn-sm" (click)="addLabRequest()">Add</button>
+              </div>
+              <div *ngIf="draft.labRequests.length === 0" class="text-muted">No lab requests added.</div>
+              <div class="lab-item" *ngFor="let item of draft.labRequests; let i = index">
+                <div class="row g-2 align-items-end">
+                  <div class="col-md-5">
+                    <label class="form-label">Test</label>
+                    <input class="form-control" [(ngModel)]="item.test" placeholder="CBC, Urinalysis..." />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Urgency</label>
+                    <select class="form-select" [(ngModel)]="item.urgency">
+                      <option value="Routine">Routine</option>
+                      <option value="Urgent">Urgent</option>
+                      <option value="STAT">STAT</option>
+                    </select>
+                  </div>
+                  <div class="col-md-2">
+                    <button class="btn btn-outline-danger w-100" (click)="removeLabRequest(i)">Remove</button>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">Notes</label>
+                    <input class="form-control" [(ngModel)]="item.note" placeholder="Additional notes" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="tab-pane" [class.active]="activeTab === 'prescriptions'">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h6 class="mb-0">Prescriptions</h6>
+                <button class="btn btn-light btn-sm" (click)="addPrescription()">Add</button>
+              </div>
+              <div *ngIf="draft.prescriptions.length === 0" class="text-muted">No prescriptions added.</div>
+              <div class="prescription-item" *ngFor="let item of draft.prescriptions; let i = index">
+                <div class="row g-2 align-items-end">
+                  <div class="col-md-3">
+                    <label class="form-label">Medication</label>
+                    <input class="form-control" [(ngModel)]="item.medication" placeholder="Drug name" />
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label">Dosage</label>
+                    <input class="form-control" [(ngModel)]="item.dosage" placeholder="e.g. 10mg" />
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label">Frequency</label>
+                    <input class="form-control" [(ngModel)]="item.frequency" placeholder="BID" />
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label">Duration (days)</label>
+                    <input type="number" class="form-control" [(ngModel)]="item.durationDays" />
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label">Dose mg/kg/day</label>
+                    <input type="number" class="form-control" [(ngModel)]="item.doseMgPerKg" />
+                  </div>
+                  <div class="col-md-1">
+                    <button class="btn btn-outline-danger w-100" (click)="removePrescription(i)">Remove</button>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Min mg/kg/day</label>
+                    <input type="number" class="form-control" [(ngModel)]="item.minDoseMgPerKg" />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Max mg/kg/day</label>
+                    <input type="number" class="form-control" [(ngModel)]="item.maxDoseMgPerKg" />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Notes</label>
+                    <input class="form-control" [(ngModel)]="item.note" placeholder="Notes" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex flex-wrap gap-2 mt-4">
+            <button class="btn btn-light" (click)="saveDraft()" [disabled]="saving">Save Draft</button>
+            <button class="btn btn-success" (click)="completeConsultation()" [disabled]="saving || completed || !canComplete">Mark Completed</button>
+            <button class="btn btn-outline-primary" disabled>Generate Summary</button>
+            <span class="text-muted small" *ngIf="!canComplete">Complete at least 70/100 to finish.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
