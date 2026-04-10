@@ -3,8 +3,12 @@
 .env
 *.log
 /node_modules/
-/FrontEnd/duralux-admin/node_modules/
+node_modules/
+**/node_modules/
 /.angular/
+.angular/
+**/.angular/
+**/.angular/cache/
 /BackEnd/**/target/
 /BackEnd/**/logs/
 /BackEnd/**/data/
