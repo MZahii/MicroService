@@ -10,9 +10,13 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - name: Build with Maven
-        working-directory: BackEnd
-        run: ./mvnw -q -DskipTests verify
+      - name: Build backend services with Maven
+        run: |
+          set -e
+          find BackEnd -name pom.xml -print0 | while IFS= read -r -d '' pom; do
+            echo "Building $pom"
+            mvn -q -DskipTests -f "$pom" verify
+          done
 
   build-frontend:
     runs-on: ubuntu-latest
