@@ -1,0 +1,15 @@
+/.idea/
+.vscode/
+.env
+*.log
+/node_modules/
+/FrontEnd/duralux-admin/node_modules/
+/.angular/
+/BackEnd/**/target/
+/BackEnd/**/logs/
+/BackEnd/**/data/
+/BackEnd/**/spring-boot-loader/
+/BackEnd/**/.mvn/
+*.iml
+dist/
+.DS_Store
