@@ -16,6 +16,7 @@ import { GuardianPatientsService } from '../../../features/administrative/api/gu
 export class ConsultationDetailsPage implements OnInit {
   consultationId = '';
   consultation: any | null = null;
+  outcome: any | null = null;
   loading = false;
   error = '';
 
@@ -38,37 +39,39 @@ export class ConsultationDetailsPage implements OnInit {
   loadConsultation(): void {
     this.loading = true;
     this.error = '';
-    this.api.getConsultation(this.consultationId).subscribe({
-      next: (item) => {
-        this.consultation = item;
+    this.guardianPatients.getGuardianPatientIds().pipe(
+      switchMap((patientIds: number[]) => {
+        if (!patientIds.length) return of([]);
+        const requests = patientIds.map((patientId: number) =>
+          this.api.listGuardianConsultations({ patientId }).pipe(
+            catchError(() => of([]))
+          )
+        );
+        return forkJoin(requests).pipe(map((sets: any[][]) => sets.flat()));
+      }),
+      map((items: any[]) => items.find((c: any) => String(c.id) === this.consultationId) || null),
+      switchMap((item: any) => {
+        if (!item) {
+          return of({ consultation: null, outcome: null });
+        }
+        return this.api.getGuardianConsultationOutcome(this.consultationId).pipe(
+          map((outcome) => ({ consultation: item, outcome })),
+          catchError(() => of({ consultation: item, outcome: null }))
+        );
+      }),
+      catchError(() => of({ consultation: null, outcome: null }))
+    ).subscribe({
+      next: (result) => {
+        this.consultation = result.consultation;
+        this.outcome = result.outcome;
         this.loading = false;
+        if (!result.consultation) {
+          this.error = 'Consultation not found.';
+        }
       },
       error: () => {
-        this.guardianPatients.getGuardianPatientIds().pipe(
-          switchMap((patientIds: number[]) => {
-            if (!patientIds.length) return of([]);
-            const requests = patientIds.map((patientId: number) =>
-              this.api.listConsultations({ patientId }).pipe(
-                catchError(() => of([]))
-              )
-            );
-            return forkJoin(requests).pipe(map((sets: any[][]) => sets.flat()));
-          }),
-          map((items: any[]) => items.find((c: any) => String(c.id) === this.consultationId) || null),
-          catchError(() => of(null))
-        ).subscribe({
-          next: (item: any) => {
-            this.consultation = item;
-            this.loading = false;
-            if (!item) {
-              this.error = 'Consultation not found.';
-            }
-          },
-          error: () => {
-            this.loading = false;
-            this.error = 'Failed to load consultation.';
-          }
-        });
+        this.loading = false;
+        this.error = 'Failed to load consultation.';
       }
     });
   }

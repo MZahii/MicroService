@@ -21,6 +21,7 @@ import { FrontofficeHomeComponent } from './pages/frontoffice/frontoffice-home/f
 import { FrontofficePatientDetailsComponent } from './pages/frontoffice/frontoffice-patient-details/frontoffice-patient-details';
 import { MyContractComponent } from './pages/shared/my-contract/my-contract';
 import { LogsComponent } from './pages/backoffice/logs/logs';
+import { ClinicalAuditLogsComponent } from './pages/backoffice/clinical-audit-logs/clinical-audit-logs';
 import { CommunicationInboxComponent } from './pages/backoffice/communication-inbox/communication-inbox';
 import { CommunicationDetailsComponent } from './pages/backoffice/communication-details/communication-details';
 import { CommunicationTemplatesComponent } from './pages/backoffice/communication-templates/communication-templates';
@@ -251,6 +252,12 @@ export const routes: Routes = [
       {
         path: 'logs',
         component: LogsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] }
+      },
+      {
+        path: 'clinical-audit-logs',
+        component: ClinicalAuditLogsComponent,
         canActivate: [roleGuard],
         data: { roles: ['ADMIN'] }
       },

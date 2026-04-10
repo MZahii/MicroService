@@ -49,6 +49,11 @@ spring:
               predicates:
                 - Path=/api/communication/**,/api/appointments/**
 
+            - id: clinical-service-api
+              uri: lb://clinical-service
+              predicates:
+                - Path=/clinical/**,/api/clinical/**
+
             - id: user-service-api
               uri: lb://user-service
               predicates:

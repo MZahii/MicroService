@@ -1,0 +1,66 @@
+<div class="page-header">
+  <div class="page-header-left d-flex align-items-center">
+    <div class="page-header-title">
+      <h5 class="m-b-10">Clinical Audit Logs</h5>
+    </div>
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a routerLink="/backoffice/dashboard">Dashboard</a></li>
+      <li class="breadcrumb-item">Clinical Audit Logs</li>
+    </ul>
+  </div>
+</div>
+
+<div class="main-content">
+  <div class="card stretch stretch-full">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h5 class="card-title mb-0">Clinical Service Trace</h5>
+    </div>
+
+    <div class="card-body">
+      <div *ngIf="errorMessage" class="alert alert-danger mb-3">{{ errorMessage }}</div>
+      <div *ngIf="loading" class="text-muted py-3">Loading logs...</div>
+
+      <div class="filters mb-3" *ngIf="!loading">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Search entity, action, actor, details..."
+          [(ngModel)]="search"
+        />
+        <select class="form-control" [(ngModel)]="actionFilter">
+          <option *ngFor="let action of actionOptions" [value]="action">{{ action }}</option>
+        </select>
+      </div>
+
+      <div class="table-responsive" *ngIf="!loading">
+        <table class="table table-hover align-middle">
+          <thead>
+          <tr>
+            <th>Date</th>
+            <th>Entity</th>
+            <th>Entity ID</th>
+            <th>Action</th>
+            <th>Actor</th>
+            <th>Role</th>
+            <th>Details</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr *ngFor="let log of filteredLogs">
+            <td>{{ log.createdAt | date:'yyyy-MM-dd HH:mm:ss' }}</td>
+            <td>{{ log.entityType }}</td>
+            <td>{{ log.entityId }}</td>
+            <td>{{ log.action }}</td>
+            <td>{{ log.actorUsername || '-' }}</td>
+            <td>{{ log.actorRole || '-' }}</td>
+            <td class="text-break">{{ log.details || '-' }}</td>
+          </tr>
+          <tr *ngIf="filteredLogs.length === 0">
+            <td colspan="7" class="text-center text-muted py-4">No clinical audit logs found.</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

@@ -225,6 +225,14 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
       });
 
       items.push({
+        key: 'clinicalLogs',
+        label: 'Clinical Audit Logs',
+        icon: 'feather-file-text',
+        route: '/backoffice/clinical-audit-logs',
+        exact: true
+      });
+
+      items.push({
         key: 'accounts',
         label: 'Accounts',
         icon: 'feather-users',

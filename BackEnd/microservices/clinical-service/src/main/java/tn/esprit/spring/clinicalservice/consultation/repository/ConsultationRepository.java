@@ -20,5 +20,9 @@ public interface ConsultationRepository extends JpaRepository<Consultation, UUID
 
     List<Consultation> findByDoctorIdAndPatientIdInAndStatus(UUID doctorId, List<Long> patientIds, ConsultationStatus status);
 
+    List<Consultation> findByPatientIdIn(List<Long> patientIds);
+
+    List<Consultation> findByPatientIdInAndStatus(List<Long> patientIds, ConsultationStatus status);
+
     Optional<Consultation> findByAppointmentId(UUID appointmentId);
 }

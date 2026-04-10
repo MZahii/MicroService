@@ -103,11 +103,15 @@ export class Appointments implements OnInit, OnDestroy {
   constructor(private api: ClinicalApiService) {}
 
   ngOnInit(): void {
-    this.loadAppointments();
-    this.ensureDoctorsLoaded();
     this.initPatientSearch();
     this.initPatientFilterSearch();
     this.initDoctorSearch();
+
+    // Defer first data load to next task to avoid NG0100 on initial render.
+    setTimeout(() => {
+      this.loadAppointments();
+      this.ensureDoctorsLoaded();
+    }, 0);
   }
 
   ngOnDestroy(): void {

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { AuthStorageService } from '../auth/auth-storage.service';
 
 export interface DoctorSearchResult {
@@ -33,6 +34,16 @@ export class ClinicalApiService {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
     if (doctorId) headers['X-Doctor-Id'] = doctorId;
+    return new HttpHeaders(headers);
+  }
+
+  private guardianHeaders(): HttpHeaders {
+    const user = this.auth.getUser();
+    const guardianId = user?.userId;
+    const token = this.auth.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (guardianId) headers['X-Guardian-Id'] = String(guardianId);
     return new HttpHeaders(headers);
   }
 
@@ -98,14 +109,27 @@ export class ClinicalApiService {
     if (trimmed.length < 2) {
       return of([]);
     }
-
-    const params = new HttpParams()
-      .set('q', trimmed)
-      .set('limit', '3');
-
+    const term = trimmed.toLowerCase();
     return this.http.get<any[]>(
-      `${this.base}/administration/patients/search`,
-      { headers: this.authHeaders(), params }
+      `${this.base}/api/patients`,
+      { headers: this.authHeaders() }
+    ).pipe(
+      map((list) => (list ?? [])
+        .filter((item) => {
+          const id = String(item?.id ?? '').toLowerCase();
+          const firstName = String(item?.firstName ?? '').toLowerCase();
+          const lastName = String(item?.lastName ?? '').toLowerCase();
+          const fullName = `${firstName} ${lastName}`.trim();
+          const bloodType = String(item?.bloodType ?? '').toLowerCase();
+          const allergies = String(item?.allergies ?? '').toLowerCase();
+          return id.includes(term)
+            || firstName.includes(term)
+            || lastName.includes(term)
+            || fullName.includes(term)
+            || bloodType.includes(term)
+            || allergies.includes(term);
+        })
+        .slice(0, 3))
     );
   }
 
@@ -117,13 +141,21 @@ export class ClinicalApiService {
   }
 
   listDoctors(limit = 10): Observable<DoctorSearchResult[]> {
-    const params = new HttpParams()
-      .set('role', 'DOCTOR')
-      .set('limit', String(limit));
+    const payload = {
+      query: '',
+      roles: ['DOCTOR'],
+      page: 0,
+      size: limit,
+      sortBy: 'firstName',
+      sortDir: 'asc'
+    };
 
-    return this.http.get<DoctorSearchResult[]>(
-      `${this.base}/users/staff`,
-      { headers: this.authHeaders(), params }
+    return this.http.post<{ items?: DoctorSearchResult[] }>(
+      `${this.base}/api/users/staff/search`,
+      payload,
+      { headers: this.authHeaders() }
+    ).pipe(
+      map((res) => res?.items ?? [])
     );
   }
 
@@ -133,14 +165,21 @@ export class ClinicalApiService {
       return of([]);
     }
 
-    const params = new HttpParams()
-      .set('q', trimmed)
-      .set('role', 'DOCTOR')
-      .set('limit', String(limit));
+    const payload = {
+      query: trimmed,
+      roles: ['DOCTOR'],
+      page: 0,
+      size: limit,
+      sortBy: 'firstName',
+      sortDir: 'asc'
+    };
 
-    return this.http.get<DoctorSearchResult[]>(
-      `${this.base}/users/staff/search`,
-      { headers: this.authHeaders(), params }
+    return this.http.post<{ items?: DoctorSearchResult[] }>(
+      `${this.base}/api/users/staff/search`,
+      payload,
+      { headers: this.authHeaders() }
+    ).pipe(
+      map((res) => res?.items ?? [])
     );
   }
 
@@ -183,6 +222,31 @@ export class ClinicalApiService {
     return this.http.get<any[]>(
       `${this.base}/clinical/consultations`,
       { headers: this.authHeaders(), params }
+    );
+  }
+
+  listGuardianConsultations(filters?: {
+    patientId?: number | string;
+    status?: string;
+  }): Observable<any[]> {
+    let params = new HttpParams();
+    if (filters?.patientId !== undefined && filters?.patientId !== null && filters?.patientId !== '') {
+      params = params.set('patientId', String(filters.patientId));
+    }
+    if (filters?.status && filters.status !== 'ALL') {
+      params = params.set('status', filters.status);
+    }
+
+    return this.http.get<any[]>(
+      `${this.base}/clinical/guardian/consultations`,
+      { headers: this.guardianHeaders(), params }
+    );
+  }
+
+  getGuardianConsultationOutcome(consultationId: string): Observable<any> {
+    return this.http.get<any>(
+      `${this.base}/clinical/guardian/consultations/${consultationId}/outcomes`,
+      { headers: this.guardianHeaders() }
     );
   }
 

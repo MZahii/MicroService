@@ -42,7 +42,7 @@ public class GatewaySecurityConfig {
                         .pathMatchers("/actuator/**").permitAll()
 
                         .pathMatchers(HttpMethod.POST, "/api/users/hr").hasRole("ADMIN")
-                        .pathMatchers(HttpMethod.POST, "/api/users/staff/search").hasAnyRole("ADMIN", "HR")
+                        .pathMatchers(HttpMethod.POST, "/api/users/staff/search").hasAnyRole("ADMIN", "HR", "RECEPTIONIST")
                         .pathMatchers(HttpMethod.PATCH, "/api/users/hr/**").hasRole("ADMIN")
                         .pathMatchers(HttpMethod.POST, "/api/users/internal").hasRole("HR")
                         .pathMatchers(HttpMethod.POST, "/api/users/staff").hasRole("HR")

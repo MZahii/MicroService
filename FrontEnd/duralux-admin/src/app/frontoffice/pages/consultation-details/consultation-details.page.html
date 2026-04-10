@@ -21,9 +21,7 @@
 
       <div class="detail-section">
         <h6>Doctor Decision Summary</h6>
-        <p class="text-muted mb-0">
-          Doctor decisions and follow-up instructions will appear here once available.
-        </p>
+        <p class="text-muted mb-0">{{ outcome?.treatmentPlan || 'Doctor decisions and follow-up instructions will appear here once available.' }}</p>
       </div>
 
       <div class="detail-section">
@@ -33,7 +31,7 @@
 
       <div class="detail-section">
         <h6>Prescriptions</h6>
-        <p class="text-muted mb-0">Prescriptions will be listed here after the consultation.</p>
+        <p class="text-muted mb-0">{{ outcome?.prescriptions || 'Prescriptions will be listed here after the consultation.' }}</p>
       </div>
     </div>
   </div>

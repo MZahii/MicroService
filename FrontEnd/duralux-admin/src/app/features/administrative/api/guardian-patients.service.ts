@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AuthStorageService } from '../../../core/auth/auth-storage.service';
@@ -26,23 +26,17 @@ export class GuardianPatientsService {
     const guardianUserId = Number(user?.userId || 0);
 
     if (!guardianUserId) {
-      // TODO: replace with real endpoint once guardian identity is fully wired.
-      return of([1]);
+      return of([]);
     }
 
-    const params = new HttpParams().set('guardianUserId', String(guardianUserId));
-
     return this.http.get<any[]>(
-      `${this.base}/api/patients`,
-      { headers: this.authHeaders(), params }
+      `${this.base}/api/patients/guardian/${guardianUserId}`,
+      { headers: this.authHeaders() }
     ).pipe(
       map(list => (list ?? [])
         .map(item => Number(item?.id))
         .filter(id => Number.isFinite(id))),
-      catchError(() => {
-        // TODO: replace with real endpoint for guardian -> patient mapping.
-        return of([1]);
-      })
+      catchError(() => of([]))
     );
   }
 }

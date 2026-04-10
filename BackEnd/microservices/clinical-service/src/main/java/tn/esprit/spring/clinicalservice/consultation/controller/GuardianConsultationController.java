@@ -6,7 +6,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import tn.esprit.spring.clinicalservice.consultation.dto.ConsultationResponse;
 import tn.esprit.spring.clinicalservice.consultation.dto.GuardianOutcomeResponse;
+import tn.esprit.spring.clinicalservice.consultation.entity.ConsultationStatus;
 import tn.esprit.spring.clinicalservice.consultation.service.GuardianConsultationService;
 import tn.esprit.spring.clinicalservice.notification.GuardianNotification;
 import tn.esprit.spring.clinicalservice.notification.GuardianNotificationResponse;
@@ -24,6 +26,16 @@ public class GuardianConsultationController {
     private final GuardianConsultationService guardianConsultationService;
     private final GuardianNotificationService guardianNotificationService;
     private final GuardianIdResolver guardianIdResolver;
+
+    @GetMapping("/consultations")
+    public ResponseEntity<List<ConsultationResponse>> listConsultations(
+            @RequestParam(value = "patientId", required = false) Long patientId,
+            @RequestParam(value = "status", required = false) ConsultationStatus status,
+            @RequestHeader(value = "X-Guardian-Id", required = false) Long guardianUserId
+    ) {
+        Long resolvedGuardianId = requireGuardianId(guardianUserId);
+        return ResponseEntity.ok(guardianConsultationService.listConsultations(resolvedGuardianId, patientId, status));
+    }
 
     @GetMapping("/consultations/{id}/outcomes")
     public ResponseEntity<GuardianOutcomeResponse> getOutcomes(

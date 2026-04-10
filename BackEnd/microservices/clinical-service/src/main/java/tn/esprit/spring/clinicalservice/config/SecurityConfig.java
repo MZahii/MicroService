@@ -39,7 +39,7 @@ public class SecurityConfig {
                 .requestMatchers(mvcMatcherBuilder.pattern("/v3/api-docs/**")).permitAll()
                 .requestMatchers(mvcMatcherBuilder.pattern("/clinical/audit/**")).hasAnyRole("ADMIN", "PLATFORM_ADMIN")
                 .requestMatchers(mvcMatcherBuilder.pattern("/clinical/guardian/**")).hasRole("GUARDIAN")
-                .requestMatchers(mvcMatcherBuilder.pattern(HttpMethod.GET, "/clinical/appointments/**")).hasAnyRole("DOCTOR", "RECEPTIONIST")
+                .requestMatchers(mvcMatcherBuilder.pattern(HttpMethod.GET, "/clinical/appointments/**")).hasAnyRole("DOCTOR", "RECEPTIONIST", "GUARDIAN")
                 .requestMatchers(mvcMatcherBuilder.pattern(HttpMethod.POST, "/clinical/appointments/{id}/start-consultation")).hasRole("DOCTOR")
                 .requestMatchers(mvcMatcherBuilder.pattern(HttpMethod.POST, "/clinical/appointments")).hasAnyRole("RECEPTIONIST", "DOCTOR")
                 .requestMatchers(mvcMatcherBuilder.pattern(HttpMethod.PUT, "/clinical/appointments/{id}")).hasRole("RECEPTIONIST")

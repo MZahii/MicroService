@@ -41,7 +41,7 @@ export class ConsultationsPage implements OnInit {
       switchMap((patientIds: number[]) => {
         if (!patientIds.length) return of([]);
         const requests = patientIds.map((patientId: number) =>
-          this.api.listConsultations({ patientId }).pipe(
+          this.api.listGuardianConsultations({ patientId, status: this.filterStatus }).pipe(
             catchError(() =>
               this.api.listAppointments({ patientId }).pipe(
                 map((appointments) => this.mapAppointmentsToConsultations(appointments, patientId)),
