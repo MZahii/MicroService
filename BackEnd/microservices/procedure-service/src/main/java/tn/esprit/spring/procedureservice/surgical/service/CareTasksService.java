@@ -1,10 +1,11 @@
 package tn.esprit.spring.procedureservice.surgical.service;
 
 import java.util.List;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import tn.esprit.spring.procedureservice.shared.exception.NotFoundException;
 import tn.esprit.spring.procedureservice.surgical.domain.entity.CareTask;
-import tn.esprit.spring.procedureservice.surgical.dto.request.CreateCareTaskRequest;
+import tn.esprit.spring.procedureservice.surgical.dto.request.AddObservationRequest;
 import tn.esprit.spring.procedureservice.surgical.dto.request.UpdateCareTaskRequest;
 import tn.esprit.spring.procedureservice.surgical.repository.CareTaskRepository;
 
@@ -18,10 +19,10 @@ public class CareTasksService {
         this.surgicalCaseService = surgicalCaseService;
     }
 
-    public CareTask create(CreateCareTaskRequest request) {
+    public CareTask create(AddObservationRequest request) {
         CareTask task = new CareTask();
         task.setSurgicalCase(surgicalCaseService.getById(request.surgicalCaseId()));
-        task.setTitle(request.title());
+        task.setTitle(request.notes());
         task.setDone(false);
         return repository.save(task);
     }

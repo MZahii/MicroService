@@ -1,8 +1,12 @@
 package tn.esprit.spring.procedureservice.surgical.repository;
 
+import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import tn.esprit.spring.procedureservice.surgical.domain.entity.CareTask;
 
 public interface CareTaskRepository extends JpaRepository<CareTask, Long> {
-    boolean existsBySurgicalCaseIdAndTitle(Long surgicalCaseId, String title);
+    @Query("SELECT CASE WHEN COUNT(ct) > 0 THEN true ELSE false END FROM CareTask ct WHERE ct.surgicalCase.id = :surgicalCaseId AND ct.title = :title")
+    boolean existsBySurgicalCaseIdAndTitle(@Param("surgicalCaseId") UUID surgicalCaseId, @Param("title") String title);
 }

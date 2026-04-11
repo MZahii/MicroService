@@ -1,4 +1,6 @@
 package tn.esprit.spring.procedureservice.surgical.dto.response;
 
-public record ComplicationResponse(Long id, Long surgicalCaseId, String description) {
+import java.util.UUID;
+
+public record ComplicationResponse(Long id, UUID surgicalCaseId, String description) {
 }

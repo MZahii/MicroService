@@ -2,6 +2,7 @@ package tn.esprit.spring.procedureservice.dialysis.controller;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,7 +34,7 @@ public class DialysisSessionController {
     }
 
     @GetMapping("/{id}")
-    public DialysisSessionResponse getById(@PathVariable Long id) {
+    public DialysisSessionResponse getById(@PathVariable UUID id) {
         return DialysisMapper.toResponse(service.getById(id));
     }
 

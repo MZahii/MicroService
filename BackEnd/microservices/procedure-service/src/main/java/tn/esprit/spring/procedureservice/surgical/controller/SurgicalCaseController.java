@@ -2,6 +2,7 @@ package tn.esprit.spring.procedureservice.surgical.controller;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,17 +32,17 @@ public class SurgicalCaseController {
     }
 
     @PutMapping("/{id}")
-    public SurgicalCaseResponse update(@PathVariable Long id, @Valid @RequestBody UpdateSurgicalCaseRequest request) {
+    public SurgicalCaseResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateSurgicalCaseRequest request) {
         return SurgicalCaseMapper.toResponse(service.update(id, request));
     }
 
     @PutMapping("/{id}/offer")
-    public SurgicalCaseResponse decideOffer(@PathVariable Long id, @Valid @RequestBody DecideTransplantOfferRequest request) {
+    public SurgicalCaseResponse decideOffer(@PathVariable UUID id, @Valid @RequestBody DecideTransplantOfferRequest request) {
         return SurgicalCaseMapper.toResponse(service.decideOffer(id, request));
     }
 
     @GetMapping("/{id}")
-    public SurgicalCaseResponse getById(@PathVariable Long id) {
+    public SurgicalCaseResponse getById(@PathVariable UUID id) {
         return SurgicalCaseMapper.toResponse(service.getById(id));
     }
 

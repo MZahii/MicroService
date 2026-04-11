@@ -1,9 +1,8 @@
-server:
-  port: 8083
-
 spring:
   application:
     name: api-gateway
+  config:
+    import: optional:configserver:http://localhost:8888
 
   cloud:
     gateway:
@@ -30,41 +29,59 @@ spring:
                   - "*"
                 allowCredentials: true
           routes:
-            - id: ops-service
-              uri: lb://ops-service
-              predicates:
-                - Path=/ops/**
-              filters:
-                - StripPrefix=1
-
-            - id: pharmacy-service-api
-              uri: lb://pharmacy-service
-              predicates:
-                - Path=/pharmacy/**
-              filters:
-                - StripPrefix=1
-
-            - id: communication-service-api
-              uri: lb://communication-service
-              predicates:
-                - Path=/api/communication/**,/api/appointments/**
-
-            - id: clinical-service-api
-              uri: lb://clinical-service
-              predicates:
-                - Path=/clinical/**,/api/clinical/**
-
+            # User Service - Authentication & User Management
             - id: user-service-api
               uri: lb://user-service
               predicates:
-                - Path=/api/auth/**,/api/users/**
+                - Path=/api/users/**,/api/auth/**
               filters:
                 - StripPrefix=1
 
+            # Administration Service - Patients, Contracts, Staff
             - id: administration-service-api
               uri: lb://administration-service
               predicates:
-                - Path=/api/patients/**,/api/contracts/**,/api/observability/**
+                - Path=/api/patients/**,/api/contracts/**,/api/staff/**,/api/observability/**
+              filters:
+                - StripPrefix=1
+
+            # Clinical Service - Appointments, Consultations
+            - id: clinical-service-api
+              uri: lb://clinical-service
+              predicates:
+                - Path=/api/clinical/**,/api/appointments/**,/api/consultations/**
+              filters:
+                - StripPrefix=1
+
+            # Communication Service - Messages, Templates
+            - id: communication-service-api
+              uri: lb://communication-service
+              predicates:
+                - Path=/api/communication/**,/api/templates/**
+              filters:
+                - StripPrefix=1
+
+            # Procedure Service - Surgical, Dialysis
+            - id: procedure-service-api
+              uri: lb://procedure-service
+              predicates:
+                - Path=/api/procedures/**,/api/dialysis/**
+              filters:
+                - StripPrefix=1
+
+            # Pharmacy Service - Medications, Stock, Suppliers
+            - id: pharmacy-service-api
+              uri: lb://pharmacy-service
+              predicates:
+                - Path=/api/pharmacy/**,/api/medications/**,/api/stock/**
+              filters:
+                - StripPrefix=1
+
+            # Operations Service - Health Checks
+            - id: ops-service-api
+              uri: lb://ops-service
+              predicates:
+                - Path=/api/health/**
               filters:
                 - StripPrefix=1
 

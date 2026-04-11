@@ -1,5 +1,6 @@
 package tn.esprit.spring.procedureservice.shared.mapper;
 
+import java.util.UUID;
 import tn.esprit.spring.procedureservice.surgical.domain.entity.CareTask;
 import tn.esprit.spring.procedureservice.surgical.domain.entity.Complication;
 import tn.esprit.spring.procedureservice.surgical.domain.entity.PostOpObservation;
@@ -19,6 +20,8 @@ public final class SurgicalCaseMapper {
         return new SurgicalCaseResponse(
             surgicalCase.getId(),
             surgicalCase.getPatientId(),
+            surgicalCase.getConsultationId(),
+            surgicalCase.getAppointmentId(),
             surgicalCase.getFirstName(),
             surgicalCase.getLastName(),
             surgicalCase.getAge(),
@@ -37,27 +40,29 @@ public final class SurgicalCaseMapper {
             surgicalCase.getEstimatedDurationMinutes(),
             surgicalCase.getOperatingRoom(),
             surgicalCase.getStatus(),
-            surgicalCase.getOfferStatus()
+            surgicalCase.getOfferStatus(),
+            surgicalCase.getCreatedAt(),
+            surgicalCase.getUpdatedAt()
         );
     }
 
     public static PreOpAssessmentResponse toResponse(PreOpAssessment assessment) {
-        Long caseId = assessment.getSurgicalCase() != null ? assessment.getSurgicalCase().getId() : null;
+        UUID caseId = assessment.getSurgicalCase() != null ? assessment.getSurgicalCase().getId() : null;
         return new PreOpAssessmentResponse(assessment.getId(), caseId, assessment.getNotes());
     }
 
     public static PostOpObservationResponse toResponse(PostOpObservation observation) {
-        Long caseId = observation.getSurgicalCase() != null ? observation.getSurgicalCase().getId() : null;
+        UUID caseId = observation.getSurgicalCase() != null ? observation.getSurgicalCase().getId() : null;
         return new PostOpObservationResponse(observation.getId(), caseId, observation.getNotes());
     }
 
     public static CareTaskResponse toResponse(CareTask task) {
-        Long caseId = task.getSurgicalCase() != null ? task.getSurgicalCase().getId() : null;
+        UUID caseId = task.getSurgicalCase() != null ? task.getSurgicalCase().getId() : null;
         return new CareTaskResponse(task.getId(), caseId, task.getTitle(), task.isDone());
     }
 
     public static ComplicationResponse toResponse(Complication complication) {
-        Long caseId = complication.getSurgicalCase() != null ? complication.getSurgicalCase().getId() : null;
+        UUID caseId = complication.getSurgicalCase() != null ? complication.getSurgicalCase().getId() : null;
         return new ComplicationResponse(complication.getId(), caseId, complication.getDescription());
     }
 }

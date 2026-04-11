@@ -1,11 +1,16 @@
 package tn.esprit.spring.clinicalservice.consultation.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import tn.esprit.spring.clinicalservice.audit.AuditService;
+import tn.esprit.spring.clinicalservice.client.UserServiceClient;
+import tn.esprit.spring.clinicalservice.client.AdministrationClient;
+import tn.esprit.spring.clinicalservice.client.PharmacyClient;
+import tn.esprit.spring.clinicalservice.client.CommunicationClient;
 import tn.esprit.spring.clinicalservice.consultation.dto.*;
 import tn.esprit.spring.clinicalservice.consultation.entity.*;
 import tn.esprit.spring.clinicalservice.consultation.repository.ConsultationRepository;
@@ -22,12 +27,19 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class ConsultationServiceImpl implements ConsultationService {
 
     private final ConsultationRepository consultationRepository;
     private final PatientDirectoryClient patientDirectoryClient;
     private final AuditService auditService;
     private final ActorResolver actorResolver;
+    
+    // Feign clients for inter-service communication
+    private final UserServiceClient userServiceClient;
+    private final AdministrationClient administrationClient;
+    private final PharmacyClient pharmacyClient;
+    private final CommunicationClient communicationClient;
 
     @Override
     public ConsultationResponse create(ConsultationCreateRequest request, UUID doctorId) {
@@ -141,6 +153,53 @@ public class ConsultationServiceImpl implements ConsultationService {
 
         consultationRepository.save(consultation);
         auditService.record("CONSULTATION", consultation.getId(), "ARCHIVE", "Archived consultation");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConsultationResponse> listAll(Long patientId, ConsultationStatus status, LocalDateTime from, LocalDateTime to) {
+        List<Consultation> items;
+
+        // Build query based on filters
+        if (patientId != null && status != null) {
+            if (from != null && to != null) {
+                items = consultationRepository.findByPatientIdAndStatusAndDateTimeBetween(patientId, status, from, to);
+            } else {
+                items = consultationRepository.findByPatientIdAndStatus(patientId, status);
+            }
+        } else if (patientId != null) {
+            if (from != null && to != null) {
+                items = consultationRepository.findByPatientIdAndDateTimeBetween(patientId, from, to);
+            } else {
+                items = consultationRepository.findByPatientId(patientId);
+            }
+        } else if (status != null) {
+            if (from != null && to != null) {
+                items = consultationRepository.findByStatusAndDateTimeBetween(status, from, to);
+            } else {
+                items = consultationRepository.findByStatus(status);
+            }
+        } else if (from != null && to != null) {
+            items = consultationRepository.findByDateTimeBetween(from, to);
+        } else {
+            items = consultationRepository.findAll();
+        }
+
+        // Exclude archived by default unless explicitly requested
+        if (status != ConsultationStatus.ARCHIVED) {
+            items = items.stream()
+                    .filter(item -> item.getStatus() != ConsultationStatus.ARCHIVED)
+                    .toList();
+        }
+
+        // Load patient details for all consultations
+        Map<Long, PatientSummary> patientMap = patientDirectoryClient.getPatientsByIds(
+                items.stream().map(Consultation::getPatientId).collect(java.util.stream.Collectors.toSet())
+        );
+
+        return items.stream()
+                .map(item -> mapToResponse(item, patientMap.get(item.getPatientId())))
+                .toList();
     }
 
     private ConsultationResponse mapToResponse(Consultation c) {

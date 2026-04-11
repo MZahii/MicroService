@@ -1,13 +1,11 @@
 package tn.esprit.spring.communicationservice.integration;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.server.ResponseStatusException;
+import tn.esprit.spring.communicationservice.client.UserServiceClientFeign;
 import tn.esprit.spring.communicationservice.integration.dto.UserSummary;
 
 import java.util.List;
@@ -18,10 +16,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class UserDirectoryClient {
 
-    private final RestClient.Builder restClientBuilder;
-
-    @Value("${internal.user-service.base-url:http://localhost:8090}")
-    private String userServiceBaseUrl;
+    private final UserServiceClientFeign userServiceClientFeign;
 
     public UserSummary resolveGuardian(String jwtSub, String preferredUsername) {
         List<UserSummary> guardians = tryLoadGuardians();
@@ -38,60 +33,44 @@ public class UserDirectoryClient {
     }
 
     public List<UserSummary> loadDoctors() {
-        ResponseStatusException lastError = null;
-
-        for (String endpoint : List.of("/users/doctors", "/api/users/doctors")) {
-            try {
-                return fetchUsers(endpoint, "doctors");
-            } catch (ResponseStatusException ex) {
-                lastError = ex;
-                if (!HttpStatus.NOT_FOUND.equals(ex.getStatusCode())) {
-                    throw ex;
+        try {
+            return userServiceClientFeign.getDoctors(null);
+        } catch (ResponseStatusException ex) {
+            if (HttpStatus.NOT_FOUND.equals(ex.getStatusCode())) {
+                try {
+                    return userServiceClientFeign.getDoctorsAlt(null);
+                } catch (ResponseStatusException altEx) {
+                    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Failed to load doctors from user-service");
                 }
             }
+            throw ex;
         }
-
-        if (lastError != null) {
-            throw lastError;
-        }
-
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Failed to load doctors from user-service");
     }
 
     private List<UserSummary> tryLoadGuardians() {
-        ResponseStatusException lastError = null;
-
-        for (String endpoint : List.of("/users/guardians", "/api/users/guardians")) {
-            try {
-                return fetchGuardians(endpoint);
-            } catch (ResponseStatusException ex) {
-                lastError = ex;
-                if (!HttpStatus.NOT_FOUND.equals(ex.getStatusCode())) {
-                    throw ex;
+        try {
+            return userServiceClientFeign.getGuardians(null);
+        } catch (ResponseStatusException ex) {
+            if (HttpStatus.NOT_FOUND.equals(ex.getStatusCode())) {
+                try {
+                    return userServiceClientFeign.getGuardiansAlt(null);
+                } catch (ResponseStatusException altEx) {
+                    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Failed to load guardians from user-service");
                 }
             }
+            throw ex;
         }
-
-        if (lastError != null) {
-            throw lastError;
-        }
-
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Failed to load guardians from user-service");
     }
 
     private List<UserSummary> fetchGuardians(String endpoint) {
-        return fetchUsers(endpoint, "guardians");
+        return tryLoadGuardians();
     }
 
     private List<UserSummary> fetchUsers(String endpoint, String label) {
-        return restClientBuilder.build()
-                .get()
-                .uri(userServiceBaseUrl + endpoint)
-                .retrieve()
-                .onStatus(HttpStatusCode::isError, (request, response) -> {
-                    throw new ResponseStatusException(response.getStatusCode(), "Failed to load " + label + " from user-service");
-                })
-                .body(new ParameterizedTypeReference<>() {});
+        if (endpoint.contains("doctors")) {
+            return loadDoctors();
+        }
+        return tryLoadGuardians();
     }
 
     private boolean isMatch(UserSummary user, String jwtSub, String preferredUsername) {

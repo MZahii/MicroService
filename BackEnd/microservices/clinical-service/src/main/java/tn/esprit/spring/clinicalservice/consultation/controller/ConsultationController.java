@@ -2,6 +2,7 @@ package tn.esprit.spring.clinicalservice.consultation.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -17,6 +18,10 @@ import tn.esprit.spring.clinicalservice.consultation.section.ConsultationSection
 import tn.esprit.spring.clinicalservice.consultation.service.ConsultationOutcomeService;
 import tn.esprit.spring.clinicalservice.consultation.service.ConsultationService;
 import tn.esprit.spring.clinicalservice.security.DoctorIdResolver;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
 
 import java.net.URI;
 import java.util.List;
@@ -251,5 +256,18 @@ public class ConsultationController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "doctorId is required");
         }
         return resolved;
+    }
+
+    // BACKOFFICE: List all consultations with filters (no doctor restriction for admin)
+    @GetMapping("/backoffice/list")
+    public ResponseEntity<List<ConsultationResponse>> listAllConsultations(
+            @RequestParam(value = "patientId", required = false) Long patientId,
+            @RequestParam(value = "status", required = false) ConsultationStatus status,
+            @RequestParam(value = "from", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(value = "to", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to
+    ) {
+        return ResponseEntity.ok(consultationService.listAll(patientId, status, from, to));
     }
 }

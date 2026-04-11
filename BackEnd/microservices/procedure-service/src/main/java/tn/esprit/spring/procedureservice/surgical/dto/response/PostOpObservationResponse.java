@@ -1,4 +1,6 @@
 package tn.esprit.spring.procedureservice.surgical.dto.response;
 
-public record PostOpObservationResponse(Long id, Long surgicalCaseId, String notes) {
+import java.util.UUID;
+
+public record PostOpObservationResponse(Long id, UUID surgicalCaseId, String notes) {
 }

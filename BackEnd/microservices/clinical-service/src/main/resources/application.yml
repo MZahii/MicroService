@@ -1,51 +1,93 @@
-server:
-  port: 8084
-  address: 0.0.0.0
-
 spring:
   application:
     name: clinical-service
+  config:
+    import: optional:configserver:http://localhost:8888
 
-  datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://ep-cool-breeze-agqhhjlc.c-2.eu-central-1.aws.neon.tech/nephros_clinical_service.db?sslmode=require&channel_binding=require}
-    username: ${DB_USER:neondb_owner}
-    password: ${DB_PASSWORD:npg_Zb1Kda5LPlin}
-    driver-class-name: org.postgresql.Driver
-
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-
-  flyway:
-    enabled: true
-    baseline-on-migrate: true
-
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/nephrospaidi}
-
-services:
-  administration:
-    base-url: ${SERVICES_ADMINISTRATION_BASE:http://localhost:8087}
-  user:
-    base-url: ${SERVICES_USER_BASE:http://localhost:8090}
-
-eureka:
+# Feign Configuration
+feign:
   client:
-    service-url:
-      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 10000
+        loggerLevel: full
+      
+      user-service:
+        connectTimeout: 3000
+        readTimeout: 8000
+      
+      administration-service:
+        connectTimeout: 3000
+        readTimeout: 8000
+      
+      pharmacy-service:
+        connectTimeout: 3000
+        readTimeout: 8000
+      
+      communication-service:
+        connectTimeout: 3000
+        readTimeout: 8000
 
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 2000
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10000
+    
+    instances:
+      user-service:
+        baseConfig: default
+      administration-service:
+        baseConfig: default
+      pharmacy-service:
+        baseConfig: default
+      communication-service:
+        baseConfig: default
+  
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 100
+        intervalFunction: exponential
+    
+    instances:
+      user-service:
+        baseConfig: default
+      administration-service:
+        baseConfig: default
+      pharmacy-service:
+        baseConfig: default
+
+# Service URLs for Feign clients
+services:
+  user:
+    url: ${USER_SERVICE_URL:http://localhost:8086}
+  admin:
+    url: ${ADMIN_SERVICE_URL:http://localhost:8085}
+  pharmacy:
+    url: ${PHARMACY_SERVICE_URL:http://localhost:8087}
+  communication:
+    url: ${COMMUNICATION_SERVICE_URL:http://localhost:8089}
+
+# Management/Actuator
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
   endpoint:
     health:
-      show-details: never
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true

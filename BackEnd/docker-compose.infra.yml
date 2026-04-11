@@ -54,5 +54,24 @@ services:
       - eureka
       - keycloak
 
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: nephro-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672"      # AMQP port
+      - "15672:15672"    # Management UI port
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
 volumes:
   keycloak_db:
+  rabbitmq_data:

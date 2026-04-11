@@ -1,5 +1,6 @@
 package tn.esprit.spring.procedureservice.shared.mapper;
 
+import java.util.UUID;
 import tn.esprit.spring.procedureservice.dialysis.domain.entity.DialysisOutcome;
 import tn.esprit.spring.procedureservice.dialysis.domain.entity.DialysisPlan;
 import tn.esprit.spring.procedureservice.dialysis.domain.entity.DialysisPrescription;
@@ -38,11 +39,21 @@ public final class DialysisMapper {
 
     public static DialysisSessionResponse toResponse(DialysisSession session) {
         Long planId = session.getPlan() != null ? session.getPlan().getId() : null;
-        return new DialysisSessionResponse(session.getId(), planId, session.getSessionDate(), session.getNotes());
+        return new DialysisSessionResponse(
+            session.getId(),
+            planId,
+            session.getPatientId(),
+            session.getConsultationId(),
+            session.getAppointmentId(),
+            session.getSessionDate(),
+            session.getNotes(),
+            session.getCreatedAt(),
+            session.getUpdatedAt()
+        );
     }
 
     public static DialysisOutcomeResponse toResponse(DialysisOutcome outcome) {
-        Long sessionId = outcome.getSession() != null ? outcome.getSession().getId() : null;
+        UUID sessionId = outcome.getSession() != null ? outcome.getSession().getId() : null;
         return new DialysisOutcomeResponse(outcome.getId(), sessionId, outcome.isValidated(), outcome.getSummary());
     }
 

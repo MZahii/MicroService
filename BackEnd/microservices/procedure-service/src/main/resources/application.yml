@@ -1,35 +1,5 @@
-server:
-  port: 8089
-
 spring:
   application:
     name: procedure-service
-  datasource:
-    url: ${PROCEDURE_DB_URL:jdbc:postgresql://ep-cool-breeze-agqhhjlc.c-2.eu-central-1.aws.neon.tech/procedure_db?sslmode=require&channel_binding=require}
-    username: ${PROCEDURE_DB_USERNAME:neondb_owner}
-    password: ${PROCEDURE_DB_PASSWORD:npg_Zb1Kda5LPlin}
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-    open-in-view: false
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka
-
-resend:
-  enabled: ${RESEND_ENABLED:false}
-  api-key: ${RESEND_API_KEY:}
-  from-email: ${RESEND_FROM_EMAIL:onboarding@resend.dev}
-  demo-recipient: ${RESEND_DEMO_RECIPIENT:}
+  config:
+    import: optional:configserver:http://localhost:8888
