@@ -1,14 +1,13 @@
 package tn.esprit.spring.procedureservice.dialysis.dto.response;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 public record DialysisSessionResponse(
-    UUID id,
+    Long id,
     Long planId,
-    UUID patientId,
-    UUID consultationId,
-    UUID appointmentId,
+    String patientId,
+    String consultationId,
+    String appointmentId,
     LocalDateTime sessionDate,
     String notes,
     LocalDateTime createdAt,

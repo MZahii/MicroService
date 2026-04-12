@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "dialysis_sessions")
@@ -16,25 +15,22 @@ import java.util.UUID;
 @Builder
 public class DialysisSession {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(columnDefinition = "BINARY(16)")
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @ManyToOne
     @JoinColumn(name = "plan_id")
     private DialysisPlan plan;
 
-    // Foreign key to Patient (from administration-service)
-    @Column(name = "patient_id", nullable = false)
-    private UUID patientId;
+    // External references are stored as text in the current schema.
+    @Column(name = "patient_id")
+    private String patientId;
 
-    // Foreign key to Consultation (from clinical-service)
     @Column(name = "consultation_id")
-    private UUID consultationId;
+    private String consultationId;
 
-    // Foreign key to Appointment (from clinical-service)
     @Column(name = "appointment_id")
-    private UUID appointmentId;
+    private String appointmentId;
 
     private LocalDateTime sessionDate;
     private String notes;

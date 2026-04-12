@@ -1,7 +1,6 @@
 package tn.esprit.spring.procedureservice.surgical.service;
 
 import java.util.List;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import tn.esprit.spring.procedureservice.shared.exception.NotFoundException;
 import tn.esprit.spring.procedureservice.surgical.domain.entity.Complication;

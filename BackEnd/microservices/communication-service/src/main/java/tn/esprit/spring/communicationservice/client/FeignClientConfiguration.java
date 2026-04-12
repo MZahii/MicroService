@@ -8,10 +8,8 @@ import org.springframework.cloud.openfeign.support.SpringEncoder;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import lombok.extern.slf4j.Slf4j;
 
 @Configuration
-@Slf4j
 public class FeignClientConfiguration {
     
     @Bean
@@ -46,29 +44,4 @@ public class FeignClientConfiguration {
     public SpringEncoder feignEncoder(ObjectProvider<HttpMessageConverters> httpMessageConverters) {
         return new SpringEncoder(httpMessageConverters);
     }
-}
-
-@Slf4j
-class FeignErrorHandler implements ErrorDecoder {
-    @Override
-    public Exception decode(String methodKey, feign.Response response) {
-        log.error("Feign error - Method: {}, Status: {}", methodKey, response.status());
-        switch (response.status()) {
-            case 404: return new ResourceNotFoundException("Resource not found in " + methodKey);
-            case 503: return new ServiceUnavailableException("Service unavailable in " + methodKey);
-            default: return new FeignException("Error calling " + methodKey);
-        }
-    }
-}
-
-class FeignException extends RuntimeException {
-    public FeignException(String message) { super(message); }
-}
-
-class ResourceNotFoundException extends FeignException {
-    public ResourceNotFoundException(String message) { super(message); }
-}
-
-class ServiceUnavailableException extends FeignException {
-    public ServiceUnavailableException(String message) { super(message); }
 }

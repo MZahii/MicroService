@@ -1,7 +1,6 @@
 package tn.esprit.spring.procedureservice.surgical.service;
 
 import java.util.List;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import tn.esprit.spring.procedureservice.shared.exception.NotFoundException;
 import tn.esprit.spring.procedureservice.surgical.domain.entity.PreOpAssessment;
@@ -32,7 +31,7 @@ public class PreOpAssessmentService {
         PreOpAssessment assessment = getById(id);
         assessment.setNotes(request.notes());
         PreOpAssessment saved = repository.save(assessment);
-        UUID caseId = assessment.getSurgicalCase() != null ? assessment.getSurgicalCase().getId() : null;
+        Long caseId = assessment.getSurgicalCase() != null ? assessment.getSurgicalCase().getId() : null;
         if (caseId != null) {
             surgicalCaseService.applyPreOpDecision(caseId, evaluatePreOpEligibility(request.notes()));
         }

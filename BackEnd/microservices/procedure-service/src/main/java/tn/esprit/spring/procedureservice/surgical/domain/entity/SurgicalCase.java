@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "surgical_cases")
@@ -18,19 +17,18 @@ import java.util.UUID;
 @Builder
 public class SurgicalCase {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(columnDefinition = "BINARY(16)")
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    // Foreign keys to Clinical Service
-    @Column(name = "patient_id", nullable = false, columnDefinition = "BINARY(16)")
-    private UUID patientId;
+    // External references are stored as text in the current schema.
+    @Column(name = "patient_id", nullable = false)
+    private String patientId;
 
-    @Column(name = "consultation_id", columnDefinition = "BINARY(16)")
-    private UUID consultationId;
+    @Column(name = "consultation_id")
+    private String consultationId;
 
-    @Column(name = "appointment_id", columnDefinition = "BINARY(16)")
-    private UUID appointmentId;
+    @Column(name = "appointment_id")
+    private String appointmentId;
 
     // Patient information (denormalized for read performance)
     private String firstName;
@@ -45,15 +43,12 @@ public class SurgicalCase {
     private String surgeryCategory;
     private String urgencyLevel;
 
-    // Surgical team (UUIDs)
-    @Column(columnDefinition = "BINARY(16)")
-    private UUID surgeonId;
+    // External staff references are stored as text in the current schema.
+    private String surgeonId;
 
-    @Column(columnDefinition = "BINARY(16)")
-    private UUID assistantSurgeonId;
+    private String assistantSurgeonId;
 
-    @Column(columnDefinition = "BINARY(16)")
-    private UUID anesthesiologistId;
+    private String anesthesiologistId;
 
     private String nurseTeam;
 

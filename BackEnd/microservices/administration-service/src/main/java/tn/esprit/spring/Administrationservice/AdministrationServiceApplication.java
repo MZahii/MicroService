@@ -6,7 +6,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
-@EnableFeignClients(basePackages = "tn.esprit.spring.administrationservice.client")
+@EnableFeignClients(basePackages = "tn.esprit.spring.Administrationservice.client")
 @EnableScheduling
 public class AdministrationServiceApplication {
 

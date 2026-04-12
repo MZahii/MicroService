@@ -333,14 +333,6 @@ export class ClinicalApiService {
     );
   }
 
-  searchDoctors(query: string): Observable<any[]> {
-    const params = new HttpParams().set('q', query);
-    return this.http.get<any[]>(
-      `${this.base}/clinical/doctors/search`,
-      { headers: this.authHeaders(), params }
-    );
-  }
-
   // Backoffice: List all consultations with filters (admin/staff only)
   listAllConsultations(filters?: {
     patientId?: number | string;

@@ -23,9 +23,6 @@ public class ClinicalProxyController {
     @Value("${services.administration.base-url:http://localhost:8087}")
     private String administrationBase;
 
-    @Value("${services.user.base-url:http://localhost:8090}")
-    private String userBase;
-
     public ClinicalProxyController(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
@@ -34,18 +31,6 @@ public class ClinicalProxyController {
     @GetMapping("/patients/{id}")
     public ResponseEntity<String> getPatientProfile(@PathVariable("id") Long id, Authentication authentication) {
         String url = administrationBase + "/patients/" + id;
-        try {
-            ResponseEntity<String> resp = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(authHeaders(authentication)), String.class);
-            return ResponseEntity.status(resp.getStatusCode()).body(resp.getBody());
-        } catch (HttpStatusCodeException ex) {
-            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
-        }
-    }
-
-    // Proxy to user-service to get user details (doctor)
-    @GetMapping("/doctors/{id}")
-    public ResponseEntity<String> getDoctor(@PathVariable("id") Long id, Authentication authentication) {
-        String url = userBase + "/users/" + id;
         try {
             ResponseEntity<String> resp = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(authHeaders(authentication)), String.class);
             return ResponseEntity.status(resp.getStatusCode()).body(resp.getBody());

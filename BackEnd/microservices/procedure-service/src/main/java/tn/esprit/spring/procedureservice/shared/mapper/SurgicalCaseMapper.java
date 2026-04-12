@@ -1,6 +1,5 @@
 package tn.esprit.spring.procedureservice.shared.mapper;
 
-import java.util.UUID;
 import tn.esprit.spring.procedureservice.surgical.domain.entity.CareTask;
 import tn.esprit.spring.procedureservice.surgical.domain.entity.Complication;
 import tn.esprit.spring.procedureservice.surgical.domain.entity.PostOpObservation;
@@ -47,22 +46,22 @@ public final class SurgicalCaseMapper {
     }
 
     public static PreOpAssessmentResponse toResponse(PreOpAssessment assessment) {
-        UUID caseId = assessment.getSurgicalCase() != null ? assessment.getSurgicalCase().getId() : null;
+        Long caseId = assessment.getSurgicalCase() != null ? assessment.getSurgicalCase().getId() : null;
         return new PreOpAssessmentResponse(assessment.getId(), caseId, assessment.getNotes());
     }
 
     public static PostOpObservationResponse toResponse(PostOpObservation observation) {
-        UUID caseId = observation.getSurgicalCase() != null ? observation.getSurgicalCase().getId() : null;
+        Long caseId = observation.getSurgicalCase() != null ? observation.getSurgicalCase().getId() : null;
         return new PostOpObservationResponse(observation.getId(), caseId, observation.getNotes());
     }
 
     public static CareTaskResponse toResponse(CareTask task) {
-        UUID caseId = task.getSurgicalCase() != null ? task.getSurgicalCase().getId() : null;
+        Long caseId = task.getSurgicalCase() != null ? task.getSurgicalCase().getId() : null;
         return new CareTaskResponse(task.getId(), caseId, task.getTitle(), task.isDone());
     }
 
     public static ComplicationResponse toResponse(Complication complication) {
-        UUID caseId = complication.getSurgicalCase() != null ? complication.getSurgicalCase().getId() : null;
+        Long caseId = complication.getSurgicalCase() != null ? complication.getSurgicalCase().getId() : null;
         return new ComplicationResponse(complication.getId(), caseId, complication.getDescription());
     }
 }

@@ -3,13 +3,12 @@ package tn.esprit.spring.procedureservice.surgical.dto.response;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.UUID;
 
 public record SurgicalCaseResponse(
-    UUID id,
-    UUID patientId,
-    UUID consultationId,
-    UUID appointmentId,
+    Long id,
+    String patientId,
+    String consultationId,
+    String appointmentId,
     String firstName,
     String lastName,
     Integer age,
@@ -19,9 +18,9 @@ public record SurgicalCaseResponse(
     String procedureName,
     String surgeryCategory,
     String urgencyLevel,
-    UUID surgeonId,
-    UUID assistantSurgeonId,
-    UUID anesthesiologistId,
+    String surgeonId,
+    String assistantSurgeonId,
+    String anesthesiologistId,
     String nurseTeam,
     LocalDate scheduledDate,
     LocalTime scheduledStartTime,

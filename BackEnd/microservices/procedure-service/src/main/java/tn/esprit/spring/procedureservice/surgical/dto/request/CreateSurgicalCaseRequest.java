@@ -4,12 +4,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.UUID;
 
 public record CreateSurgicalCaseRequest(
-    @NotNull UUID patientId,
-    UUID consultationId,
-    UUID appointmentId,
+    @NotBlank String patientId,
+    String consultationId,
+    String appointmentId,
     @NotBlank String firstName,
     @NotBlank String lastName,
     @NotNull Integer age,
@@ -19,9 +18,9 @@ public record CreateSurgicalCaseRequest(
     @NotBlank String procedureName,
     @NotBlank String surgeryCategory,
     @NotBlank String urgencyLevel,
-    @NotNull UUID surgeonId,
-    UUID assistantSurgeonId,
-    UUID anesthesiologistId,
+    @NotBlank String surgeonId,
+    String assistantSurgeonId,
+    String anesthesiologistId,
     String nurseTeam,
     @NotNull LocalDate scheduledDate,
     @NotNull LocalTime scheduledStartTime,

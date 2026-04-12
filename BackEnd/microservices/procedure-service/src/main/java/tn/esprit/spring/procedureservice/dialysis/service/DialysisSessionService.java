@@ -9,7 +9,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import tn.esprit.spring.procedureservice.dialysis.domain.entity.DialysisPlan;
 import tn.esprit.spring.procedureservice.dialysis.domain.entity.DialysisSession;
@@ -38,7 +37,7 @@ public class DialysisSessionService {
         return repository.save(session);
     }
 
-    public DialysisSession getById(UUID id) {
+    public DialysisSession getById(Long id) {
         return repository.findById(id)
             .orElseThrow(() -> new NotFoundException("Dialysis session not found: " + id));
     }

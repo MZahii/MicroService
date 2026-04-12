@@ -3,7 +3,6 @@ package tn.esprit.spring.procedureservice.surgical.service;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import tn.esprit.spring.procedureservice.notification.service.ResendEmailService;
 import tn.esprit.spring.procedureservice.shared.exception.BusinessException;
@@ -73,7 +72,7 @@ public class SurgicalCaseService {
         return saved;
     }
 
-    public SurgicalCase update(UUID id, UpdateSurgicalCaseRequest request) {
+    public SurgicalCase update(Long id, UpdateSurgicalCaseRequest request) {
         SurgicalCase surgicalCase = getById(id);
         String requestedStatus = normalizeStatus(request.status());
         if (!ALLOWED_STATUSES.contains(requestedStatus)) {
@@ -94,13 +93,13 @@ public class SurgicalCaseService {
         return repository.save(surgicalCase);
     }
 
-    public SurgicalCase decideOffer(UUID id, DecideTransplantOfferRequest request) {
+    public SurgicalCase decideOffer(Long id, DecideTransplantOfferRequest request) {
         SurgicalCase surgicalCase = getById(id);
         surgicalCase.setOfferStatus(request.offerStatus());
         return repository.save(surgicalCase);
     }
 
-    public SurgicalCase getById(UUID id) {
+    public SurgicalCase getById(Long id) {
         return repository.findById(id)
             .orElseThrow(() -> new NotFoundException("Surgical case not found: " + id));
     }
@@ -109,7 +108,7 @@ public class SurgicalCaseService {
         return repository.findAll();
     }
 
-    public SurgicalCase applyPreOpDecision(UUID caseId, boolean eligible) {
+    public SurgicalCase applyPreOpDecision(Long caseId, boolean eligible) {
         SurgicalCase surgicalCase = getById(caseId);
         if (isLockedStatus(surgicalCase.getStatus())) {
             return surgicalCase;
@@ -118,7 +117,7 @@ public class SurgicalCaseService {
         return repository.save(surgicalCase);
     }
 
-    public SurgicalCase applyPostOpDecision(UUID caseId, boolean stable) {
+    public SurgicalCase applyPostOpDecision(Long caseId, boolean stable) {
         SurgicalCase surgicalCase = getById(caseId);
         if (isLockedStatus(surgicalCase.getStatus())) {
             return surgicalCase;
@@ -127,7 +126,7 @@ public class SurgicalCaseService {
         return repository.save(surgicalCase);
     }
 
-    private boolean isLatestPreOpEligible(UUID caseId) {
+    private boolean isLatestPreOpEligible(Long caseId) {
         Optional<PreOpAssessment> latest = preOpAssessmentRepository.findTopBySurgicalCaseIdOrderByIdDesc(caseId);
         if (latest.isEmpty()) {
             return false;

@@ -1,7 +1,6 @@
 package tn.esprit.spring.procedureservice.surgical.service;
 
 import java.util.List;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import tn.esprit.spring.procedureservice.surgical.domain.entity.CareTask;
 import tn.esprit.spring.procedureservice.shared.exception.NotFoundException;
@@ -40,7 +39,7 @@ public class PostOpObservationService {
         PostOpObservation observation = getById(id);
         observation.setNotes(request.notes());
         PostOpObservation saved = repository.save(observation);
-        UUID caseId = observation.getSurgicalCase() != null ? observation.getSurgicalCase().getId() : null;
+        Long caseId = observation.getSurgicalCase() != null ? observation.getSurgicalCase().getId() : null;
         if (caseId != null) {
             applyPostOpWorkflow(caseId, request.notes());
         }
@@ -56,7 +55,7 @@ public class PostOpObservationService {
         return repository.findAll();
     }
 
-    private void applyPostOpWorkflow(UUID caseId, String notes) {
+    private void applyPostOpWorkflow(Long caseId, String notes) {
         boolean stable = evaluatePostOpStability(notes);
         surgicalCaseService.applyPostOpDecision(caseId, stable);
         if (!stable) {
@@ -66,7 +65,7 @@ public class PostOpObservationService {
         }
     }
 
-    private void ensureTask(UUID surgicalCaseId, String title) {
+    private void ensureTask(Long surgicalCaseId, String title) {
         if (careTaskRepository.existsBySurgicalCaseIdAndTitle(surgicalCaseId, title)) {
             return;
         }

@@ -8,7 +8,7 @@ spring:
         webflux:
           discovery:
             locator:
-              enabled: true
+              enabled: false
               lower-case-service-id: true
           globalcors:
             cors-configurations:
@@ -35,53 +35,47 @@ spring:
               filters:
                 - StripPrefix=1
 
-            # Administration Service - Patients, Contracts, Staff
+            # Administration Service - Patients, Contracts, Observability
             - id: administration-service-api
               uri: lb://administration-service
               predicates:
-                - Path=/api/patients/**,/api/contracts/**,/api/staff/**,/api/observability/**
+                - Path=/api/patients/**,/api/contracts/**,/api/observability/**
               filters:
                 - StripPrefix=1
 
-            # Clinical Service - Appointments, Consultations
+            # Clinical Service - Keep public paths aligned with service contracts
             - id: clinical-service-api
               uri: lb://clinical-service
               predicates:
-                - Path=/api/clinical/**,/api/appointments/**,/api/consultations/**
-              filters:
-                - StripPrefix=1
+                - Path=/clinical/**
 
-            # Communication Service - Messages, Templates
+            # Communication Service - Guardian/staff messaging and appointment requests
             - id: communication-service-api
               uri: lb://communication-service
               predicates:
-                - Path=/api/communication/**,/api/templates/**
-              filters:
-                - StripPrefix=1
+                - Path=/api/communication/**,/api/appointments/**
 
-            # Procedure Service - Surgical, Dialysis
+            # Procedure Service - Explicit API namespace, no path rewriting
             - id: procedure-service-api
               uri: lb://procedure-service
               predicates:
-                - Path=/api/procedures/**,/api/dialysis/**
-              filters:
-                - StripPrefix=1
+                - Path=/api/procedures/**
 
-            # Pharmacy Service - Medications, Stock, Suppliers
+            # Pharmacy Service - Preserve frontend namespace and rewrite once at the gateway edge
             - id: pharmacy-service-api
               uri: lb://pharmacy-service
               predicates:
-                - Path=/api/pharmacy/**,/api/medications/**,/api/stock/**
+                - Path=/pharmacy/api/**
               filters:
-                - StripPrefix=1
+                - RewritePath=/pharmacy/api/?(?<segment>.*), /api/${segment}
 
-            # Operations Service - Health Checks
+            # Operations Service - Simple workshop ping endpoint
             - id: ops-service-api
               uri: lb://ops-service
               predicates:
-                - Path=/api/health/**
+                - Path=/ops/**
               filters:
-                - StripPrefix=1
+                - RewritePath=/ops/?(?<segment>.*), /${segment}
 
   security:
     oauth2:
@@ -93,3 +87,12 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}
+
+management:
+  endpoint:
+    gateway:
+      access: read-only
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway

@@ -256,7 +256,8 @@ public class FollowUpMessageServiceImpl implements FollowUpMessageService {
             throw new AccessDeniedException("Staff can only access their own queue");
         }
 
-        Specification<FollowUpMessage> specification = Specification.where((root, query, cb) -> cb.equal(root.get("queue"), queue));
+        Specification<FollowUpMessage> specification =
+                (root, query, cb) -> cb.equal(root.get("queue"), queue);
 
         if (params.getStatus() != null) {
             specification = specification.and((root, query, cb) -> cb.equal(root.get("status"), params.getStatus()));

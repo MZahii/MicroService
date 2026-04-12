@@ -1,7 +1,6 @@
 package tn.esprit.spring.procedureservice.dialysis.service;
 
 import java.util.List;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import tn.esprit.spring.procedureservice.dialysis.domain.entity.DialysisOutcome;
 import tn.esprit.spring.procedureservice.dialysis.dto.request.ValidateDialysisOutcomeRequest;
@@ -18,7 +17,7 @@ public class DialysisOutcomeService {
         this.sessionService = sessionService;
     }
 
-    public DialysisOutcome createForSession(UUID sessionId) {
+    public DialysisOutcome createForSession(Long sessionId) {
         DialysisOutcome outcome = new DialysisOutcome();
         outcome.setSession(sessionService.getById(sessionId));
         outcome.setValidated(false);
