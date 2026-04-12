@@ -68,7 +68,7 @@ export class ClinicalAuditLogsComponent implements OnInit {
       const token = await getValidToken();
       const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
       const response = await firstValueFrom(this.http.get<ClinicalAuditEvent[] | unknown>(
-        `${environment.apiBaseUrl}/clinical/audit?limit=500`,
+        `${environment.apiBaseUrl}/api/clinical/audit?limit=500`,
         { headers }
       ));
       this.logs = (Array.isArray(response) ? response : [])

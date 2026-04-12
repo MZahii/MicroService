@@ -10,7 +10,7 @@ import tn.esprit.spring.userservice.dto.response.TokenRefreshResponse;
 import tn.esprit.spring.userservice.service.AuthService;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 

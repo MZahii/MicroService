@@ -135,6 +135,7 @@
 	</dependencyManagement>
 
 	<build>
+		<sourceDirectory>src/main/java</sourceDirectory>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -148,6 +149,9 @@
 							<version>1.18.42</version>
 						</path>
 					</annotationProcessorPaths>
+					<excludes>
+						<exclude>**/clinicalservice/controller/AuditController.java</exclude>
+					</excludes>
 				</configuration>
 			</plugin>
 		</plugins>

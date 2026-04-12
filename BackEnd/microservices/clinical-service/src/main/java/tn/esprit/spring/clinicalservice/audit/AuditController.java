@@ -15,7 +15,7 @@ import java.util.List;
  * Provides endpoints for retrieving audit events
  */
 @RestController
-@RequestMapping("/clinical/audit")
+@RequestMapping("/api/clinical/audit")
 @RequiredArgsConstructor
 public class AuditController {
 

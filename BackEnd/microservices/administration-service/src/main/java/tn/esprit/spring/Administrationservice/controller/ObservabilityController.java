@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/observability")
+@RequestMapping("/api/observability")
 @RequiredArgsConstructor
 public class ObservabilityController {
 

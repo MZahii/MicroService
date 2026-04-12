@@ -32,22 +32,18 @@ spring:
               uri: lb://user-service
               predicates:
                 - Path=/api/users/**,/api/auth/**
-              filters:
-                - StripPrefix=1
 
             # Administration Service - Patients, Contracts, Observability
             - id: administration-service-api
               uri: lb://administration-service
               predicates:
                 - Path=/api/patients/**,/api/contracts/**,/api/observability/**
-              filters:
-                - StripPrefix=1
 
-            # Clinical Service - Keep public paths aligned with service contracts
+            # Clinical Service - Audit logs
             - id: clinical-service-api
               uri: lb://clinical-service
               predicates:
-                - Path=/clinical/**
+                - Path=/api/clinical/**
 
             # Communication Service - Guardian/staff messaging and appointment requests
             - id: communication-service-api
@@ -55,27 +51,27 @@ spring:
               predicates:
                 - Path=/api/communication/**,/api/appointments/**
 
-            # Procedure Service - Explicit API namespace, no path rewriting
+            # Procedure Service - Explicit API namespace
             - id: procedure-service-api
               uri: lb://procedure-service
               predicates:
                 - Path=/api/procedures/**
 
-            # Pharmacy Service - Preserve frontend namespace and rewrite once at the gateway edge
+            # Pharmacy Service - Rewrite frontend path to service endpoints
             - id: pharmacy-service-api
               uri: lb://pharmacy-service
               predicates:
-                - Path=/pharmacy/api/**
+                - Path=/api/pharmacy/**
               filters:
-                - RewritePath=/pharmacy/api/?(?<segment>.*), /api/${segment}
+                - RewritePath=/api/pharmacy/?(?<segment>.*), /api/${segment}
 
-            # Operations Service - Simple workshop ping endpoint
+            # Operations Service - Rewrite frontend path to service endpoints
             - id: ops-service-api
               uri: lb://ops-service
               predicates:
-                - Path=/ops/**
+                - Path=/api/ops/**
               filters:
-                - RewritePath=/ops/?(?<segment>.*), /${segment}
+                - RewritePath=/api/ops/?(?<segment>.*), /${segment}
 
   security:
     oauth2:

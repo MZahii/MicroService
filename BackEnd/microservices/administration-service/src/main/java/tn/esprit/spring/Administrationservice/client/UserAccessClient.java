@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 public interface UserAccessClient {
 
     @PutMapping("/internal/users/{userId}/activation")
-    void updateActivation(
+    UserResponse updateActivation(
             @PathVariable("userId") Long userId,
             @RequestParam("enabled") boolean enabled,
             @RequestHeader("X-Internal-Api-Key") String apiKey,
@@ -19,7 +19,7 @@ public interface UserAccessClient {
     );
 
     @PutMapping("/internal/users/{userId}/status")
-    void updateStatus(
+    UserResponse updateStatus(
             @PathVariable("userId") Long userId,
             @RequestParam("status") String status,
             @RequestHeader("X-Internal-Api-Key") String apiKey,
