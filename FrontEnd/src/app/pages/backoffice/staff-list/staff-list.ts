@@ -10,6 +10,10 @@ import { environment } from '../../../../environments/environment';
 
 type StaffRole = 'DOCTOR' | 'NURSE' | 'SURGEON' | 'PHARMACIST' | 'RECEPTIONIST';
 type AccountStatus = 'PENDING_CONTRACT' | 'ACTIVE' | 'INACTIVE';
+type AccessFilter = 'ALL' | 'ENABLED' | 'DISABLED';
+type ArchiveFilter = 'ALL' | 'LIVE' | 'ARCHIVED';
+type ContractFilter = 'ALL' | 'WITH_CONTRACT' | 'WITHOUT_CONTRACT' | 'RUNNING_CONTRACT' | 'NO_RUNNING_CONTRACT';
+type SortField = 'username' | 'name' | 'role' | 'status' | 'contract';
 
 interface UserRow {
   id: number;
@@ -71,6 +75,10 @@ export class StaffList implements OnInit, OnDestroy {
   searchTerm = '';
   roleFilter: StaffRole | 'ALL' = 'ALL';
   statusFilter: AccountStatus | 'ALL' = 'ALL';
+  accessFilter: AccessFilter = 'ALL';
+  archiveFilter: ArchiveFilter = 'ALL';
+  contractFilter: ContractFilter = 'ALL';
+  sortField: SortField = 'username';
   sortDirection: 'asc' | 'desc' = 'asc';
   pageSize = 10;
   currentPage = 1;
@@ -118,10 +126,46 @@ export class StaffList implements OnInit, OnDestroy {
     return this.allStaff.filter(user => {
       const matchesRole = this.roleFilter === 'ALL' || user.role === this.roleFilter;
       const matchesStatus = this.statusFilter === 'ALL' || user.accountStatus === this.statusFilter;
+      const matchesAccess = this.accessFilter === 'ALL'
+        || (this.accessFilter === 'ENABLED' && this.isEnabledFromStatus(user))
+        || (this.accessFilter === 'DISABLED' && !this.isEnabledFromStatus(user));
+      const matchesArchive = this.archiveFilter === 'ALL'
+        || (this.archiveFilter === 'LIVE' && !user.deleted)
+        || (this.archiveFilter === 'ARCHIVED' && !!user.deleted);
+      const matchesContract = this.contractFilter === 'ALL'
+        || (this.contractFilter === 'WITH_CONTRACT' && this.hasAnyContract(user.id))
+        || (this.contractFilter === 'WITHOUT_CONTRACT' && !this.hasAnyContract(user.id))
+        || (this.contractFilter === 'RUNNING_CONTRACT' && this.hasRunningContract(user.id))
+        || (this.contractFilter === 'NO_RUNNING_CONTRACT' && !this.hasRunningContract(user.id));
       const matchesSearch = !term || this.staffSearchTokens(user).some(v => v.includes(term));
 
-      return matchesRole && matchesStatus && matchesSearch;
+      return matchesRole && matchesStatus && matchesAccess && matchesArchive && matchesContract && matchesSearch;
     });
+  }
+
+  get hasActiveFilters(): boolean {
+    return !!this.searchTerm.trim()
+      || this.roleFilter !== 'ALL'
+      || this.statusFilter !== 'ALL'
+      || this.accessFilter !== 'ALL'
+      || this.archiveFilter !== 'ALL'
+      || this.contractFilter !== 'ALL'
+      || this.sortField !== 'username'
+      || this.sortDirection !== 'asc';
+  }
+
+  get emptyStateMessage(): string {
+    if (this.loading) {
+      return 'Loading staff accounts...';
+    }
+
+    if (this.totalStaff === 0) {
+      return 'No staff accounts are available yet.';
+    }
+
+    return this.hasActiveFilters
+      ? 'No staff accounts match the current filters.'
+      : 'No staff accounts found.';
   }
 
   get totalStaff(): number {
@@ -214,7 +258,7 @@ export class StaffList implements OnInit, OnDestroy {
   get sortedStaff(): UserRow[] {
     const items = [...this.filteredStaff];
     items.sort((a, b) => {
-      const result = a.username.toLowerCase().localeCompare(b.username.toLowerCase());
+      const result = this.compareStaff(a, b);
       return this.sortDirection === 'asc' ? result : -result;
     });
     return items;
@@ -263,6 +307,72 @@ export class StaffList implements OnInit, OnDestroy {
   hasRunningContract(staffUserId: number): boolean {
     const contracts = this.contractsByStaffId[staffUserId] ?? [];
     return contracts.some(c => c.status === 'ACTIVE' || c.status === 'SUSPENDED');
+  }
+
+  getPrimaryContract(staffUserId: number): ContractRow | null {
+    const contracts = [...(this.contractsByStaffId[staffUserId] ?? [])];
+    if (!contracts.length) return null;
+
+    const priority = (status: string): number => {
+      if (status === 'ACTIVE') return 0;
+      if (status === 'SUSPENDED') return 1;
+      if (status === 'ENDED') return 2;
+      return 3;
+    };
+
+    contracts.sort((a, b) => {
+      const priorityResult = priority(a.status) - priority(b.status);
+      if (priorityResult !== 0) return priorityResult;
+      return (b.startDate ?? '').localeCompare(a.startDate ?? '');
+    });
+
+    return contracts[0] ?? null;
+  }
+
+  contractSummary(user: UserRow): string {
+    const contract = this.getPrimaryContract(user.id);
+    if (!contract) return 'No contract';
+    return `${contract.jobTitle} (${contract.status})`;
+  }
+
+  contractStateClass(user: UserRow): string {
+    if (this.hasRunningContract(user.id)) return 'badge-contract-running';
+    if (this.hasAnyContract(user.id)) return 'badge-contract-history';
+    return 'badge-contract-none';
+  }
+
+  resetFilters(): void {
+    this.searchTerm = '';
+    this.roleFilter = 'ALL';
+    this.statusFilter = 'ALL';
+    this.accessFilter = 'ALL';
+    this.archiveFilter = 'ALL';
+    this.contractFilter = 'ALL';
+    this.sortField = 'username';
+    this.sortDirection = 'asc';
+    this.currentPage = 1;
+  }
+
+  applyQuickFilter(filter: 'PENDING_WITHOUT_CONTRACT' | 'INACTIVE' | 'ARCHIVED' | 'NO_RUNNING_CONTRACT'): void {
+    this.resetFilters();
+    if (filter === 'PENDING_WITHOUT_CONTRACT') {
+      this.statusFilter = 'PENDING_CONTRACT';
+      this.contractFilter = 'WITHOUT_CONTRACT';
+      return;
+    }
+
+    if (filter === 'INACTIVE') {
+      this.statusFilter = 'INACTIVE';
+      this.accessFilter = 'DISABLED';
+      return;
+    }
+
+    if (filter === 'ARCHIVED') {
+      this.archiveFilter = 'ARCHIVED';
+      return;
+    }
+
+    this.contractFilter = 'NO_RUNNING_CONTRACT';
   }
 
   onFiltersChanged(): void {
@@ -452,17 +562,46 @@ export class StaffList implements OnInit, OnDestroy {
   }
 
   private staffSearchTokens(user: UserRow): string[] {
+    const contracts = this.contractsByStaffId[user.id] ?? [];
     return [
       user.username ?? '',
+      user.cin ?? '',
       user.firstName ?? '',
       user.lastName ?? '',
       `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim(),
       user.email ?? '',
       user.phone ?? '',
+      user.sex ?? '',
+      user.dateOfBirth ?? '',
       user.role ?? '',
       user.accountStatus ?? '',
       user.deleted ? 'archived' : 'live',
-      this.isEnabledFromStatus(user) ? 'enabled' : 'disabled'
+      this.isEnabledFromStatus(user) ? 'enabled' : 'disabled',
+      this.contractSummary(user),
+      ...contracts.map(contract => contract.contractReference ?? ''),
+      ...contracts.map(contract => contract.contractType ?? ''),
+      ...contracts.map(contract => contract.jobTitle ?? ''),
+      ...contracts.map(contract => contract.status ?? '')
     ].map(v => v.toLowerCase());
+  }
+
+  private compareStaff(a: UserRow, b: UserRow): number {
+    if (this.sortField === 'name') {
+      return this.fullName(a).toLowerCase().localeCompare(this.fullName(b).toLowerCase());
+    }
+
+    if (this.sortField === 'role') {
+      return a.role.toLowerCase().localeCompare(b.role.toLowerCase());
+    }
+
+    if (this.sortField === 'status') {
+      return a.accountStatus.toLowerCase().localeCompare(b.accountStatus.toLowerCase());
+    }
+
+    if (this.sortField === 'contract') {
+      return this.contractSummary(a).toLowerCase().localeCompare(this.contractSummary(b).toLowerCase());
+    }
+
+    return a.username.toLowerCase().localeCompare(b.username.toLowerCase());
   }
 }

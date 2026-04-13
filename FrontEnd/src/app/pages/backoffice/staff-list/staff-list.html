@@ -26,6 +26,29 @@
             {{ actionMessage }}
           </div>
 
+          <div class="quick-filters mb-3" *ngIf="!loading">
+            <button type="button" class="btn btn-sm btn-light-brand" (click)="applyQuickFilter('PENDING_WITHOUT_CONTRACT')">
+              Pending Without Contract
+            </button>
+            <button type="button" class="btn btn-sm btn-light" (click)="applyQuickFilter('NO_RUNNING_CONTRACT')">
+              No Running Contract
+            </button>
+            <button type="button" class="btn btn-sm btn-light" (click)="applyQuickFilter('INACTIVE')">
+              Inactive Accounts
+            </button>
+            <button type="button" class="btn btn-sm btn-light" (click)="applyQuickFilter('ARCHIVED')">
+              Archived In Session
+            </button>
+            <button
+              *ngIf="hasActiveFilters"
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              (click)="resetFilters()"
+            >
+              Reset Filters
+            </button>
+          </div>
+
           <div class="stats-grid mb-3" *ngIf="!loading">
             <div class="stats-card">
               <div class="stats-label">Total Staff</div>
@@ -69,11 +92,24 @@
             </div>
           </div>
 
-          <div class="filters mb-3">
+          <div class="filters-panel mb-3">
+            <div class="filters-header">
+              <div>
+                <h6 class="mb-1">Advanced Search & Filters</h6>
+                <div class="text-muted small">
+                  Search across identity fields, contract metadata, account state, and archive state.
+                </div>
+              </div>
+              <div class="results-summary">
+                {{ filteredStaff.length }} result{{ filteredStaff.length === 1 ? '' : 's' }}
+              </div>
+            </div>
+
+            <div class="filters">
             <input
               type="text"
               class="form-control"
-              placeholder="Search staff by username, full name, email, phone, role or status..."
+              placeholder="Search by username, full name, CIN, email, phone, role, contract reference, job title, or state..."
               [(ngModel)]="searchTerm"
               (ngModelChange)="onFiltersChanged()"
             />
@@ -90,10 +126,39 @@
               <option value="INACTIVE">INACTIVE</option>
             </select>
 
-            <select class="form-control" [(ngModel)]="sortDirection" (ngModelChange)="onFiltersChanged()">
-              <option value="asc">Name: A -> Z</option>
-              <option value="desc">Name: Z -> A</option>
+            <select class="form-control" [(ngModel)]="accessFilter" (ngModelChange)="onFiltersChanged()">
+              <option value="ALL">All Access States</option>
+              <option value="ENABLED">Enabled</option>
+              <option value="DISABLED">Disabled</option>
             </select>
+
+            <select class="form-control" [(ngModel)]="contractFilter" (ngModelChange)="onFiltersChanged()">
+              <option value="ALL">All Contract States</option>
+              <option value="WITH_CONTRACT">With Any Contract</option>
+              <option value="WITHOUT_CONTRACT">Without Any Contract</option>
+              <option value="RUNNING_CONTRACT">With Running Contract</option>
+              <option value="NO_RUNNING_CONTRACT">No Running Contract</option>
+            </select>
+
+            <select class="form-control" [(ngModel)]="archiveFilter" (ngModelChange)="onFiltersChanged()">
+              <option value="ALL">All Archive States</option>
+              <option value="LIVE">Live Only</option>
+              <option value="ARCHIVED">Archived Only</option>
+            </select>
+
+            <select class="form-control" [(ngModel)]="sortField" (ngModelChange)="onFiltersChanged()">
+              <option value="username">Sort: Username</option>
+              <option value="name">Sort: Full Name</option>
+              <option value="role">Sort: Role</option>
+              <option value="status">Sort: Account Status</option>
+              <option value="contract">Sort: Contract Summary</option>
+            </select>
+
+            <select class="form-control" [(ngModel)]="sortDirection" (ngModelChange)="onFiltersChanged()">
+              <option value="asc">Ascending</option>
+              <option value="desc">Descending</option>
+            </select>
+          </div>
           </div>
 
           <div *ngIf="loading" class="text-muted py-3">Loading staff accounts...</div>
@@ -107,6 +172,7 @@
                   <th>Role</th>
                   <th>Account Status</th>
                   <th>Enabled</th>
+                  <th>Contract</th>
                   <th>Archive State</th>
                   <th>Actions</th>
                 </tr>
@@ -125,6 +191,11 @@
                     <td>
                       <span class="status-pill" [ngClass]="enabledClass(isEnabledFromStatus(user))">
                         {{ isEnabledFromStatus(user) ? 'ENABLED' : 'DISABLED' }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="status-pill" [ngClass]="contractStateClass(user)">
+                        {{ contractSummary(user) }}
                       </span>
                     </td>
                     <td>
@@ -178,8 +249,8 @@
                   </tr>
                 </ng-container>
                 <tr *ngIf="paginatedStaff.length === 0">
-                  <td colspan="8" class="text-center text-muted py-4">
-                    No staff accounts found.
+                  <td colspan="9" class="text-center text-muted py-4">
+                    {{ emptyStateMessage }}
                   </td>
                 </tr>
               </tbody>
