@@ -4,13 +4,14 @@ import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import org.springframework.cloud.openfeign.EnableFeignClients;
 
 import tn.esprit.spring.clinicalservice.client.AdministrationClient;
-import tn.esprit.spring.clinicalservice.client.UserDirectoryClient;
 
+/**
+ * Test configuration that provides mock Feign clients to prevent
+ * actual service calls during unit tests.
+ */
 @TestConfiguration
-@EnableFeignClients
 public class TestConfig {
 
     /**
@@ -21,15 +22,5 @@ public class TestConfig {
     @Primary
     public AdministrationClient administrationClientMock() {
         return Mockito.mock(AdministrationClient.class);
-    }
-
-    /**
-     * Mock User Directory Client for unit tests.
-     * Prevents actual calls to user-service during testing.
-     */
-    @Bean
-    @Primary
-    public UserDirectoryClient userDirectoryClientMock() {
-        return Mockito.mock(UserDirectoryClient.class);
     }
 }

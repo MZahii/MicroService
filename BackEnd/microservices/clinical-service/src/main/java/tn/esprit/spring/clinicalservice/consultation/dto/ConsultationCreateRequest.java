@@ -19,6 +19,9 @@ public class ConsultationCreateRequest {
     @NotNull(message = "dateTime is required")
     private LocalDateTime dateTime;
 
+    // Optional reference to appointment (for referential tracking)
+    private UUID appointmentId;
+
     // Used only in local profile for easier testing
     private UUID doctorId;
 }

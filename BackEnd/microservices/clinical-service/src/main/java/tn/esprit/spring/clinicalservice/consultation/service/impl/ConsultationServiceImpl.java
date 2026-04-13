@@ -13,6 +13,7 @@ import tn.esprit.spring.clinicalservice.client.PharmacyClient;
 import tn.esprit.spring.clinicalservice.client.CommunicationClient;
 import tn.esprit.spring.clinicalservice.consultation.dto.*;
 import tn.esprit.spring.clinicalservice.consultation.entity.*;
+import tn.esprit.spring.clinicalservice.consultation.exception.ConsultationValidationException;
 import tn.esprit.spring.clinicalservice.consultation.repository.ConsultationRepository;
 import tn.esprit.spring.clinicalservice.consultation.service.ConsultationService;
 import tn.esprit.spring.clinicalservice.patient.PatientDirectoryClient;
@@ -43,11 +44,23 @@ public class ConsultationServiceImpl implements ConsultationService {
 
     @Override
     public ConsultationResponse create(ConsultationCreateRequest request, UUID doctorId) {
+        // Validate doctor exists (doctorId must be provided)
+        if (doctorId == null) {
+            throw new ConsultationValidationException("Doctor ID is required for consultation creation");
+        }
+
+        // Validate appointment (if provided) is provided with proper referential integrity
+        if (request.getAppointmentId() != null) {
+            // Appointment validation would happen here if appointment service is available
+            // For now, we store the appointment_id for referential tracking
+            log.debug("Consultation linked to appointment: {}", request.getAppointmentId());
+        }
 
         Consultation consultation = Consultation.builder()
                 .patientId(request.getPatientId())
                 .doctorId(doctorId)
                 .dateTime(request.getDateTime())
+                .appointmentId(request.getAppointmentId())
                 .status(ConsultationStatus.OPEN)
                 .build();
 
