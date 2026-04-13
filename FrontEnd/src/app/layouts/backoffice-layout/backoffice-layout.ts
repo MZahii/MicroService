@@ -264,6 +264,11 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
         icon: 'feather-users',
         children: [
           {
+            label: 'Create Internal User',
+            route: '/backoffice/create-internal-user',
+            implemented: true
+          },
+          {
             label: 'Create Staff Account',
             route: '/backoffice/create-staff',
             implemented: true

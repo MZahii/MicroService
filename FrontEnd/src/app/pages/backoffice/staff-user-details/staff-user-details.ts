@@ -21,6 +21,7 @@ interface UserRow {
   role: string;
   accountStatus: string;
   enabled: boolean;
+  deleted?: boolean;
 }
 
 interface ContractRow {
@@ -54,6 +55,7 @@ export class StaffUserDetails implements OnInit {
   loading = false;
   savingProfile = false;
   savingContractId: number | null = null;
+  lifecycleLoading = false;
   errorMessage = '';
   successMessage = '';
   role = '';
@@ -169,6 +171,7 @@ export class StaffUserDetails implements OnInit {
 
   get canEditProfile(): boolean {
     if (!this.user) return false;
+    if (this.user.deleted) return false;
     if (this.isAdmin) return this.isHrUser;
     if (this.isHr) return !this.isHrUser;
     return false;
@@ -180,7 +183,20 @@ export class StaffUserDetails implements OnInit {
     return this.isAdmin && this.isHrUser;
   }
 
+  get canArchiveUser(): boolean {
+    if (!this.user) return false;
+    if (this.isHr) return this.staffRoles.includes(this.user.role as StaffRole) && !this.user.deleted;
+    return this.isAdmin && this.isHrUser && !this.user.deleted;
+  }
+
+  get canRestoreUser(): boolean {
+    if (!this.user) return false;
+    if (this.isHr) return this.staffRoles.includes(this.user.role as StaffRole) && !!this.user.deleted;
+    return this.isAdmin && this.isHrUser && !!this.user.deleted;
+  }
+
   get canManageContracts(): boolean {
+    if (this.user?.deleted) return false;
     if (this.isHr) return true;
     return this.role === 'ADMIN' && this.user?.role === 'HR';
   }
@@ -377,7 +393,7 @@ export class StaffUserDetails implements OnInit {
   }
 
   async toggleUserAccountStatus(): Promise<void> {
-    if (!this.user || !this.canToggleAccountStatus) return;
+    if (!this.user || !this.canToggleAccountStatus || this.user.deleted) return;
     const hasRunningContract = this.contracts.some(c => c.status === 'ACTIVE' || c.status === 'SUSPENDED');
     const target = this.user.accountStatus === 'INACTIVE'
       ? (hasRunningContract ? 'ACTIVE' : 'PENDING_CONTRACT')
@@ -398,6 +414,74 @@ export class StaffUserDetails implements OnInit {
       const err = error as { error?: { message?: string }; message?: string };
       this.errorMessage = err?.error?.message || err?.message || 'Failed to update account status.';
     } finally {
+      this.cdr.detectChanges();
+    }
+  }
+
+  async softDeleteUser(): Promise<void> {
+    if (!this.user || !this.canArchiveUser || this.lifecycleLoading) return;
+    const confirmed = window.confirm(
+      `Confirm archiving "${this.user.username}"? This disables the account and removes it from normal backend listings until restored.`
+    );
+    if (!confirmed) return;
+
+    this.lifecycleLoading = true;
+    this.successMessage = '';
+    this.errorMessage = '';
+    try {
+      const token = await getValidToken();
+      const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+      const archived = await firstValueFrom(
+        this.http.patch<UserRow>(
+          `${environment.apiBaseUrl}/api/users/${this.user.id}/soft-delete`,
+          {},
+          { headers }
+        )
+      );
+      this.user = {
+        ...archived,
+        deleted: true,
+        enabled: false,
+        accountStatus: 'INACTIVE'
+      };
+      this.successMessage = 'User archived successfully. This details page stays available so you can restore it immediately if needed.';
+    } catch (error: unknown) {
+      const err = error as { error?: { message?: string }; message?: string };
+      this.errorMessage = err?.error?.message || err?.message || 'Failed to archive user.';
+    } finally {
+      this.lifecycleLoading = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  async restoreUser(): Promise<void> {
+    if (!this.user || !this.canRestoreUser || this.lifecycleLoading) return;
+    const confirmed = window.confirm(`Confirm restoring archived user "${this.user.username}"?`);
+    if (!confirmed) return;
+
+    this.lifecycleLoading = true;
+    this.successMessage = '';
+    this.errorMessage = '';
+    try {
+      const token = await getValidToken();
+      const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+      const restored = await firstValueFrom(
+        this.http.patch<UserRow>(
+          `${environment.apiBaseUrl}/api/users/${this.user.id}/restore`,
+          {},
+          { headers }
+        )
+      );
+      this.user = {
+        ...restored,
+        deleted: false
+      };
+      this.successMessage = 'User restored successfully.';
+    } catch (error: unknown) {
+      const err = error as { error?: { message?: string }; message?: string };
+      this.errorMessage = err?.error?.message || err?.message || 'Failed to restore user.';
+    } finally {
+      this.lifecycleLoading = false;
       this.cdr.detectChanges();
     }
   }
@@ -469,7 +553,7 @@ export class StaffUserDetails implements OnInit {
         throw new Error('Staff user not found.');
       }
 
-      this.user = selected;
+      this.user = { ...selected, deleted: false };
       this.contracts = Array.isArray(response?.contracts) ? response.contracts : [];
     } catch (error: unknown) {
       const err = error as { error?: { message?: string }; message?: string };

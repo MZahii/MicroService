@@ -7,6 +7,7 @@ import { FrontofficeLayoutComponent } from './layouts/frontoffice-layout/frontof
 import { Dashboard } from './pages/backoffice/dashboard/dashboard';
 import { CreateHr } from './pages/backoffice/create-hr/create-hr';
 import { CreateStaff } from './pages/backoffice/create-staff/create-staff';
+import { CreateInternalUser } from './pages/backoffice/create-internal-user/create-internal-user';
 import { StaffList } from './pages/backoffice/staff-list/staff-list';
 import { StaffUserDetails } from './pages/backoffice/staff-user-details/staff-user-details';
 import { HrList } from './pages/backoffice/hr-list/hr-list';
@@ -105,6 +106,12 @@ export const routes: Routes = [
         component: HrList,
         canActivate: [roleGuard],
         data: { roles: ['ADMIN'] }
+      },
+      {
+        path: 'create-internal-user',
+        component: CreateInternalUser,
+        canActivate: [roleGuard],
+        data: { roles: ['HR'] }
       },
       {
         path: 'create-staff',

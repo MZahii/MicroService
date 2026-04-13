@@ -21,6 +21,7 @@ interface UserRow {
   role: string;
   accountStatus: AccountStatus;
   enabled: boolean;
+  deleted?: boolean;
 }
 
 interface ContractRow {
@@ -47,9 +48,12 @@ export class HrList implements OnInit, OnDestroy {
   sortDirection: 'asc' | 'desc' = 'asc';
   pageSize = 10;
   currentPage = 1;
+  actionLoadingUserId: number | null = null;
+  actionMessage = '';
   readonly pageSizeOptions: number[] = [5, 10, 20];
 
   allHr: UserRow[] = [];
+  archivedHr: UserRow[] = [];
   contractsByUserId: Record<number, ContractRow[]> = {};
   private refreshTimer?: ReturnType<typeof setInterval>;
 
@@ -136,6 +140,10 @@ export class HrList implements OnInit, OnDestroy {
     return this.allHr.filter(u => u.accountStatus === 'INACTIVE').length;
   }
 
+  get archivedHrCount(): number {
+    return this.allHr.filter(u => !!u.deleted).length;
+  }
+
   get enabledHr(): number {
     return this.allHr.filter(u => u.enabled).length;
   }
@@ -167,6 +175,10 @@ export class HrList implements OnInit, OnDestroy {
     return enabled ? 'badge-enabled' : 'badge-disabled';
   }
 
+  archivedClass(isArchived: boolean): string {
+    return isArchived ? 'badge-archived' : 'badge-live';
+  }
+
   onFiltersChanged(): void {
     this.currentPage = 1;
   }
@@ -188,6 +200,7 @@ export class HrList implements OnInit, OnDestroy {
   }
 
   async toggleAccountStatus(user: UserRow): Promise<void> {
+    if (this.actionLoadingUserId === user.id || user.deleted) return;
     const targetStatus: AccountStatus = user.accountStatus === 'INACTIVE'
       ? (this.hasRunningContract(user.id) ? 'ACTIVE' : 'PENDING_CONTRACT')
       : 'INACTIVE';
@@ -209,6 +222,88 @@ export class HrList implements OnInit, OnDestroy {
     } catch (error: unknown) {
       const err = error as { error?: { message?: string }; message?: string };
       this.errorMessage = err?.error?.message || err?.message || 'Failed to update HR account status.';
+      this.cdr.detectChanges();
+    }
+  }
+
+  canSoftDelete(user: UserRow): boolean {
+    return !user.deleted;
+  }
+
+  canRestore(user: UserRow): boolean {
+    return !!user.deleted;
+  }
+
+  async softDeleteUser(user: UserRow): Promise<void> {
+    if (!this.canSoftDelete(user) || this.actionLoadingUserId === user.id) return;
+
+    const confirmed = window.confirm(
+      `Confirm archiving HR user "${user.username}"? This disables the account and removes it from normal backend listings until restored.`
+    );
+    if (!confirmed) return;
+
+    this.actionLoadingUserId = user.id;
+    this.actionMessage = '';
+    this.errorMessage = '';
+
+    try {
+      const token = await getValidToken();
+      const archived = await firstValueFrom(
+        this.http.patch<UserRow>(
+          `${environment.apiBaseUrl}/api/users/${user.id}/soft-delete`,
+          {},
+          { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) }
+        )
+      );
+
+      const localArchived = {
+        ...archived,
+        deleted: true,
+        enabled: false,
+        accountStatus: 'INACTIVE' as AccountStatus
+      };
+
+      this.archivedHr = [localArchived, ...this.archivedHr.filter(item => item.id !== user.id)];
+      this.allHr = this.allHr.map(item => item.id === user.id ? localArchived : item);
+      this.actionMessage = 'HR user archived successfully. You can restore it from this list during the current session.';
+    } catch (error: unknown) {
+      const err = error as { error?: { message?: string }; message?: string };
+      this.errorMessage = err?.error?.message || err?.message || 'Failed to archive HR user.';
+    } finally {
+      this.actionLoadingUserId = null;
+      this.cdr.detectChanges();
+    }
+  }
+
+  async restoreUser(user: UserRow): Promise<void> {
+    if (!this.canRestore(user) || this.actionLoadingUserId === user.id) return;
+
+    const confirmed = window.confirm(`Confirm restoring archived HR user "${user.username}"?`);
+    if (!confirmed) return;
+
+    this.actionLoadingUserId = user.id;
+    this.actionMessage = '';
+    this.errorMessage = '';
+
+    try {
+      const token = await getValidToken();
+      const restored = await firstValueFrom(
+        this.http.patch<UserRow>(
+          `${environment.apiBaseUrl}/api/users/${user.id}/restore`,
+          {},
+          { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) }
+        )
+      );
+
+      const liveUser = { ...restored, deleted: false };
+      this.archivedHr = this.archivedHr.filter(item => item.id !== user.id);
+      this.allHr = this.allHr.map(item => item.id === user.id ? liveUser : item);
+      this.actionMessage = 'HR user restored successfully.';
+    } catch (error: unknown) {
+      const err = error as { error?: { message?: string }; message?: string };
+      this.errorMessage = err?.error?.message || err?.message || 'Failed to restore HR user.';
+    } finally {
+      this.actionLoadingUserId = null;
       this.cdr.detectChanges();
     }
   }
@@ -235,7 +330,13 @@ export class HrList implements OnInit, OnDestroy {
       const users = Array.isArray(response) ? response : [];
       const contracts = Array.isArray(contractsResponse) ? contractsResponse : [];
 
-      this.allHr = users.filter(u => u.role === 'HR');
+      const liveHr = users
+        .filter(u => u.role === 'HR')
+        .map(u => ({ ...u, deleted: false }));
+      const liveIds = new Set(liveHr.map(u => u.id));
+      const preservedArchived = this.archivedHr.filter(u => !liveIds.has(u.id));
+      this.archivedHr = preservedArchived;
+      this.allHr = [...liveHr, ...preservedArchived];
       this.contractsByUserId = {};
       for (const contract of contracts) {
         if (!this.contractsByUserId[contract.staffUserId]) {
@@ -270,6 +371,7 @@ export class HrList implements OnInit, OnDestroy {
       user.email ?? '',
       user.phone ?? '',
       user.accountStatus ?? '',
+      user.deleted ? 'archived' : 'live',
       user.enabled ? 'enabled' : 'disabled',
       hasContract ? 'with contract' : 'without contract'
     ].map(v => v.toLowerCase());

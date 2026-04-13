@@ -24,6 +24,7 @@ interface UserRow {
   role: string;
   accountStatus: AccountStatus;
   enabled: boolean;
+  deleted?: boolean;
 }
 
 interface ContractRow {
@@ -77,6 +78,7 @@ export class StaffList implements OnInit, OnDestroy {
   actionMessage = '';
 
   allStaff: UserRow[] = [];
+  archivedStaff: UserRow[] = [];
   allContracts: ContractRow[] = [];
   contractsByStaffId: Record<number, ContractRow[]> = {};
 
@@ -136,6 +138,10 @@ export class StaffList implements OnInit, OnDestroy {
 
   get inactiveStaff(): number {
     return this.allStaff.filter(u => u.accountStatus === 'INACTIVE').length;
+  }
+
+  get archivedStaffCount(): number {
+    return this.allStaff.filter(u => !!u.deleted).length;
   }
 
   get enabledStaff(): number {
@@ -242,6 +248,10 @@ export class StaffList implements OnInit, OnDestroy {
     return enabled ? 'badge-enabled' : 'badge-disabled';
   }
 
+  archivedClass(isArchived: boolean): string {
+    return isArchived ? 'badge-archived' : 'badge-live';
+  }
+
   isEnabledFromStatus(user: UserRow): boolean {
     return user.accountStatus === 'ACTIVE';
   }
@@ -315,6 +325,84 @@ export class StaffList implements OnInit, OnDestroy {
     }
   }
 
+  canSoftDelete(user: UserRow): boolean {
+    return this.isHr && !user.deleted;
+  }
+
+  canRestore(user: UserRow): boolean {
+    return this.isHr && !!user.deleted;
+  }
+
+  async softDeleteUser(user: UserRow): Promise<void> {
+    if (!this.canSoftDelete(user) || this.actionLoadingUserId === user.id) return;
+
+    const confirmed = window.confirm(
+      `Confirm archiving staff user "${user.username}"? This will disable the account and remove it from normal backend listings until restored.`
+    );
+    if (!confirmed) return;
+
+    this.actionLoadingUserId = user.id;
+    this.actionMessage = '';
+    this.errorMessage = '';
+
+    try {
+      const token = await getValidToken();
+      const archived = await firstValueFrom(this.http.patch<UserRow>(
+        `${environment.apiBaseUrl}/api/users/${user.id}/soft-delete`,
+        {},
+        { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) }
+      ));
+
+      const localArchived = {
+        ...archived,
+        deleted: true,
+        enabled: false,
+        accountStatus: 'INACTIVE' as AccountStatus
+      };
+
+      this.archivedStaff = [localArchived, ...this.archivedStaff.filter(item => item.id !== user.id)];
+      this.allStaff = this.allStaff.map(item => item.id === user.id ? localArchived : item);
+      this.actionMessage = 'User archived successfully. You can restore it from this list during the current session.';
+    } catch (error: unknown) {
+      const err = error as { error?: { message?: string }; message?: string };
+      this.errorMessage = err?.error?.message || err?.message || 'Failed to archive user.';
+    } finally {
+      this.actionLoadingUserId = null;
+      this.cdr.detectChanges();
+    }
+  }
+
+  async restoreUser(user: UserRow): Promise<void> {
+    if (!this.canRestore(user) || this.actionLoadingUserId === user.id) return;
+
+    const confirmed = window.confirm(`Confirm restoring archived user "${user.username}"?`);
+    if (!confirmed) return;
+
+    this.actionLoadingUserId = user.id;
+    this.actionMessage = '';
+    this.errorMessage = '';
+
+    try {
+      const token = await getValidToken();
+      const restored = await firstValueFrom(this.http.patch<UserRow>(
+        `${environment.apiBaseUrl}/api/users/${user.id}/restore`,
+        {},
+        { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) }
+      ));
+
+      const liveUser = { ...restored, deleted: false };
+      this.archivedStaff = this.archivedStaff.filter(item => item.id !== user.id);
+      this.allStaff = this.allStaff.map(item => item.id === user.id ? liveUser : item);
+      this.actionMessage = 'User restored successfully.';
+    } catch (error: unknown) {
+      const err = error as { error?: { message?: string }; message?: string };
+      this.errorMessage = err?.error?.message || err?.message || 'Failed to restore user.';
+    } finally {
+      this.actionLoadingUserId = null;
+      this.cdr.detectChanges();
+    }
+  }
+
   async loadStaffAccounts(): Promise<void> {
     this.loading = true;
     this.errorMessage = '';
@@ -330,7 +418,13 @@ export class StaffList implements OnInit, OnDestroy {
       }));
       const users = Array.isArray(response?.users) ? response.users : [];
       const contracts = Array.isArray(response?.contracts) ? response.contracts : [];
-      this.allStaff = users.filter(u => this.staffRoles.includes(u.role as StaffRole));
+      const liveStaff = users
+        .filter(u => this.staffRoles.includes(u.role as StaffRole))
+        .map(u => ({ ...u, deleted: false }));
+      const liveIds = new Set(liveStaff.map(u => u.id));
+      const preservedArchived = this.archivedStaff.filter(u => !liveIds.has(u.id));
+      this.archivedStaff = preservedArchived;
+      this.allStaff = [...liveStaff, ...preservedArchived];
       this.allContracts = contracts;
       this.contractsByStaffId = {};
       for (const contract of this.allContracts) {
@@ -367,6 +461,7 @@ export class StaffList implements OnInit, OnDestroy {
       user.phone ?? '',
       user.role ?? '',
       user.accountStatus ?? '',
+      user.deleted ? 'archived' : 'live',
       this.isEnabledFromStatus(user) ? 'enabled' : 'disabled'
     ].map(v => v.toLowerCase());
   }

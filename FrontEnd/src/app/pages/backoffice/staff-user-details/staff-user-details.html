@@ -46,9 +46,28 @@
                   *ngIf="canToggleAccountStatus"
                   type="button"
                   class="btn btn-sm btn-light"
+                  [disabled]="lifecycleLoading || !!user.deleted"
                   (click)="toggleUserAccountStatus()"
                 >
                   {{ user.accountStatus === 'INACTIVE' ? 'Activate Account' : 'Deactivate Account' }}
+                </button>
+                <button
+                  *ngIf="canArchiveUser"
+                  type="button"
+                  class="btn btn-sm btn-outline-danger"
+                  [disabled]="lifecycleLoading"
+                  (click)="softDeleteUser()"
+                >
+                  Archive User
+                </button>
+                <button
+                  *ngIf="canRestoreUser"
+                  type="button"
+                  class="btn btn-sm btn-outline-success"
+                  [disabled]="lifecycleLoading"
+                  (click)="restoreUser()"
+                >
+                  Restore User
                 </button>
               </div>
             </div>
@@ -58,6 +77,7 @@
               <div><strong>CIN:</strong> {{ user.cin || '-' }}</div>
               <div><strong>Account Status:</strong> {{ user.accountStatus }}</div>
               <div><strong>Enabled:</strong> {{ user.enabled ? 'ENABLED' : 'DISABLED' }}</div>
+              <div><strong>Archive State:</strong> {{ user.deleted ? 'ARCHIVED' : 'LIVE' }}</div>
             </div>
 
             <div class="details-grid mb-4" *ngIf="!editProfile">
