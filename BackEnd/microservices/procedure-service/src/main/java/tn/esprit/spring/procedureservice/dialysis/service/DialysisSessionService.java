@@ -27,6 +27,15 @@ public class DialysisSessionService {
     }
 
     public DialysisSession create(CreateDialysisSessionRequest request) {
+        // Idempotency check: if idempotency_key provided, return existing session if present
+        if (request.idempotencyKey() != null && !request.idempotencyKey().isEmpty()) {
+            var existingSession = repository.findByIdempotencyKey(request.idempotencyKey());
+            if (existingSession.isPresent()) {
+                return existingSession.get();  // Duplicate request, return existing session
+            }
+        }
+        
+        // Create new session
         DialysisSession session = new DialysisSession();
         session.setPlan(planService.getById(request.planId()));
         session.setPatientId(request.patientId());
@@ -34,6 +43,7 @@ public class DialysisSessionService {
         session.setAppointmentId(request.appointmentId());
         session.setSessionDate(request.sessionDate());
         session.setNotes(request.notes());
+        session.setIdempotencyKey(request.idempotencyKey());  // Store idempotency key
         return repository.save(session);
     }
 

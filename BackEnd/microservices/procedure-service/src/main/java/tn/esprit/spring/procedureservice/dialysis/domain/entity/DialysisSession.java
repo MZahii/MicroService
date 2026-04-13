@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "dialysis_sessions")
@@ -34,6 +35,10 @@ public class DialysisSession {
 
     private LocalDateTime sessionDate;
     private String notes;
+    
+    // Idempotency key for duplicate request detection
+    @Column(name = "idempotency_key", unique = true)
+    private String idempotencyKey;
     
     // Audit fields
     @Column(name = "created_at", nullable = false, updatable = false)

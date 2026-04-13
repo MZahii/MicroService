@@ -9,6 +9,7 @@ public record CreateDialysisSessionRequest(
     String consultationId,
     String appointmentId,
     @NotNull LocalDateTime sessionDate,
-    String notes
+    String notes,
+    String idempotencyKey
 ) {
 }
