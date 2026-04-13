@@ -203,5 +203,94 @@
         </div>
       </div>
     </div>
+
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <strong>Care Task Assignment / Tracking</strong>
+            <div class="text-muted small">Assign follow-up care tasks and track whether they are still open or completed.</div>
+          </div>
+          <span class="badge bg-soft-primary text-primary">
+            {{ careTasksForSelectedCase.length }} task{{ careTasksForSelectedCase.length === 1 ? '' : 's' }}
+          </span>
+        </div>
+        <div class="card-body">
+          <label class="form-label">Care Task Title</label>
+          <input
+            type="text"
+            class="form-control mb-3"
+            [(ngModel)]="careTaskForm.title"
+            placeholder="Enter the follow-up action to assign..."
+          />
+
+          <div class="form-check mb-3" *ngIf="editingCareTaskId">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="care-task-done"
+              [(ngModel)]="careTaskForm.done"
+            />
+            <label class="form-check-label" for="care-task-done">
+              Mark this task as completed
+            </label>
+          </div>
+
+          <div class="d-flex gap-2 mb-4">
+            <button
+              type="button"
+              class="btn btn-primary btn-sm"
+              (click)="submitCareTask()"
+              [disabled]="saving"
+            >
+              {{ saving ? 'Saving...' : (editingCareTaskId ? 'Update Care Task' : 'Add Care Task') }}
+            </button>
+            <button
+              *ngIf="editingCareTaskId"
+              type="button"
+              class="btn btn-light btn-sm"
+              (click)="cancelCareTaskEdit()"
+              [disabled]="saving"
+            >
+              Cancel
+            </button>
+          </div>
+
+          <h6 class="mb-2">Care Task History (Selected Case)</h6>
+          <div *ngIf="careTasksForSelectedCase.length === 0" class="empty-state">No care task recorded for this case.</div>
+
+          <div *ngFor="let item of careTasksForSelectedCase" class="history-item care-task-item">
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+              <div class="care-task-content">
+                <div class="care-task-title">{{ item.title }}</div>
+                <span class="badge" [ngClass]="item.done ? 'bg-soft-success text-success' : 'bg-soft-warning text-warning'">
+                  {{ item.done ? 'DONE' : 'OPEN' }}
+                </span>
+              </div>
+
+              <div class="d-flex gap-2 flex-wrap">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-light-brand"
+                  (click)="startCareTaskEdit(item)"
+                  [disabled]="saving"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  [ngClass]="item.done ? 'btn-light' : 'btn-success'"
+                  (click)="toggleCareTaskDone(item)"
+                  [disabled]="saving"
+                >
+                  {{ item.done ? 'Reopen' : 'Mark Done' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

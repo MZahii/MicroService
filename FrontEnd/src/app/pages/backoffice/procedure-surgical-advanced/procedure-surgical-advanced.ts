@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
+  CareTask,
   Complication,
   PostOpObservation,
   PreOpAssessment,
@@ -27,9 +28,11 @@ export class ProcedureSurgicalAdvancedComponent implements OnInit {
   preOps: PreOpAssessment[] = [];
   postOps: PostOpObservation[] = [];
   complications: Complication[] = [];
+  careTasks: CareTask[] = [];
 
   selectedCaseId = '';
   editingComplicationId: number | null = null;
+  editingCareTaskId: number | null = null;
 
   preOpForm = {
     hemodynamicsOk: false,
@@ -49,6 +52,11 @@ export class ProcedureSurgicalAdvancedComponent implements OnInit {
 
   complicationForm = {
     description: ''
+  };
+
+  careTaskForm = {
+    title: '',
+    done: false
   };
 
   constructor(
@@ -100,6 +108,11 @@ export class ProcedureSurgicalAdvancedComponent implements OnInit {
   get complicationsForSelectedCase(): Complication[] {
     const id = Number(this.selectedCaseId);
     return this.complications.filter((item) => item.surgicalCaseId === id);
+  }
+
+  get careTasksForSelectedCase(): CareTask[] {
+    const id = Number(this.selectedCaseId);
+    return this.careTasks.filter((item) => item.surgicalCaseId === id);
   }
 
   parseRecord(notes: string | null | undefined): Record<string, string> {
@@ -156,8 +169,18 @@ export class ProcedureSurgicalAdvancedComponent implements OnInit {
             this.procedureApi.getComplications().subscribe({
               next: (complications) => {
                 this.complications = complications ?? [];
-                this.loading = false;
-                this.refreshView();
+                this.procedureApi.getCareTasks().subscribe({
+                  next: (careTasks) => {
+                    this.careTasks = careTasks ?? [];
+                    this.loading = false;
+                    this.refreshView();
+                  },
+                  error: (err: { error?: { message?: string }; message?: string }) => {
+                    this.loading = false;
+                    this.errorMessage = err?.error?.message || err?.message || 'Failed to load care tasks.';
+                    this.refreshView();
+                  }
+                });
               },
               error: (err: { error?: { message?: string }; message?: string }) => {
                 this.loading = false;
@@ -192,6 +215,22 @@ export class ProcedureSurgicalAdvancedComponent implements OnInit {
   cancelComplicationEdit(): void {
     this.editingComplicationId = null;
     this.complicationForm.description = '';
+    this.refreshView();
+  }
+
+  startCareTaskEdit(item: CareTask): void {
+    this.editingCareTaskId = item.id;
+    this.careTaskForm.title = item.title ?? '';
+    this.careTaskForm.done = item.done;
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.refreshView();
+  }
+
+  cancelCareTaskEdit(): void {
+    this.editingCareTaskId = null;
+    this.careTaskForm.title = '';
+    this.careTaskForm.done = false;
     this.refreshView();
   }
 
@@ -233,6 +272,79 @@ export class ProcedureSurgicalAdvancedComponent implements OnInit {
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.saving = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to save complication.';
+        this.refreshView();
+      }
+    });
+  }
+
+  submitCareTask(): void {
+    const surgicalCaseId = Number(this.selectedCaseId);
+    const title = this.careTaskForm.title.trim();
+
+    if (!surgicalCaseId || Number.isNaN(surgicalCaseId)) {
+      this.errorMessage = 'Please select a surgical case.';
+      this.refreshView();
+      return;
+    }
+
+    if (title.length < 3) {
+      this.errorMessage = 'Care task title must contain at least 3 characters.';
+      this.refreshView();
+      return;
+    }
+
+    this.saving = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    const request$ = this.editingCareTaskId
+      ? this.procedureApi.updateCareTask(this.editingCareTaskId, {
+          title,
+          done: this.careTaskForm.done
+        })
+      : this.procedureApi.createCareTask({ surgicalCaseId, title });
+
+    request$.subscribe({
+      next: () => {
+        this.successMessage = this.editingCareTaskId
+          ? 'Care task updated successfully.'
+          : 'Care task created successfully.';
+        this.saving = false;
+        this.cancelCareTaskEdit();
+        this.refreshView();
+        this.loadAll();
+      },
+      error: (err: { error?: { message?: string }; message?: string }) => {
+        this.saving = false;
+        this.errorMessage = err?.error?.message || err?.message || 'Failed to save care task.';
+        this.refreshView();
+      }
+    });
+  }
+
+  toggleCareTaskDone(item: CareTask): void {
+    this.saving = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.procedureApi.updateCareTask(item.id, {
+      title: item.title,
+      done: !item.done
+    }).subscribe({
+      next: () => {
+        this.saving = false;
+        this.successMessage = item.done
+          ? 'Care task reopened successfully.'
+          : 'Care task marked as done.';
+        if (this.editingCareTaskId === item.id) {
+          this.cancelCareTaskEdit();
+        }
+        this.refreshView();
+        this.loadAll();
+      },
+      error: (err: { error?: { message?: string }; message?: string }) => {
+        this.saving = false;
+        this.errorMessage = err?.error?.message || err?.message || 'Failed to update care task.';
         this.refreshView();
       }
     });
