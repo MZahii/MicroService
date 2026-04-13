@@ -9,6 +9,12 @@ const API_BASE_URL = environment.apiBaseUrl;
 
 let refreshInFlight: Promise<string> | null = null;
 
+type JwtPayload = {
+  exp?: number;
+  realm_access?: { roles?: unknown };
+  resource_access?: Record<string, { roles?: unknown }>;
+};
+
 function readFromStorage(key: string): string | null {
   return localStorage.getItem(key) ?? sessionStorage.getItem(key);
 }
@@ -27,7 +33,7 @@ function writeTokenPair(accessToken: string, refreshToken: string): void {
   storage.setItem(REFRESH_TOKEN_KEY, refreshToken);
 }
 
-function parseJwtPayload(token: string): { exp?: number } | null {
+function parseJwtPayload(token: string): JwtPayload | null {
   try {
     const parts = token.split('.');
     if (parts.length < 2) return null;
@@ -35,10 +41,49 @@ function parseJwtPayload(token: string): { exp?: number } | null {
     const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
     const padded = base64.padEnd(base64.length + (4 - (base64.length % 4 || 4)) % 4, '=');
     const json = atob(padded);
-    return JSON.parse(json) as { exp?: number };
+    return JSON.parse(json) as JwtPayload;
   } catch {
     return null;
   }
+}
+
+function normalizeRole(role: unknown): string | null {
+  if (role == null) return null;
+  const normalized = String(role).trim().toUpperCase();
+  return normalized || null;
+}
+
+export function extractRolesFromToken(token: string | null | undefined): string[] {
+  if (!token) return [];
+
+  const payload = parseJwtPayload(token);
+  if (!payload) return [];
+
+  const roles = new Set<string>();
+  const appendRoles = (candidate: unknown) => {
+    if (!Array.isArray(candidate)) return;
+    for (const role of candidate) {
+      const normalized = normalizeRole(role);
+      if (normalized) {
+        roles.add(normalized);
+      }
+    }
+  };
+
+  appendRoles(payload.realm_access?.roles);
+
+  if (payload.resource_access && typeof payload.resource_access === 'object') {
+    for (const value of Object.values(payload.resource_access)) {
+      appendRoles(value?.roles);
+    }
+  }
+
+  return Array.from(roles);
+}
+
+export function getPrimaryRoleFromToken(token: string | null | undefined): string | null {
+  const roles = extractRolesFromToken(token);
+  return roles[0] ?? null;
 }
 
 function clearSession(): void {
@@ -84,6 +129,12 @@ export function isAuthenticated(): boolean {
 }
 
 export function getUserRoles(): string[] {
+  const token = readFromStorage(ACCESS_TOKEN_KEY);
+  const rolesFromToken = extractRolesFromToken(token);
+  if (rolesFromToken.length > 0) {
+    return rolesFromToken;
+  }
+
   const role = readFromStorage(ROLE_KEY);
   return role ? [role] : [];
 }
@@ -94,7 +145,7 @@ export function hasAnyRole(expectedRoles: string[]): boolean {
 }
 
 export function getLandingRouteByRole(): string {
-  const role = readFromStorage(ROLE_KEY);
+  const roles = getUserRoles();
 
   const backofficeRoles = [
     'ADMIN',
@@ -106,11 +157,15 @@ export function getLandingRouteByRole(): string {
     'RECEPTIONIST'
   ];
 
-  if (role && backofficeRoles.includes(role)) {
+  if (roles.includes('ADMIN') || roles.includes('HR')) {
+    return '/backoffice/user-admin';
+  }
+
+  if (roles.some((role) => backofficeRoles.includes(role))) {
     return '/backoffice/dashboard';
   }
 
-  if (role === 'GUARDIAN') {
+  if (roles.includes('GUARDIAN')) {
     return '/frontoffice/home';
   }
 
@@ -153,6 +208,12 @@ async function refreshAccessToken(): Promise<string> {
     }
 
     writeTokenPair(data.accessToken, data.refreshToken);
+    const storageType = getTokenStorageType();
+    const storage = storageType === 'local' ? localStorage : sessionStorage;
+    const derivedRole = getPrimaryRoleFromToken(data.accessToken);
+    if (derivedRole) {
+      storage.setItem(ROLE_KEY, derivedRole);
+    }
     return data.accessToken;
   })();
 

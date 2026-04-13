@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { LoginResponse } from './auth-api.service';
+import { extractRolesFromToken, getPrimaryRoleFromToken } from './keycloak.service';
 
 @Injectable({
   providedIn: 'root'
@@ -18,7 +19,7 @@ export class AuthStorageService {
 
     storage.setItem(this.ACCESS_TOKEN_KEY, response.accessToken);
     storage.setItem(this.REFRESH_TOKEN_KEY, response.refreshToken);
-    storage.setItem(this.ROLE_KEY, response.role);
+    storage.setItem(this.ROLE_KEY, getPrimaryRoleFromToken(response.accessToken) ?? response.role);
     storage.setItem(this.REDIRECT_KEY, response.redirectTo);
 
     storage.setItem(
@@ -45,8 +46,29 @@ export class AuthStorageService {
   }
 
   getRole(): string | null {
+    const token = this.getAccessToken();
+    const derived = getPrimaryRoleFromToken(token);
+    if (derived) {
+      return derived;
+    }
+
     return localStorage.getItem(this.ROLE_KEY)
       ?? sessionStorage.getItem(this.ROLE_KEY);
+  }
+
+  getRoles(): string[] {
+    const roles = extractRolesFromToken(this.getAccessToken());
+    if (roles.length > 0) {
+      return roles;
+    }
+
+    const singleRole = this.getRole();
+    return singleRole ? [singleRole] : [];
+  }
+
+  hasAnyRole(expectedRoles: string[]): boolean {
+    const roles = this.getRoles();
+    return expectedRoles.some((role) => roles.includes(role));
   }
 
   getRedirectTo(): string | null {

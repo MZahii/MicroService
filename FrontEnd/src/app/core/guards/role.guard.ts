@@ -11,13 +11,12 @@ export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
   }
 
   const allowedRoles = route.data?.['roles'] as string[] | undefined;
-  const currentRole = authStorage.getRole();
 
   if (!allowedRoles || allowedRoles.length === 0) {
     return true;
   }
 
-  if (currentRole && allowedRoles.includes(currentRole)) {
+  if (authStorage.hasAnyRole(allowedRoles)) {
     return true;
   }
 

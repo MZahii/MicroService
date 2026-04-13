@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthApiService } from '../../../core/auth/auth-api.service';
 import { AuthStorageService } from '../../../core/auth/auth-storage.service';
+import { getLandingRouteByRole } from '../../../core/auth/keycloak.service';
 
 @Component({
   selector: 'app-login',
@@ -54,7 +55,7 @@ export class Login {
       }));
       this.authStorage.saveSession(response, this.form.rememberMe);
       this.cdr.detectChanges();
-      this.router.navigateByUrl(response.redirectTo || '/');
+      this.router.navigateByUrl(getLandingRouteByRole() || response.redirectTo || '/');
     } catch (err: any) {
       this.errorMessage =
         err?.error?.message ||

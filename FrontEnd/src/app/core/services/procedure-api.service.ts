@@ -98,7 +98,7 @@ export interface CareTask {
 })
 export class ProcedureApiService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = environment.procedureApiBaseUrl;
+  private readonly baseUrl = environment.apiBaseUrl;
 
   getDialysisPlans(): Observable<DialysisPlan[]> {
     return this.http.get<DialysisPlan[]>(`${this.baseUrl}/api/procedures/dialysis/plans`);
