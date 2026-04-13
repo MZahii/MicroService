@@ -257,6 +257,21 @@ export class ClinicalApiService {
     );
   }
 
+  getConsultationOutcome(id: string): Observable<any> {
+    return this.http.get<any>(
+      `${this.base}/clinical/consultations/${id}/outcomes`,
+      { headers: this.doctorHeaders() }
+    );
+  }
+
+  updateConsultationLabRequests(id: string, content: string): Observable<any> {
+    return this.http.post<any>(
+      `${this.base}/clinical/consultations/${id}/lab-requests`,
+      { content },
+      { headers: this.doctorHeaders() }
+    );
+  }
+
   createAppointment(payload: {
     patientId: number;
     doctorId: string;

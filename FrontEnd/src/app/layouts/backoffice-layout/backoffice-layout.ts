@@ -479,6 +479,11 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
             label: 'Consultations',
             route: '/backoffice/consultations',
             implemented: true
+          },
+          {
+            label: 'Lab Requests',
+            route: '/backoffice/consultations/lab-requests',
+            implemented: true
           }
         ]
       });
