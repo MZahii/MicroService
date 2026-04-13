@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   Medication, Batch, Stock,
-  DispenseRequest, DispensationLog, Supplier, SupplyOrder
+  DispenseRequest, DispensationLog, Supplier, SupplyOrder, StockTransferRequest, StockTransferResult
 } from '../models/pharmacy.models';
 import { environment } from '../../../environments/environment';
 
@@ -67,6 +67,9 @@ export class PharmacyService {
   }
   adjustStock(batchId: number, delta: number, reason: string): Observable<Stock> {
     return this.http.patch<Stock>(`${this.base}/stock/batches/${batchId}/adjust`, { delta, reason });
+  }
+  transferStock(request: StockTransferRequest): Observable<StockTransferResult> {
+    return this.http.post<StockTransferResult>(`${this.base}/stock/transfer`, request);
   }
   getDispensationHistory(date?: string): Observable<DispensationLog[]> {
     const params = date ? new HttpParams().set('date', date) : new HttpParams();

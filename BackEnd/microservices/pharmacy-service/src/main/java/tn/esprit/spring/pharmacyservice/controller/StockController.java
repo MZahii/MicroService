@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import tn.esprit.spring.pharmacyservice.dto.DispensationLogDTO;
 import tn.esprit.spring.pharmacyservice.dto.DispenseRequestDTO;
 import tn.esprit.spring.pharmacyservice.dto.StockDTO;
+import tn.esprit.spring.pharmacyservice.dto.TransferStockRequestDTO;
+import tn.esprit.spring.pharmacyservice.dto.TransferStockResponseDTO;
 import tn.esprit.spring.pharmacyservice.service.StockService;
 
 import org.springframework.http.HttpStatus;
@@ -86,5 +88,12 @@ public class StockController {
         int delta = (int) body.get("delta");
         String reason = (String) body.getOrDefault("reason", "manual adjustment");
         return ResponseEntity.ok(stockService.adjustStock(batchId, delta, reason));
+    }
+
+    @PostMapping("/transfer")
+    @Operation(summary = "Transfer stock between two batches of the same medication")
+    public ResponseEntity<TransferStockResponseDTO> transfer(
+            @RequestBody TransferStockRequestDTO request) {
+        return ResponseEntity.ok(stockService.transferStock(request));
     }
 }

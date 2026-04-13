@@ -242,6 +242,10 @@
                     (click)="showAdjust=true; adjustBatchId=s.batchId; adjustDelta=0; adjustReason=''">
                     <i data-feather="sliders" style="width:13px;height:13px"></i> Adjust
                   </button>
+                  <button class="btn btn-soft-info btn-sm"
+                    (click)="openTransfer(s)">
+                    <i data-feather="repeat" style="width:13px;height:13px"></i> Transfer
+                  </button>
                   <button class="btn btn-primary btn-sm"
                     (click)="showDispense=true; dispenseForm={batchId: s.batchId}">
                     <i data-feather="send" style="width:13px;height:13px"></i> Dispense
@@ -360,6 +364,52 @@
   </div>
 </div>
 <div class="modal-backdrop fade show" *ngIf="showAdjust" (click)="showAdjust=false"></div>
+
+<!-- Stock Transfer Modal -->
+<div class="modal fade" [class.show]="showTransfer" [style.display]="showTransfer ? 'block' : 'none'">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i data-feather="repeat" style="width:16px;height:16px" class="me-2"></i>Transfer Stock
+        </h5>
+        <button class="btn-close" (click)="showTransfer=false"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-soft-info small">
+          Transfer is limited to two batches of the same medication.
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Source Batch</label>
+          <input class="form-control" [value]="transferSourceLabel + ' | Batch #' + (transferForm.sourceBatchId || '-')" disabled />
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Target Batch</label>
+          <select class="form-control" [(ngModel)]="transferForm.targetBatchId">
+            <option [ngValue]="undefined">Select a target batch</option>
+            <option *ngFor="let option of transferOptions" [ngValue]="option.batchId">{{ option.label }}</option>
+          </select>
+          <small class="text-muted" *ngIf="transferOptions.length === 0">
+            No compatible target batch found for this medication.
+          </small>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Quantity</label>
+          <input type="number" class="form-control" [(ngModel)]="transferForm.quantity" min="1" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Reason</label>
+          <input class="form-control" [(ngModel)]="transferForm.reason" placeholder="e.g. rebalancing stock before expiry" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" (click)="showTransfer=false">Cancel</button>
+        <button class="btn btn-info" (click)="transfer()" [disabled]="!canSubmitTransfer">Transfer</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade show" *ngIf="showTransfer" (click)="showTransfer=false"></div>
 
 <!-- Toast -->
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999" *ngIf="toast()">
