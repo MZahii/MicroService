@@ -205,12 +205,16 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   private buildNavigationItems(): BackofficeNavItem[] {
+    const dashboardRoute = (this.isAdmin || this.isHr)
+      ? '/backoffice/user-admin'
+      : '/backoffice/dashboard';
+
     const items: BackofficeNavItem[] = [
       {
         key: 'dashboard',
         label: 'Dashboard',
         icon: 'feather-airplay',
-        route: '/backoffice/dashboard',
+        route: dashboardRoute,
         exact: true
       }
     ];
