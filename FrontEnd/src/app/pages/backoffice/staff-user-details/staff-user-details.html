@@ -245,6 +245,78 @@
               </div>
             </div>
 
+            <div class="audit-section mt-4" *ngIf="canViewAudit">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <div>
+                  <h6 class="mb-1">User Audit Trail</h6>
+                  <div class="text-muted small">
+                    Review account lifecycle and profile changes recorded for this user.
+                  </div>
+                </div>
+                <span class="badge bg-soft-primary text-primary">
+                  {{ filteredAuditLogs.length }} visible
+                </span>
+              </div>
+
+              <div class="audit-filters mb-3">
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Search by action, actor, field change, or timestamp..."
+                  [(ngModel)]="auditSearch"
+                  (ngModelChange)="onAuditFiltersChanged()"
+                />
+                <select class="form-control" [(ngModel)]="auditActionFilter" (ngModelChange)="onAuditFiltersChanged()">
+                  <option value="ALL">All Actions</option>
+                  <option *ngFor="let action of auditActions" [value]="action">{{ action }}</option>
+                </select>
+              </div>
+
+              <div *ngIf="auditLoading" class="text-muted py-3">Loading audit trail...</div>
+
+              <div class="audit-list" *ngIf="!auditLoading">
+                <div *ngIf="filteredAuditLogs.length === 0" class="text-muted">
+                  No user audit records match the current filters.
+                </div>
+
+                <div class="audit-card" *ngFor="let log of filteredAuditLogs">
+                  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                    <div>
+                      <div class="audit-action">{{ log.action }}</div>
+                      <div class="audit-meta">
+                        {{ log.createdAt | date:'yyyy-MM-dd HH:mm:ss' }} | Actor: {{ log.actor || '-' }}
+                      </div>
+                    </div>
+                    <span class="badge bg-light text-dark">User #{{ log.userId }}</span>
+                  </div>
+
+                  <ng-container *ngIf="getChangedFields(log).length > 0; else rawAuditDetails">
+                    <div class="diff-list">
+                      <div class="diff-item" *ngFor="let diff of getChangedFields(log)">
+                        <div class="diff-field">{{ diff.field }}</div>
+                        <div class="diff-values">
+                          <span class="diff-old">{{ diff.oldValue }}</span>
+                          <span class="diff-arrow">-></span>
+                          <span class="diff-new">{{ diff.newValue }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </ng-container>
+
+                  <ng-template #rawAuditDetails>
+                    <div *ngIf="hasParsedAuditDetails(log)" class="text-muted">No field-level change captured.</div>
+                    <div *ngIf="!hasParsedAuditDetails(log) && hasRawAuditDetails(log)" class="raw-details">
+                      <div><strong>Old:</strong> {{ getRawOld(log) }}</div>
+                      <div><strong>New:</strong> {{ getRawNew(log) }}</div>
+                    </div>
+                    <div *ngIf="!hasParsedAuditDetails(log) && !hasRawAuditDetails(log)" class="text-muted">
+                      No field changes captured.
+                    </div>
+                  </ng-template>
+                </div>
+              </div>
+            </div>
+
           </ng-container>
         </div>
       </div>

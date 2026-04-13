@@ -40,6 +40,27 @@ interface ContractRow {
   notes?: string;
 }
 
+interface UserAuditLogRow {
+  id: number;
+  userId: number;
+  action: string;
+  actor?: string;
+  oldValue?: string;
+  newValue?: string;
+  createdAt: string;
+}
+
+interface LogDiffRow {
+  field: string;
+  oldValue: string;
+  newValue: string;
+}
+
+interface LogDiffInfo {
+  rows: LogDiffRow[];
+  parsed: boolean;
+}
+
 type StaffRole = 'DOCTOR' | 'NURSE' | 'SURGEON' | 'PHARMACIST' | 'RECEPTIONIST';
 type Sex = 'MALE' | 'FEMALE';
 type ContractType = 'CDI' | 'CDD' | 'INTERNSHIP' | 'PART_TIME' | 'TEMPORARY';
@@ -56,6 +77,7 @@ export class StaffUserDetails implements OnInit {
   savingProfile = false;
   savingContractId: number | null = null;
   lifecycleLoading = false;
+  auditLoading = false;
   errorMessage = '';
   successMessage = '';
   role = '';
@@ -64,8 +86,12 @@ export class StaffUserDetails implements OnInit {
   backLabel = 'Back To Staff List';
   user: UserRow | null = null;
   contracts: ContractRow[] = [];
+  auditLogs: UserAuditLogRow[] = [];
   editProfile = false;
   editingContractId: number | null = null;
+  auditSearch = '';
+  auditActionFilter = 'ALL';
+  private auditDiffCache = new Map<number, LogDiffInfo>();
 
   profileForm = {
     firstName: '',
@@ -217,6 +243,23 @@ export class StaffUserDetails implements OnInit {
 
   get pageTitle(): string {
     return this.user?.role === 'HR' ? 'HR User Details' : 'Staff User Details';
+  }
+
+  get canViewAudit(): boolean {
+    return this.isAdmin || this.isHr;
+  }
+
+  get auditActions(): string[] {
+    return Array.from(new Set(this.auditLogs.map((item) => item.action).filter(Boolean))).sort();
+  }
+
+  get filteredAuditLogs(): UserAuditLogRow[] {
+    const term = this.auditSearch.trim().toLowerCase();
+    return this.auditLogs.filter((log) => {
+      const actionMatch = this.auditActionFilter === 'ALL' || log.action === this.auditActionFilter;
+      const termMatch = !term || this.auditTokens(log).some((value) => value.includes(term));
+      return actionMatch && termMatch;
+    });
   }
 
   startProfileEdit(): void {
@@ -521,12 +564,38 @@ export class StaffUserDetails implements OnInit {
     }
   }
 
+  onAuditFiltersChanged(): void {
+    this.cdr.detectChanges();
+  }
+
+  getChangedFields(log: UserAuditLogRow): LogDiffRow[] {
+    return this.getAuditDiffInfo(log).rows;
+  }
+
+  hasParsedAuditDetails(log: UserAuditLogRow): boolean {
+    return this.getAuditDiffInfo(log).parsed;
+  }
+
+  hasRawAuditDetails(log: UserAuditLogRow): boolean {
+    return !!(log.oldValue || log.newValue);
+  }
+
+  getRawOld(log: UserAuditLogRow): string {
+    return log.oldValue || '-';
+  }
+
+  getRawNew(log: UserAuditLogRow): string {
+    return log.newValue || '-';
+  }
+
   private async loadUserDetails(): Promise<void> {
     this.loading = true;
+    this.auditLoading = true;
     this.errorMessage = '';
     this.successMessage = '';
     this.user = null;
     this.contracts = [];
+    this.auditLogs = [];
 
     try {
       const userId = Number(this.route.snapshot.paramMap.get('id'));
@@ -544,6 +613,10 @@ export class StaffUserDetails implements OnInit {
         contracts: this.http.get<ContractRow[] | unknown>(
           `${environment.apiBaseUrl}/api/contracts?staffUserId=${userId}`,
           { headers }
+        ),
+        audit: this.http.get<UserAuditLogRow[] | unknown>(
+          `${environment.apiBaseUrl}/api/users/${userId}/audit`,
+          { headers }
         )
       }));
 
@@ -555,12 +628,115 @@ export class StaffUserDetails implements OnInit {
 
       this.user = { ...selected, deleted: false };
       this.contracts = Array.isArray(response?.contracts) ? response.contracts : [];
+      this.auditLogs = Array.isArray(response?.audit) ? response.audit : [];
+      this.auditDiffCache.clear();
     } catch (error: unknown) {
       const err = error as { error?: { message?: string }; message?: string };
       this.errorMessage = err?.error?.message || err?.message || 'Failed to load staff details.';
     } finally {
       this.loading = false;
+      this.auditLoading = false;
       this.cdr.detectChanges();
     }
+  }
+
+  private getAuditDiffInfo(log: UserAuditLogRow): LogDiffInfo {
+    const cached = this.auditDiffCache.get(log.id);
+    if (cached) return cached;
+
+    const oldObj = this.parseJsonObject(log.oldValue);
+    const newObj = this.parseJsonObject(log.newValue);
+    const parsed = !!oldObj || !!newObj;
+    const keys = new Set<string>([
+      ...Object.keys(oldObj ?? {}),
+      ...Object.keys(newObj ?? {})
+    ]);
+
+    const diffs: LogDiffRow[] = [];
+    keys.forEach((key) => {
+      if (key === 'id') return;
+      const oldVal = oldObj ? oldObj[key] : undefined;
+      const newVal = newObj ? newObj[key] : undefined;
+      if (!this.valuesEqual(oldVal, newVal)) {
+        diffs.push({
+          field: this.humanizeField(key),
+          oldValue: this.stringifyValue(oldVal),
+          newValue: this.stringifyValue(newVal)
+        });
+      }
+    });
+
+    const info: LogDiffInfo = { rows: diffs, parsed };
+    this.auditDiffCache.set(log.id, info);
+    return info;
+  }
+
+  private parseJsonObject(raw?: string): Record<string, unknown> | null {
+    if (!raw) return null;
+    const value = raw.trim();
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
+      if (typeof parsed === 'string') {
+        const nested = parsed.trim();
+        if (nested.startsWith('{') && nested.endsWith('}')) {
+          const nestedParsed = JSON.parse(nested);
+          if (nestedParsed && typeof nestedParsed === 'object' && !Array.isArray(nestedParsed)) {
+            return nestedParsed as Record<string, unknown>;
+          }
+        }
+      }
+      if (value.startsWith('{') && value.endsWith('}')) {
+        const direct = JSON.parse(value);
+        if (direct && typeof direct === 'object' && !Array.isArray(direct)) {
+          return direct as Record<string, unknown>;
+        }
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
+  private valuesEqual(a: unknown, b: unknown): boolean {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+
+  private stringifyValue(value: unknown): string {
+    if (value === null || value === undefined || value === '') return '-';
+    if (typeof value === 'object') {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return String(value);
+      }
+    }
+    return String(value);
+  }
+
+  private humanizeField(field: string): string {
+    const labels: Record<string, string> = {
+      accountStatus: 'Account Status',
+      firstName: 'First Name',
+      lastName: 'Last Name',
+      dateOfBirth: 'Date Of Birth',
+      keycloakId: 'Keycloak ID'
+    };
+    if (labels[field]) return labels[field];
+    return field
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  private auditTokens(log: UserAuditLogRow): string[] {
+    return [
+      log.action ?? '',
+      log.actor ?? '',
+      log.createdAt ?? '',
+      log.oldValue ?? '',
+      log.newValue ?? '',
+      String(log.userId ?? '')
+    ].map((value) => String(value).toLowerCase());
   }
 }
