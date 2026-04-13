@@ -29,3 +29,14 @@
 .note-line {
   margin-top: 0.35rem;
 }
+
+.complication-item {
+  background: #fff7f7;
+  border-color: #f5c2c7;
+}
+
+.complication-text {
+  flex: 1 1 0;
+  white-space: pre-wrap;
+  color: #334155;
+}

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
+  Complication,
   PostOpObservation,
   PreOpAssessment,
   ProcedureApiService,
@@ -25,8 +26,10 @@ export class ProcedureSurgicalAdvancedComponent implements OnInit {
   surgicalCases: SurgicalCase[] = [];
   preOps: PreOpAssessment[] = [];
   postOps: PostOpObservation[] = [];
+  complications: Complication[] = [];
 
   selectedCaseId = '';
+  editingComplicationId: number | null = null;
 
   preOpForm = {
     hemodynamicsOk: false,
@@ -42,6 +45,10 @@ export class ProcedureSurgicalAdvancedComponent implements OnInit {
     painControlled: false,
     consciousnessNormal: false,
     note: ''
+  };
+
+  complicationForm = {
+    description: ''
   };
 
   constructor(
@@ -88,6 +95,11 @@ export class ProcedureSurgicalAdvancedComponent implements OnInit {
   get postOpHistoryForSelectedCase(): PostOpObservation[] {
     const id = Number(this.selectedCaseId);
     return this.postOps.filter((p) => p.surgicalCaseId === id);
+  }
+
+  get complicationsForSelectedCase(): Complication[] {
+    const id = Number(this.selectedCaseId);
+    return this.complications.filter((item) => item.surgicalCaseId === id);
   }
 
   parseRecord(notes: string | null | undefined): Record<string, string> {
@@ -141,8 +153,18 @@ export class ProcedureSurgicalAdvancedComponent implements OnInit {
         this.procedureApi.getPostOpObservations().subscribe({
           next: (postOps) => {
             this.postOps = postOps ?? [];
-            this.loading = false;
-            this.refreshView();
+            this.procedureApi.getComplications().subscribe({
+              next: (complications) => {
+                this.complications = complications ?? [];
+                this.loading = false;
+                this.refreshView();
+              },
+              error: (err: { error?: { message?: string }; message?: string }) => {
+                this.loading = false;
+                this.errorMessage = err?.error?.message || err?.message || 'Failed to load complications.';
+                this.refreshView();
+              }
+            });
           },
           error: (err: { error?: { message?: string }; message?: string }) => {
             this.loading = false;
@@ -154,6 +176,63 @@ export class ProcedureSurgicalAdvancedComponent implements OnInit {
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.loading = false;
         this.errorMessage = err?.error?.message || err?.message || 'Failed to load pre-op assessments.';
+        this.refreshView();
+      }
+    });
+  }
+
+  startComplicationEdit(item: Complication): void {
+    this.editingComplicationId = item.id;
+    this.complicationForm.description = item.description ?? '';
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.refreshView();
+  }
+
+  cancelComplicationEdit(): void {
+    this.editingComplicationId = null;
+    this.complicationForm.description = '';
+    this.refreshView();
+  }
+
+  submitComplication(): void {
+    const surgicalCaseId = Number(this.selectedCaseId);
+    const description = this.complicationForm.description.trim();
+
+    if (!surgicalCaseId || Number.isNaN(surgicalCaseId)) {
+      this.errorMessage = 'Please select a surgical case.';
+      this.refreshView();
+      return;
+    }
+
+    if (description.length < 5) {
+      this.errorMessage = 'Complication description must contain at least 5 characters.';
+      this.refreshView();
+      return;
+    }
+
+    this.saving = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    const request$ = this.editingComplicationId
+      ? this.procedureApi.updateComplication(this.editingComplicationId, { description })
+      : this.procedureApi.createComplication({ surgicalCaseId, description });
+
+    request$.subscribe({
+      next: () => {
+        this.successMessage = this.editingComplicationId
+          ? 'Complication updated successfully.'
+          : 'Complication recorded successfully.';
+        this.saving = false;
+        this.editingComplicationId = null;
+        this.complicationForm.description = '';
+        this.refreshView();
+        this.loadAll();
+      },
+      error: (err: { error?: { message?: string }; message?: string }) => {
+        this.saving = false;
+        this.errorMessage = err?.error?.message || err?.message || 'Failed to save complication.';
         this.refreshView();
       }
     });

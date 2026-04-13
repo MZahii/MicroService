@@ -141,5 +141,67 @@
         </div>
       </div>
     </div>
+
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <strong>Complication Tracking</strong>
+            <div class="text-muted small">Record and update surgical complications for the selected case.</div>
+          </div>
+          <span class="badge bg-soft-danger text-danger">
+            {{ complicationsForSelectedCase.length }} complication{{ complicationsForSelectedCase.length === 1 ? '' : 's' }}
+          </span>
+        </div>
+        <div class="card-body">
+          <label class="form-label">Complication Description</label>
+          <textarea
+            class="form-control mb-3"
+            rows="3"
+            [(ngModel)]="complicationForm.description"
+            placeholder="Describe the complication, severity, and any immediate response..."
+          ></textarea>
+
+          <div class="d-flex gap-2 mb-4">
+            <button
+              type="button"
+              class="btn btn-primary btn-sm"
+              (click)="submitComplication()"
+              [disabled]="saving"
+            >
+              {{ saving ? 'Saving...' : (editingComplicationId ? 'Update Complication' : 'Add Complication') }}
+            </button>
+            <button
+              *ngIf="editingComplicationId"
+              type="button"
+              class="btn btn-light btn-sm"
+              (click)="cancelComplicationEdit()"
+              [disabled]="saving"
+            >
+              Cancel
+            </button>
+          </div>
+
+          <h6 class="mb-2">Complications History (Selected Case)</h6>
+          <div *ngIf="complicationsForSelectedCase.length === 0" class="empty-state">No complication recorded for this case.</div>
+
+          <div *ngFor="let item of complicationsForSelectedCase" class="history-item complication-item">
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+              <div class="complication-text">
+                {{ item.description }}
+              </div>
+              <button
+                type="button"
+                class="btn btn-sm btn-light-brand"
+                (click)="startComplicationEdit(item)"
+                [disabled]="saving"
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
