@@ -5,6 +5,8 @@ import { RouterLink } from '@angular/router';
 import { AuthStorageService } from '../../../core/auth/auth-storage.service';
 import { finalize } from 'rxjs';
 import {
+  BulkMessageAction,
+  BulkMessageOperationResponse,
   CommunicationApiService,
   FollowUpMessage,
   MessageQueue,
@@ -38,12 +40,15 @@ interface InboxFiltersState {
 export class CommunicationInboxComponent implements OnInit {
   loading = true;
   actionLoadingId = '';
+  bulkActionLoading = false;
   errorMessage = '';
+  successMessage = '';
   items: FollowUpMessage[] = [];
   activeTab: InboxTab = 'MY_QUEUE';
   showFilters = false;
   page = 1;
   readonly pageSize = 12;
+  selectedMessageIds: string[] = [];
 
   patientsById: Record<number, string> = {};
 
@@ -93,6 +98,14 @@ export class CommunicationInboxComponent implements OnInit {
 
   get urgentTabCount(): number {
     return this.items.filter((item) => item.priority === 'HIGH').length;
+  }
+
+  get hasSelection(): boolean {
+    return this.selectedMessageIds.length > 0;
+  }
+
+  get selectedCount(): number {
+    return this.selectedMessageIds.length;
   }
 
   constructor(
@@ -176,6 +189,10 @@ export class CommunicationInboxComponent implements OnInit {
         );
       })
       .sort((a, b) => this.sortMessages(a, b));
+  }
+
+  get areAllVisibleSelected(): boolean {
+    return this.pagedItems.length > 0 && this.pagedItems.every((item) => this.isSelected(item.id));
   }
 
   get activeFilterTags(): string[] {
@@ -331,6 +348,34 @@ export class CommunicationInboxComponent implements OnInit {
       });
   }
 
+  isSelected(messageId: string): boolean {
+    return this.selectedMessageIds.includes(messageId);
+  }
+
+  toggleSelection(messageId: string): void {
+    if (this.isSelected(messageId)) {
+      this.selectedMessageIds = this.selectedMessageIds.filter((id) => id !== messageId);
+      return;
+    }
+    this.selectedMessageIds = [...this.selectedMessageIds, messageId];
+  }
+
+  toggleSelectVisible(): void {
+    if (this.areAllVisibleSelected) {
+      const visibleIds = new Set(this.pagedItems.map((item) => item.id));
+      this.selectedMessageIds = this.selectedMessageIds.filter((id) => !visibleIds.has(id));
+      return;
+    }
+
+    const merged = new Set(this.selectedMessageIds);
+    this.pagedItems.forEach((item) => merged.add(item.id));
+    this.selectedMessageIds = Array.from(merged);
+  }
+
+  clearSelection(): void {
+    this.selectedMessageIds = [];
+  }
+
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.filteredItems.length / this.pageSize));
   }
@@ -349,8 +394,34 @@ export class CommunicationInboxComponent implements OnInit {
     this.page = Math.min(this.totalPages, this.page + 1);
   }
 
+  runBulkAction(action: BulkMessageAction): void {
+    if (!this.hasSelection || this.bulkActionLoading) {
+      return;
+    }
+
+    this.bulkActionLoading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.communicationApi.bulkOperateMessages(action, this.selectedMessageIds)
+      .pipe(finalize(() => {
+        this.bulkActionLoading = false;
+      }))
+      .subscribe({
+        next: (response) => {
+          this.handleBulkActionSuccess(response);
+          this.clearSelection();
+          this.load();
+        },
+        error: (err) => {
+          this.errorMessage = err?.error?.message || 'Failed to process bulk message action.';
+        }
+      });
+  }
+
   load(): void {
     this.loading = true;
+    this.errorMessage = '';
     this.communicationApi.getInbox({
       queue: this.queue,
       patientId: this.appliedFilters.patientId ?? undefined,
@@ -363,11 +434,45 @@ export class CommunicationInboxComponent implements OnInit {
     ).subscribe({
       next: (items) => {
         this.items = items;
+        const loadedIds = new Set(items.map((item) => item.id));
+        this.selectedMessageIds = this.selectedMessageIds.filter((id) => loadedIds.has(id));
         this.page = 1;
       },
       error: (err) => {
         this.errorMessage = err?.error?.message || 'Failed to load inbox.';
       }
     });
+  }
+
+  private handleBulkActionSuccess(response: BulkMessageOperationResponse): void {
+    const actionLabel = this.formatBulkAction(response.action);
+
+    if (response.failedCount === 0) {
+      this.successMessage = `${actionLabel} completed for ${response.successCount} message${response.successCount === 1 ? '' : 's'}.`;
+      return;
+    }
+
+    const firstFailures = response.failures
+      .slice(0, 2)
+      .map((failure) => failure.error)
+      .join(' ');
+
+    this.successMessage = `${actionLabel} completed for ${response.successCount} of ${response.requestedCount} messages.`;
+    this.errorMessage = firstFailures || `${response.failedCount} messages could not be processed.`;
+  }
+
+  private formatBulkAction(action: BulkMessageAction): string {
+    switch (action) {
+      case 'TAKE':
+        return 'Take ownership';
+      case 'MARK_READ':
+        return 'Mark read';
+      case 'UNASSIGN':
+        return 'Unassign';
+      case 'CLOSE':
+        return 'Close';
+      default:
+        return 'Bulk action';
+    }
   }
 }

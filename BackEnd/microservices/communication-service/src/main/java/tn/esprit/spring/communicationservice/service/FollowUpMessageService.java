@@ -1,9 +1,11 @@
 package tn.esprit.spring.communicationservice.service;
 
+import tn.esprit.spring.communicationservice.dto.request.BulkMessageOperationRequest;
 import tn.esprit.spring.communicationservice.dto.request.CreateMessageRequest;
 import tn.esprit.spring.communicationservice.dto.request.EscalateRequest;
 import tn.esprit.spring.communicationservice.dto.request.InboxQueryParams;
 import tn.esprit.spring.communicationservice.dto.request.ReplyMessageRequest;
+import tn.esprit.spring.communicationservice.dto.response.BulkMessageOperationResponse;
 import tn.esprit.spring.communicationservice.dto.response.CreateMessageResponse;
 import tn.esprit.spring.communicationservice.dto.response.FollowUpMessageResponse;
 import tn.esprit.spring.communicationservice.dto.response.MessageAuditLogResponse;
@@ -33,4 +35,6 @@ public interface FollowUpMessageService {
     List<FollowUpMessageResponse> staffInbox(InboxQueryParams params);
 
     List<MessageAuditLogResponse> audit(UUID id);
+
+    BulkMessageOperationResponse bulkOperate(BulkMessageOperationRequest request);
 }

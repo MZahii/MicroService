@@ -5,6 +5,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import tn.esprit.spring.communicationservice.domain.entity.FollowUpMessage;
 import tn.esprit.spring.communicationservice.domain.entity.MessageAuditLog;
 import tn.esprit.spring.communicationservice.domain.entity.MessageReply;
@@ -14,10 +15,14 @@ import tn.esprit.spring.communicationservice.domain.enums.MessageStatus;
 import tn.esprit.spring.communicationservice.domain.enums.MessageType;
 import tn.esprit.spring.communicationservice.domain.enums.SenderRole;
 import tn.esprit.spring.communicationservice.domain.enums.StaffRole;
+import tn.esprit.spring.communicationservice.dto.request.BulkMessageAction;
+import tn.esprit.spring.communicationservice.dto.request.BulkMessageOperationRequest;
 import tn.esprit.spring.communicationservice.dto.request.CreateMessageRequest;
 import tn.esprit.spring.communicationservice.dto.request.EscalateRequest;
 import tn.esprit.spring.communicationservice.dto.request.InboxQueryParams;
 import tn.esprit.spring.communicationservice.dto.request.ReplyMessageRequest;
+import tn.esprit.spring.communicationservice.dto.response.BulkMessageOperationFailureResponse;
+import tn.esprit.spring.communicationservice.dto.response.BulkMessageOperationResponse;
 import tn.esprit.spring.communicationservice.dto.response.CreateMessageResponse;
 import tn.esprit.spring.communicationservice.dto.response.FollowUpMessageResponse;
 import tn.esprit.spring.communicationservice.dto.response.MessageAuditLogResponse;
@@ -33,7 +38,9 @@ import tn.esprit.spring.communicationservice.service.FollowUpMessageService;
 import tn.esprit.spring.communicationservice.service.GuardianPatientResolverService;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -46,6 +53,7 @@ public class FollowUpMessageServiceImpl implements FollowUpMessageService {
     private final MessageMapper messageMapper;
     private final CurrentUserService currentUserService;
     private final GuardianPatientResolverService guardianPatientResolverService;
+    private final TransactionTemplate transactionTemplate;
 
     @Override
     @Transactional
@@ -302,6 +310,44 @@ public class FollowUpMessageServiceImpl implements FollowUpMessageService {
                 .toList();
     }
 
+    @Override
+    public BulkMessageOperationResponse bulkOperate(BulkMessageOperationRequest request) {
+        currentUserService.getStaffRoleOrThrow();
+
+        List<UUID> messageIds = request.getMessageIds().stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        if (messageIds.isEmpty()) {
+            throw new BadRequestException("At least one messageId is required");
+        }
+
+        List<UUID> succeededIds = new ArrayList<>();
+        List<BulkMessageOperationFailureResponse> failures = new ArrayList<>();
+
+        for (UUID messageId : messageIds) {
+            try {
+                transactionTemplate.executeWithoutResult(status -> applyBulkAction(messageId, request.getAction()));
+                succeededIds.add(messageId);
+            } catch (Exception ex) {
+                failures.add(BulkMessageOperationFailureResponse.builder()
+                        .messageId(messageId)
+                        .error(resolveErrorMessage(ex))
+                        .build());
+            }
+        }
+
+        return BulkMessageOperationResponse.builder()
+                .action(request.getAction())
+                .requestedCount(messageIds.size())
+                .successCount(succeededIds.size())
+                .failedCount(failures.size())
+                .succeededIds(succeededIds)
+                .failures(failures)
+                .build();
+    }
+
     private MessageQueue routeQueue(MessageType type) {
         if (type == MessageType.ADMINISTRATIVE
                 || type == MessageType.APPOINTMENT
@@ -362,5 +408,27 @@ public class FollowUpMessageServiceImpl implements FollowUpMessageService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private void applyBulkAction(UUID messageId, BulkMessageAction action) {
+        switch (action) {
+            case TAKE -> take(messageId);
+            case MARK_READ -> markRead(messageId);
+            case UNASSIGN -> unassign(messageId);
+            case CLOSE -> close(messageId);
+            default -> throw new BadRequestException("Unsupported bulk action: " + action);
+        }
+    }
+
+    private String resolveErrorMessage(Throwable throwable) {
+        Throwable current = throwable;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+        String message = current.getMessage();
+        if (message == null || message.isBlank()) {
+            return "Operation failed";
+        }
+        return message;
     }
 }

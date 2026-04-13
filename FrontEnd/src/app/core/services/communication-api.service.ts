@@ -8,6 +8,7 @@ export type PriorityLevel = 'NORMAL' | 'HIGH';
 export type MessageQueue = 'RECEPTIONIST' | 'NURSE' | 'DOCTOR';
 export type MessageStatus = 'PENDING' | 'READ' | 'IN_PROGRESS' | 'ESCALATED' | 'RESPONDED' | 'CLOSED';
 export type SenderRole = 'GUARDIAN' | 'RECEPTIONIST' | 'NURSE' | 'DOCTOR';
+export type BulkMessageAction = 'TAKE' | 'MARK_READ' | 'UNASSIGN' | 'CLOSE';
 
 export interface CreateMessagePayload {
   patientId?: number | null;
@@ -72,6 +73,20 @@ export interface AuditLogItem {
   action: string;
   details?: string | null;
   createdAt: string;
+}
+
+export interface BulkMessageOperationFailure {
+  messageId: string;
+  error: string;
+}
+
+export interface BulkMessageOperationResponse {
+  action: BulkMessageAction;
+  requestedCount: number;
+  successCount: number;
+  failedCount: number;
+  succeededIds: string[];
+  failures: BulkMessageOperationFailure[];
 }
 
 export interface QuickReplyTemplate {
@@ -174,6 +189,13 @@ export class CommunicationApiService {
 
   getAudit(id: string): Observable<AuditLogItem[]> {
     return this.http.get<AuditLogItem[]>(`${this.baseUrl}/messages/${id}/audit`);
+  }
+
+  bulkOperateMessages(action: BulkMessageAction, messageIds: string[]): Observable<BulkMessageOperationResponse> {
+    return this.http.post<BulkMessageOperationResponse>(`${this.baseUrl}/backoffice/messages/bulk`, {
+      action,
+      messageIds
+    });
   }
 
   getPatientsDirectory(): Observable<PatientDirectoryItem[]> {

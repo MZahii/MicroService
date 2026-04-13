@@ -29,6 +29,10 @@
         <span>{{ errorMessage }}</span>
         <button class="btn btn-sm btn-light-brand" type="button" (click)="load()">Retry</button>
       </div>
+      <div *ngIf="successMessage" class="alert alert-success d-flex justify-content-between align-items-center">
+        <span>{{ successMessage }}</span>
+        <button class="btn btn-sm btn-light-brand" type="button" (click)="successMessage = ''">Dismiss</button>
+      </div>
 
       <div class="d-flex gap-2 flex-wrap mb-3">
         <button class="btn" [ngClass]="activeTab === 'MY_QUEUE' ? 'btn-primary' : 'btn-light-brand'" (click)="selectTab('MY_QUEUE')">
@@ -140,6 +144,34 @@
         </button>
       </div>
 
+      <div class="bulk-toolbar mb-3" *ngIf="!loading && filteredItems.length > 0">
+        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button class="btn btn-sm btn-light-brand" type="button" (click)="toggleSelectVisible()">
+              {{ areAllVisibleSelected ? 'Clear Visible' : 'Select Visible' }}
+            </button>
+            <button class="btn btn-sm btn-light-brand" type="button" (click)="clearSelection()" [disabled]="!hasSelection">
+              Clear Selection
+            </button>
+            <span class="text-muted small">{{ selectedCount }} selected</span>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-sm btn-primary" type="button" [disabled]="!hasSelection || bulkActionLoading" (click)="runBulkAction('TAKE')">
+              {{ bulkActionLoading ? 'Processing...' : 'Bulk Take' }}
+            </button>
+            <button class="btn btn-sm btn-light-brand" type="button" [disabled]="!hasSelection || bulkActionLoading" (click)="runBulkAction('MARK_READ')">
+              Mark Read
+            </button>
+            <button class="btn btn-sm btn-light-brand" type="button" [disabled]="!hasSelection || bulkActionLoading" (click)="runBulkAction('UNASSIGN')">
+              Unassign
+            </button>
+            <button class="btn btn-sm btn-outline-danger" type="button" [disabled]="!hasSelection || bulkActionLoading" (click)="runBulkAction('CLOSE')">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div *ngIf="loading" class="placeholder-glow">
         <p class="placeholder col-12"></p>
         <p class="placeholder col-12"></p>
@@ -150,6 +182,9 @@
         <table class="table table-hover align-middle">
           <thead>
             <tr>
+              <th class="selection-column">
+                <input type="checkbox" [checked]="areAllVisibleSelected" (change)="toggleSelectVisible()" />
+              </th>
               <th>Created</th>
               <th>Patient</th>
               <th>Type</th>
@@ -162,6 +197,9 @@
           </thead>
           <tbody>
             <tr *ngFor="let item of pagedItems">
+              <td class="selection-column">
+                <input type="checkbox" [checked]="isSelected(item.id)" (change)="toggleSelection(item.id)" />
+              </td>
               <td>{{ item.createdAt | date:'short' }}</td>
               <td>{{ getPatientDisplay(item.patientId) }}</td>
               <td>{{ item.messageType }}</td>
@@ -190,7 +228,7 @@
             </tr>
 
             <tr *ngIf="filteredItems.length === 0">
-              <td colspan="8" class="text-center text-muted py-4">No messages match the current filters.</td>
+              <td colspan="9" class="text-center text-muted py-4">No messages match the current filters.</td>
             </tr>
           </tbody>
         </table>
