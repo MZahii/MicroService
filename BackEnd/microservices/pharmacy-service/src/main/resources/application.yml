@@ -7,6 +7,12 @@ spring:
     outOfOrder: true
     validateOnMigrate: false
     repairOnMigrate: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/nephrospaidi
+          jwk-set-uri: http://localhost:8080/realms/nephrospaidi/protocol/openid-connect/certs
 
 internal:
   api-key: my-super-secret-internal-key
