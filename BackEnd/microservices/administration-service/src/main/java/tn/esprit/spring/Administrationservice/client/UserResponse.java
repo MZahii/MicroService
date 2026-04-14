@@ -27,4 +27,6 @@ public class UserResponse {
     private String role;
     private String accountStatus;
     private boolean enabled;
+    private boolean activationPending;
+    private boolean statusUpdatePending;
 }

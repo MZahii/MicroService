@@ -2,6 +2,7 @@ package tn.esprit.spring.Administrationservice.client;
 
 import feign.Logger;
 import feign.codec.ErrorDecoder;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
 import org.springframework.cloud.openfeign.support.SpringDecoder;
 import org.springframework.cloud.openfeign.support.SpringEncoder;
@@ -48,8 +49,9 @@ public class FeignClientConfiguration {
     }
 }
 
-@Slf4j
 class FeignErrorHandler implements ErrorDecoder {
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(FeignErrorHandler.class);
+    
     @Override
     public Exception decode(String methodKey, feign.Response response) {
         log.error("Feign error - Method: {}, Status: {}", methodKey, response.status());

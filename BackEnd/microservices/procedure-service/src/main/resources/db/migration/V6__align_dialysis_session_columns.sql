@@ -1,15 +1,6 @@
-ALTER TABLE dialysis_sessions
-    ADD COLUMN IF NOT EXISTS patient_id VARCHAR(255),
-    ADD COLUMN IF NOT EXISTS consultation_id VARCHAR(255),
-    ADD COLUMN IF NOT EXISTS appointment_id VARCHAR(255),
-    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP,
-    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;
+-- V3__add_idempotency_key_to_dialysis_sessions.sql
+-- Adds idempotency key field for duplicate request detection
+-- This prevents creating duplicate dialysis sessions from duplicate API calls
 
-UPDATE dialysis_sessions
-SET created_at = COALESCE(created_at, NOW()),
-    updated_at = COALESCE(updated_at, NOW())
-WHERE created_at IS NULL
-   OR updated_at IS NULL;
-
-ALTER TABLE dialysis_sessions
-    ALTER COLUMN created_at SET NOT NULL;
+ALTER TABLE dialysis_sessions ADD COLUMN idempotency_key VARCHAR(255) UNIQUE;
+CREATE INDEX idx_dialysis_sessions_idempotency_key ON dialysis_sessions(idempotency_key);

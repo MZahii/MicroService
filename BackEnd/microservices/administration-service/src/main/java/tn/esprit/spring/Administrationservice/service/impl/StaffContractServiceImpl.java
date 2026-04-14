@@ -17,7 +17,6 @@ import tn.esprit.spring.Administrationservice.dto.response.StaffContractResponse
 import tn.esprit.spring.Administrationservice.entity.ContractStatus;
 import tn.esprit.spring.Administrationservice.entity.StaffContract;
 import tn.esprit.spring.Administrationservice.repository.StaffContractRepository;
-import tn.esprit.spring.Administrationservice.service.ObservabilityService;
 import tn.esprit.spring.Administrationservice.service.StaffContractService;
 
 import java.time.LocalDate;
@@ -35,7 +34,6 @@ public class StaffContractServiceImpl implements StaffContractService {
 
     private final StaffContractRepository staffContractRepository;
     private final UserAccessClient userAccessClient;
-    private final ObservabilityService observabilityService;
 
     @Value("${internal.api-key}")
     private String internalApiKey;
@@ -84,21 +82,7 @@ public class StaffContractServiceImpl implements StaffContractService {
         );
 
         setUserAccess(contract.getStaffUserId(), true);
-        observabilityService.recordAudit(
-                "CONTRACT",
-                contract.getId(),
-                contract.getStaffUserId(),
-                "ContractCreated",
-                null,
-                contractSnapshot(contract)
-        );
-        observabilityService.emitEvent("ContractCreated", "CONTRACT", contract.getId(), contractSnapshot(contract));
-        observabilityService.pushNotification(
-                "ContractCreated",
-                "Contract Created",
-                "A new contract was created for user #" + contract.getStaffUserId(),
-                contract.getStaffUserId()
-        );
+        // TODO: Add audit logging and notifications when ObservabilityService is implemented
         return StaffContractResponse.from(contract);
     }
 
@@ -120,21 +104,7 @@ public class StaffContractServiceImpl implements StaffContractService {
         contract.setNotes(trimOrNull(request.getNotes()));
 
         StaffContract saved = staffContractRepository.save(contract);
-        observabilityService.recordAudit(
-                "CONTRACT",
-                saved.getId(),
-                saved.getStaffUserId(),
-                "ContractUpdated",
-                before,
-                contractSnapshot(saved)
-        );
-        observabilityService.emitEvent("ContractUpdated", "CONTRACT", saved.getId(), contractSnapshot(saved));
-        observabilityService.pushNotification(
-                "ContractUpdated",
-                "Contract Updated",
-                "Your contract was updated. " + buildContractChangesMessage(before, contractSnapshot(saved)),
-                saved.getStaffUserId()
-        );
+        // TODO: Add audit logging and notifications when ObservabilityService is implemented
         return StaffContractResponse.from(saved);
     }
 
@@ -191,9 +161,7 @@ public class StaffContractServiceImpl implements StaffContractService {
         }
         StaffContract saved = staffContractRepository.save(contract);
         setUserAccess(contract.getStaffUserId(), false);
-        observabilityService.recordAudit("CONTRACT", saved.getId(), saved.getStaffUserId(), "ContractEnded", before, contractSnapshot(saved));
-        observabilityService.emitEvent("ContractEnded", "CONTRACT", saved.getId(), contractSnapshot(saved));
-        observabilityService.pushNotification("ContractEnded", "Contract Ended", "Your contract has been ended.", saved.getStaffUserId());
+        // TODO: Add audit logging and notifications when ObservabilityService is implemented
         return StaffContractResponse.from(saved);
     }
 
@@ -208,9 +176,7 @@ public class StaffContractServiceImpl implements StaffContractService {
         contract.setStatus(ContractStatus.SUSPENDED);
         StaffContract saved = staffContractRepository.save(contract);
         setUserAccess(contract.getStaffUserId(), false);
-        observabilityService.recordAudit("CONTRACT", saved.getId(), saved.getStaffUserId(), "ContractSuspended", before, contractSnapshot(saved));
-        observabilityService.emitEvent("ContractSuspended", "CONTRACT", saved.getId(), contractSnapshot(saved));
-        observabilityService.pushNotification("ContractSuspended", "Contract Suspended", "Your contract has been suspended.", saved.getStaffUserId());
+        // TODO: Add audit logging and notifications when ObservabilityService is implemented
         return StaffContractResponse.from(saved);
     }
 
@@ -228,9 +194,7 @@ public class StaffContractServiceImpl implements StaffContractService {
         contract.setStatus(ContractStatus.ACTIVE);
         StaffContract saved = staffContractRepository.save(contract);
         setUserAccess(contract.getStaffUserId(), true);
-        observabilityService.recordAudit("CONTRACT", saved.getId(), saved.getStaffUserId(), "ContractResumed", before, contractSnapshot(saved));
-        observabilityService.emitEvent("ContractResumed", "CONTRACT", saved.getId(), contractSnapshot(saved));
-        observabilityService.pushNotification("ContractResumed", "Contract Resumed", "Your contract is active again.", saved.getStaffUserId());
+        // TODO: Add audit logging and notifications when ObservabilityService is implemented
         return StaffContractResponse.from(saved);
     }
 
@@ -264,8 +228,7 @@ public class StaffContractServiceImpl implements StaffContractService {
         contract.setDeletedAt(LocalDateTime.now());
         contract.setDeletedBy(resolveActorForInternalCalls());
         staffContractRepository.save(contract);
-        observabilityService.recordAudit("CONTRACT", contract.getId(), contract.getStaffUserId(), "ContractSoftDeleted", before, contractSnapshot(contract));
-        observabilityService.emitEvent("ContractSoftDeleted", "CONTRACT", contract.getId(), contractSnapshot(contract));
+        // TODO: Add audit logging and notifications when ObservabilityService is implemented
     }
 
     @Override
@@ -284,8 +247,7 @@ public class StaffContractServiceImpl implements StaffContractService {
         contract.setDeletedAt(null);
         contract.setDeletedBy(null);
         StaffContract saved = staffContractRepository.save(contract);
-        observabilityService.recordAudit("CONTRACT", saved.getId(), saved.getStaffUserId(), "ContractRestored", null, contractSnapshot(saved));
-        observabilityService.emitEvent("ContractRestored", "CONTRACT", saved.getId(), contractSnapshot(saved));
+        // TODO: Add audit logging and notifications when ObservabilityService is implemented
         return StaffContractResponse.from(saved);
     }
 
@@ -300,13 +262,7 @@ public class StaffContractServiceImpl implements StaffContractService {
         for (StaffContract contract : toExpire) {
             contract.setStatus(ContractStatus.EXPIRED);
             setUserAccess(contract.getStaffUserId(), false);
-            observabilityService.emitEvent("ContractExpired", "CONTRACT", contract.getId(), contractSnapshot(contract));
-            observabilityService.pushNotification(
-                    "ContractExpired",
-                    "Contract Expired",
-                    "Contract " + contract.getContractReference() + " has expired.",
-                    contract.getStaffUserId()
-            );
+            // TODO: Implement audit event logging and push notifications when ObservabilityService is ready
         }
         return toExpire.size();
     }
@@ -326,13 +282,7 @@ public class StaffContractServiceImpl implements StaffContractService {
                 inSevenDays
         );
         for (StaffContract contract : upcoming) {
-            observabilityService.emitEvent("ContractExpiringSoon", "CONTRACT", contract.getId(), contractSnapshot(contract));
-            observabilityService.pushNotification(
-                    "ContractExpiringSoon",
-                    "Contract Expiring Soon",
-                    "Contract " + contract.getContractReference() + " will end on " + contract.getEndDate(),
-                    contract.getStaffUserId()
-            );
+            // TODO: Implement audit event logging and push notifications when ObservabilityService is ready
         }
     }
 

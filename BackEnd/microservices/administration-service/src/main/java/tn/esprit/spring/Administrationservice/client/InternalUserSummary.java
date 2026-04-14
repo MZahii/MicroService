@@ -11,4 +11,5 @@ public class InternalUserSummary {
     private String role;
     private String accountStatus;
     private Boolean enabled;
+    private Boolean activationPending;
 }

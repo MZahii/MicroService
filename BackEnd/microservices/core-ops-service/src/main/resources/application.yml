@@ -6,6 +6,10 @@ spring:
     name: core-ops-service
   config:
     import: optional:configserver:http://localhost:8888
+  flyway:
+    outOfOrder: true
+    validateOnMigrate: false
+    repairOnMigrate: true
 
 eureka:
   client:
