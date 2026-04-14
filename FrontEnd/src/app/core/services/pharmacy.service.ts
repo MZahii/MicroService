@@ -10,7 +10,7 @@ import { environment } from '../../../environments/environment';
 @Injectable({ providedIn: 'root' })
 export class PharmacyService {
   private readonly http = inject(HttpClient);
-  private readonly base = `${environment.apiBaseUrl}/pharmacy/api`;
+  private readonly base = `${environment.apiBaseUrl}/api/pharmacy`;
 
   // ─── Medications ────────────────────────────────────────────────────────────
   getMedications(): Observable<Medication[]> {
