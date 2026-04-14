@@ -61,9 +61,9 @@ spring:
             - id: pharmacy-service-api
               uri: lb://pharmacy-service
               predicates:
-                - Path=/api/pharmacy/**
+                - Path=/pharmacy/api/**
               filters:
-                - RewritePath=/api/pharmacy/?(?<segment>.*), /api/$segment
+                - RewritePath=/pharmacy/api/?(?<segment>.*), /api/$segment
 
             # Operations Service - Rewrite frontend path to service endpoints
             - id: ops-service-api
