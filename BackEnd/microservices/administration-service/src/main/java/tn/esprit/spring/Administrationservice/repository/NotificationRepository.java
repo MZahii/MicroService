@@ -8,4 +8,5 @@ import java.util.List;
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
     List<Notification> findTop50ByTargetUserIdOrderByCreatedAtDesc(Long targetUserId);
     List<Notification> findTop50ByTargetUserIdIsNullOrderByCreatedAtDesc();
+    List<Notification> findByTargetUserId(Long targetUserId);
 }
