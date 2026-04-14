@@ -63,7 +63,7 @@ spring:
               predicates:
                 - Path=/api/pharmacy/**
               filters:
-                - RewritePath=/api/pharmacy/?(?<segment>.*), /$segment
+                - RewritePath=/api/pharmacy/?(?<segment>.*), /api/$segment
 
             # Operations Service - Rewrite frontend path to service endpoints
             - id: ops-service-api
@@ -71,7 +71,7 @@ spring:
               predicates:
                 - Path=/api/ops/**
               filters:
-                - RewritePath=/api/ops/?(?<segment>.*), /$segment
+                - RewritePath=/api/ops/?(?<segment>.*), /api/$segment
 
   security:
     oauth2:
