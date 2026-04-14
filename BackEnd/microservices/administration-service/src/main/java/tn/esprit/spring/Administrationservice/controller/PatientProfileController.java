@@ -10,7 +10,7 @@ import tn.esprit.spring.Administrationservice.service.PatientProfileService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/patients")
+@RequestMapping("/api/patients")
 @RequiredArgsConstructor
 public class PatientProfileController {
 
