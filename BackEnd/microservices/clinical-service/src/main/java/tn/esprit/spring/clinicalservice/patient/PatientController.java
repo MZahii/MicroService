@@ -2,7 +2,6 @@ package tn.esprit.spring.clinicalservice.patient;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,7 +26,6 @@ public class PatientController {
      * @return List of patient summaries
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'PLATFORM_ADMIN', 'STAFF')")
     public ResponseEntity<List<PatientSummary>> getAllPatients() {
         // Return empty list for now - integrate with PatientDirectoryClient as needed
         return ResponseEntity.ok(new ArrayList<>());
@@ -39,7 +37,6 @@ public class PatientController {
      * @return Patient profile details
      */
     @GetMapping("/{patientId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'PLATFORM_ADMIN', 'STAFF')")
     public ResponseEntity<PatientProfileDetails> getPatientById(@PathVariable String patientId) {
         // Return 404 if patient not found
         return ResponseEntity.notFound().build();

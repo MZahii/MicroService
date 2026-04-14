@@ -2,7 +2,6 @@ package tn.esprit.spring.clinicalservice.audit;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -27,7 +26,6 @@ public class AuditController {
      * @return List of audit events sorted by creation date (descending)
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'PLATFORM_ADMIN')")
     public ResponseEntity<List<AuditEventResponse>> listAuditEvents(
             @RequestParam(value = "limit", defaultValue = "200") int limit
     ) {
