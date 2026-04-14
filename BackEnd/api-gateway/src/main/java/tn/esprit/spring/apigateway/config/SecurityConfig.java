@@ -17,14 +17,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.disable())
                 .authorizeExchange(exchange -> exchange
-                        // Allow diagnostic endpoints
-                        .pathMatchers("/api/diagnostic/**").permitAll()
-                        // Allow pharmacy endpoints without authentication
-                        .pathMatchers(HttpMethod.GET, "/api/pharmacy/**").permitAll()
-                        .pathMatchers(HttpMethod.POST, "/api/pharmacy/**").permitAll()
-                        .pathMatchers(HttpMethod.PUT, "/api/pharmacy/**").permitAll()
-                        .pathMatchers(HttpMethod.DELETE, "/api/pharmacy/**").permitAll()
-                        .pathMatchers(HttpMethod.PATCH, "/api/pharmacy/**").permitAll()
+                        // Allow health endpoints
+                        .pathMatchers("/actuator/health", "/actuator/info").permitAll()
                         // Allow auth endpoints
                         .pathMatchers("/api/auth/**").permitAll()
                         // Protect all other endpoints with OAuth2
