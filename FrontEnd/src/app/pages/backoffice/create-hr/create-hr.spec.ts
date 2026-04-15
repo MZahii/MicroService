@@ -1,4 +1,5 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+﻿import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 
 import { CreateHr } from './create-hr';
 
@@ -8,7 +9,8 @@ describe('CreateHr', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [CreateHr]
+      imports: [CreateHr],
+      providers: [provideRouter([])]
     })
     .compileComponents();
 
@@ -21,3 +23,4 @@ describe('CreateHr', () => {
     expect(component).toBeTruthy();
   });
 });
+
