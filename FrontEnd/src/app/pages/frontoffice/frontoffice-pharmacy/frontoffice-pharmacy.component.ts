@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, AfterViewInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -13,7 +13,7 @@ import { forkJoin } from 'rxjs';
   templateUrl: './frontoffice-pharmacy.component.html',
   styleUrl: './frontoffice-pharmacy.component.scss'
 })
-export class FrontofficePharmacyComponent implements OnInit {
+export class FrontofficePharmacyComponent implements OnInit, AfterViewInit {
   private svc = inject(PharmacyService);
 
   medications = signal<Medication[]>([]);
@@ -22,8 +22,23 @@ export class FrontofficePharmacyComponent implements OnInit {
   loading = signal(true);
   searchQuery = '';
   selectedForm = '';
+  selectedAvailability: 'all' | 'available' | 'unavailable' = 'all';
+  sortBy: 'az' | 'za' | '' = '';
 
   ngOnInit() { this.loadData(); }
+
+  ngAfterViewInit() {
+    const observer = new IntersectionObserver(
+      entries => entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('revealed');
+          observer.unobserve(e.target);
+        }
+      }),
+      { threshold: 0.12 }
+    );
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  }
 
   loadData() {
     this.loading.set(true);
@@ -59,17 +74,39 @@ export class FrontofficePharmacyComponent implements OnInit {
     });
   }
 
+  get totalAvailable(): number {
+    return this.medications().filter(m => this.isAvailable(m.medicationId!)).length;
+  }
+
   get uniqueForms(): string[] {
     return [...new Set(this.medications().map(m => m.form).filter(Boolean))];
   }
 
   get filtered(): Medication[] {
     const q = this.searchQuery.toLowerCase().trim();
-    return this.medications().filter(m => {
+    let list = this.medications().filter(m => {
       const matchSearch = !q || m.name.toLowerCase().includes(q) || m.form?.toLowerCase().includes(q);
-      const matchForm = !this.selectedForm || m.form === this.selectedForm;
-      return matchSearch && matchForm;
+      const matchForm   = !this.selectedForm || m.form === this.selectedForm;
+      const avail       = this.isAvailable(m.medicationId!);
+      const matchAvail  = this.selectedAvailability === 'all'
+        || (this.selectedAvailability === 'available'   && avail)
+        || (this.selectedAvailability === 'unavailable' && !avail);
+      return matchSearch && matchForm && matchAvail;
     });
+    if (this.sortBy === 'az') list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+    if (this.sortBy === 'za') list = [...list].sort((a, b) => b.name.localeCompare(a.name));
+    return list;
+  }
+
+  get hasActiveFilters(): boolean {
+    return !!this.searchQuery || !!this.selectedForm || this.selectedAvailability !== 'all' || !!this.sortBy;
+  }
+
+  clearFilters() {
+    this.searchQuery = '';
+    this.selectedForm = '';
+    this.selectedAvailability = 'all';
+    this.sortBy = '';
   }
 
   isAvailable(medId: number): boolean {

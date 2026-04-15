@@ -28,6 +28,20 @@ spring:
     validateOnMigrate: false
     repairOnMigrate: true
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: oumayma.gafsi@esprit.tn
+    password: ${MAIL_PASSWORD:eibd dnjv yfar yjiq} # replace with your Gmail App Password
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+        debug: false
+
   security:
     oauth2:
       resourceserver:

@@ -3,7 +3,9 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   Medication, Batch, Stock,
-  DispenseRequest, DispensationLog, Supplier, SupplyOrder
+  DispenseRequest, DispensationLog, Supplier, SupplierStats, SupplyOrder,
+  ReorderAlert, SmartDispenseRequest, SmartDispenseResponse,
+  TransferStockRequest, TransferStockResponse
 } from '../models/pharmacy.models';
 import { environment } from '../../../environments/environment';
 
@@ -55,6 +57,13 @@ export class PharmacyService {
     return this.http.get<Batch[]>(`${this.base}/medications/batches/expiring-soon`,
       { params: new HttpParams().set('days', days) });
   }
+  getReorderNeeded(): Observable<ReorderAlert[]> {
+    return this.http.get<ReorderAlert[]>(`${this.base}/medications/reorder-needed`);
+  }
+  sendLowStockAlert(recipientEmail: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/medications/reorder-needed/send-alert`, null,
+      { params: new HttpParams().set('recipientEmail', recipientEmail) });
+  }
 
   // ─── Stock ──────────────────────────────────────────────────────────────────
   getAllStock(): Observable<Stock[]> {
@@ -79,6 +88,12 @@ export class PharmacyService {
   }
   adjustStock(batchId: number, delta: number, reason: string): Observable<Stock> {
     return this.http.patch<Stock>(`${this.base}/stock/batches/${batchId}/adjust`, { delta, reason });
+  }
+  transferStock(req: TransferStockRequest): Observable<TransferStockResponse> {
+    return this.http.post<TransferStockResponse>(`${this.base}/stock/transfer`, req);
+  }
+  smartDispense(req: SmartDispenseRequest): Observable<SmartDispenseResponse> {
+    return this.http.post<SmartDispenseResponse>(`${this.base}/stock/smart-dispense`, req);
   }
   getDispensationHistory(date?: string): Observable<DispensationLog[]> {
     const params = date ? new HttpParams().set('date', date) : new HttpParams();
@@ -109,5 +124,11 @@ export class PharmacyService {
   }
   cancelOrder(orderId: number): Observable<SupplyOrder> {
     return this.http.patch<SupplyOrder>(`${this.base}/suppliers/orders/${orderId}/cancel`, {});
+  }
+  toggleSupplierStatus(supplierId: number): Observable<Supplier> {
+    return this.http.patch<Supplier>(`${this.base}/suppliers/${supplierId}/toggle-status`, {});
+  }
+  getSupplierStats(supplierId: number): Observable<SupplierStats> {
+    return this.http.get<SupplierStats>(`${this.base}/suppliers/${supplierId}/stats`);
   }
 }

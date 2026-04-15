@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import tn.esprit.spring.pharmacyservice.dto.SupplierDTO;
+import tn.esprit.spring.pharmacyservice.dto.SupplierStatsDTO;
 import tn.esprit.spring.pharmacyservice.dto.SupplyOrderDTO;
 import tn.esprit.spring.pharmacyservice.service.SupplierService;
 
@@ -31,9 +32,12 @@ public class SupplierController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('PHARMACIST','ADMIN')")
-    @Operation(summary = "List all suppliers")
-    public ResponseEntity<List<SupplierDTO>> getAll() {
-        return ResponseEntity.ok(supplierService.getAllSuppliers());
+    @Operation(summary = "List suppliers with optional filters",
+               description = "Supports ?name=, ?active=true|false")
+    public ResponseEntity<List<SupplierDTO>> getAll(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) Boolean active) {
+        return ResponseEntity.ok(supplierService.getAllSuppliers(name, active));
     }
 
     @GetMapping("/{id}")
@@ -93,5 +97,19 @@ public class SupplierController {
     @Operation(summary = "Filter orders by status (PENDING | DELIVERED | CANCELLED)")
     public ResponseEntity<List<SupplyOrderDTO>> byStatus(@RequestParam String status) {
         return ResponseEntity.ok(supplierService.getOrdersByStatus(status));
+    }
+
+    @PatchMapping("/{id}/toggle-status")
+    @PreAuthorize("hasAnyRole('PHARMACIST','ADMIN')")
+    @Operation(summary = "Toggle supplier active/inactive status")
+    public ResponseEntity<SupplierDTO> toggleStatus(@PathVariable Long id) {
+        return ResponseEntity.ok(supplierService.toggleStatus(id));
+    }
+
+    @GetMapping("/{id}/stats")
+    @PreAuthorize("hasAnyRole('PHARMACIST','ADMIN')")
+    @Operation(summary = "Get performance stats for a supplier")
+    public ResponseEntity<SupplierStatsDTO> getStats(@PathVariable Long id) {
+        return ResponseEntity.ok(supplierService.getStats(id));
     }
 }
