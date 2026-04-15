@@ -1,14 +1,13 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { PharmacyService } from '../../../../core/services/pharmacy.service';
-import { Supplier, SupplyOrder } from '../../../../core/models/pharmacy.models';
+import { Medication, Supplier, SupplyOrder } from '../../../../core/models/pharmacy.models';
 
 @Component({
   selector: 'app-suppliers',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   templateUrl: './suppliers.component.html'
 })
 export class SuppliersComponent implements OnInit {
@@ -25,15 +24,25 @@ export class SuppliersComponent implements OnInit {
 
   showOrderModal = false;
   newOrder: Partial<SupplyOrder> = {};
+  medications = signal<Medication[]>([]);
+  medicationMap = computed(() => {
+    const map: Record<number, string> = {};
+    this.medications().forEach(m => { if (m.medicationId != null) map[m.medicationId] = m.name; });
+    return map;
+  });
 
   toast = signal('');
   toastOk = signal(true);
 
-  ngOnInit() { this.load(); }
+  ngOnInit() { this.load(); this.loadMedications(); }
 
   load() {
     this.loading.set(true);
     this.svc.getSuppliers().subscribe({ next: d => { this.suppliers.set(d); this.loading.set(false); } });
+  }
+
+  loadMedications() {
+    this.svc.getMedications().subscribe({ next: d => this.medications.set(d) });
   }
 
   openAdd() { this.editMode = false; this.currentSupplier = { name: '', contactInfo: '' }; this.showSupplierModal = true; }
@@ -61,7 +70,19 @@ export class SuppliersComponent implements OnInit {
     this.svc.getOrdersForSupplier(s.supplierId!).subscribe({ next: d => this.orders.set(d) });
   }
 
-  openOrder() { this.newOrder = { medicationId: 0, orderedQuantity: 0 }; this.showOrderModal = true; }
+  medicationName(id: number): string {
+    // eslint-disable-next-line eqeqeq
+    const m = this.medications().find(x => x.medicationId == id);
+    return m ? m.name : `#${id}`;
+  }
+
+  openOrder() {
+    this.newOrder = { medicationId: undefined as any, orderedQuantity: 1 };
+    if (this.medications().length === 0) {
+      this.loadMedications();
+    }
+    this.showOrderModal = true;
+  }
 
   placeOrder() {
     this.svc.placeOrder(this.selectedSupplier!.supplierId!, this.newOrder as SupplyOrder).subscribe({

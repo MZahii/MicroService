@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { PharmacyService } from '../../../../core/services/pharmacy.service';
-import { Stock, DispenseRequest, Batch, StockTransferRequest } from '../../../../core/models/pharmacy.models';
+import { Stock, DispenseRequest, Batch, Medication } from '../../../../core/models/pharmacy.models';
 
 @Component({
   selector: 'app-stock',
@@ -23,22 +23,23 @@ export class StockComponent implements OnInit {
   loading = signal(false);
 
   batchMedicationMap: Record<number, string> = {};
-  batchDetailsMap: Record<number, Batch> = {};
 
   showDispense = false;
   dispenseForm: Partial<DispenseRequest> = {};
 
+  // Init modal state
   showInit = false;
-  initBatchId = 0;
-  initQty = 0;
+  initMedications = signal<Medication[]>([]);
+  initSelectedMedId: number | null = null;
+  initBatches = signal<Batch[]>([]);
+  initBatchesLoading = signal(false);
+  initSelectedBatch: Batch | null = null;
+  initQty = 1;
 
   showAdjust = false;
   adjustBatchId = 0;
   adjustDelta = 0;
   adjustReason = '';
-
-  showTransfer = false;
-  transferForm: Partial<StockTransferRequest> = {};
 
   alertOutDismissed = false;
   alertLowDismissed = false;
@@ -65,19 +66,32 @@ export class StockComponent implements OnInit {
       const calls = medications.map(m => this.svc.getBatches(m.medicationId!));
       forkJoin(calls).subscribe({ next: batchArrays => {
         const map: Record<number, string> = {};
-        const details: Record<number, Batch> = {};
         batchArrays.forEach((batches, i) => {
-          batches.forEach(b => {
-            if (b.batchId != null) {
-              map[b.batchId] = medications[i].name;
-              details[b.batchId] = { ...b, medicationId: medications[i].medicationId };
-            }
-          });
+          batches.forEach(b => { if (b.batchId != null) map[b.batchId] = medications[i].name; });
         });
         this.batchMedicationMap = map;
-        this.batchDetailsMap = details;
       }});
     }});
+  }
+
+  openInit() {
+    this.initSelectedMedId = null;
+    this.initSelectedBatch = null;
+    this.initBatches.set([]);
+    this.initQty = 1;
+    this.showInit = true;
+    this.svc.getMedications().subscribe({ next: d => this.initMedications.set(d) });
+  }
+
+  onInitMedChange() {
+    this.initSelectedBatch = null;
+    this.initBatches.set([]);
+    if (!this.initSelectedMedId) return;
+    this.initBatchesLoading.set(true);
+    this.svc.getBatches(this.initSelectedMedId).subscribe({
+      next: d => { this.initBatches.set(d); this.initBatchesLoading.set(false); },
+      error: () => this.initBatchesLoading.set(false)
+    });
   }
 
   get currentList(): Stock[] {
@@ -100,9 +114,10 @@ export class StockComponent implements OnInit {
   }
 
   initStock() {
-    this.svc.initializeStock(this.initBatchId, this.initQty).subscribe({
+    if (!this.initSelectedBatch || !this.initQty) return;
+    this.svc.initializeStock(this.initSelectedBatch.batchId!, this.initQty).subscribe({
       next: () => { this.showInit = false; this.loadAll(); this.notify('Stock initialized', true); },
-      error: (e) => this.notify(e?.error?.message || 'Already initialized', false)
+      error: (e) => this.notify(e?.error?.message || 'Already initialized or error', false)
     });
   }
 
@@ -110,75 +125,6 @@ export class StockComponent implements OnInit {
     this.svc.adjustStock(this.adjustBatchId, this.adjustDelta, this.adjustReason).subscribe({
       next: () => { this.showAdjust = false; this.loadAll(); this.notify('Stock adjusted', true); },
       error: () => this.notify('Adjustment failed', false)
-    });
-  }
-
-  openTransfer(source: Stock) {
-    this.transferForm = {
-      sourceBatchId: source.batchId,
-      targetBatchId: undefined,
-      quantity: undefined,
-      reason: ''
-    };
-    this.showTransfer = true;
-  }
-
-  get transferOptions(): Array<{ batchId: number; label: string }> {
-    const sourceBatchId = Number(this.transferForm.sourceBatchId);
-    if (!sourceBatchId) return [];
-    const sourceBatch = this.batchDetailsMap[sourceBatchId];
-    if (!sourceBatch?.medicationId) return [];
-
-    return Object.values(this.batchDetailsMap)
-      .filter((batch) =>
-        batch.batchId != null
-        && batch.batchId !== sourceBatchId
-        && batch.medicationId === sourceBatch.medicationId
-        && !batch.expired
-      )
-      .sort((a, b) => String(a.expirationDate ?? '').localeCompare(String(b.expirationDate ?? '')))
-      .map((batch) => ({
-        batchId: batch.batchId!,
-        label: `${batch.batchNumber} | expires ${batch.expirationDate ?? '-'}`
-      }));
-  }
-
-  get transferSourceLabel(): string {
-    const sourceBatchId = Number(this.transferForm.sourceBatchId);
-    if (!sourceBatchId) return '-';
-    return this.batchMedicationMap[sourceBatchId] || `Batch ${sourceBatchId}`;
-  }
-
-  get canSubmitTransfer(): boolean {
-    const quantity = Number(this.transferForm.quantity);
-    return !!this.transferForm.sourceBatchId
-      && !!this.transferForm.targetBatchId
-      && quantity > 0;
-  }
-
-  transfer() {
-    const sourceBatchId = Number(this.transferForm.sourceBatchId);
-    const targetBatchId = Number(this.transferForm.targetBatchId);
-    const quantity = Number(this.transferForm.quantity);
-    const reason = (this.transferForm.reason ?? '').trim();
-
-    if (!sourceBatchId || !targetBatchId || !quantity || quantity <= 0) {
-      this.notify('Please select both batches and enter a positive quantity', false);
-      return;
-    }
-
-    this.svc.transferStock({
-      sourceBatchId,
-      targetBatchId,
-      quantity,
-      reason: reason || 'manual stock transfer'
-    }).subscribe({
-      next: () => {
-        this.showTransfer = false;
-        this.loadAll();
-        this.notify('Stock transferred successfully', true);
-      },
-      error: (e) => this.notify(e?.error?.message || 'Transfer failed', false)
     });
   }
 

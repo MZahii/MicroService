@@ -5,8 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import tn.esprit.spring.pharmacyservice.dto.DispenseRequestDTO;
 import tn.esprit.spring.pharmacyservice.dto.DispensationLogDTO;
 import tn.esprit.spring.pharmacyservice.dto.StockDTO;
-import tn.esprit.spring.pharmacyservice.dto.TransferStockRequestDTO;
-import tn.esprit.spring.pharmacyservice.dto.TransferStockResponseDTO;
 import tn.esprit.spring.pharmacyservice.entity.Batch;
 import tn.esprit.spring.pharmacyservice.entity.DispensationLog;
 import tn.esprit.spring.pharmacyservice.entity.Stock;
@@ -124,74 +122,6 @@ public class StockService {
         stock.updateStock(delta);
         log.info("Manual stock adjustment for batch {}: {} (reason: {})", batchId, delta, reason);
         return toDTO(stockRepository.save(stock));
-    }
-
-    /**
-     * Transfer stock between two batches of the same medication.
-     */
-    public TransferStockResponseDTO transferStock(TransferStockRequestDTO request) {
-        Long sourceBatchId = request.getSourceBatchId();
-        Long targetBatchId = request.getTargetBatchId();
-        int qty = request.getQuantity() != null ? request.getQuantity() : 0;
-        String reason = request.getReason() != null ? request.getReason().trim() : "stock transfer";
-
-        if (sourceBatchId == null || targetBatchId == null) {
-            throw new IllegalArgumentException("Source batch and target batch are required.");
-        }
-        if (sourceBatchId.equals(targetBatchId)) {
-            throw new IllegalArgumentException("Source and target batches must be different.");
-        }
-        if (qty <= 0) {
-            throw new IllegalArgumentException("Transfer quantity must be greater than 0.");
-        }
-
-        Batch sourceBatch = batchRepository.findById(sourceBatchId)
-                .orElseThrow(() -> new NoSuchElementException("Source batch not found: " + sourceBatchId));
-        Batch targetBatch = batchRepository.findById(targetBatchId)
-                .orElseThrow(() -> new NoSuchElementException("Target batch not found: " + targetBatchId));
-
-        if (!sourceBatch.getMedication().getMedicationId().equals(targetBatch.getMedication().getMedicationId())) {
-            throw new IllegalStateException("Stock transfer is only allowed between batches of the same medication.");
-        }
-        if (sourceBatch.isExpired()) {
-            throw new IllegalStateException("Cannot transfer stock from an expired source batch.");
-        }
-        if (targetBatch.isExpired()) {
-            throw new IllegalStateException("Cannot transfer stock into an expired target batch.");
-        }
-
-        Stock sourceStock = findByBatchId(sourceBatchId);
-        if (!sourceStock.checkAvailability(qty)) {
-            throw new IllegalStateException(
-                    "Insufficient stock on source batch " + sourceBatchId + ". Requested: " + qty
-                            + ", Available: " + sourceStock.getQuantityAvailable());
-        }
-
-        Stock targetStock = stockRepository.findByBatchId(targetBatchId)
-                .orElseGet(() -> stockRepository.save(
-                        Stock.builder()
-                                .batchId(targetBatchId)
-                                .quantityAvailable(0)
-                                .build()
-                ));
-
-        sourceStock.updateStock(-qty);
-        targetStock.updateStock(qty);
-
-        Stock savedSource = stockRepository.save(sourceStock);
-        Stock savedTarget = stockRepository.save(targetStock);
-
-        log.info("Transferred {} units from batch {} to batch {} (reason: {})",
-                qty, sourceBatchId, targetBatchId, reason);
-
-        return TransferStockResponseDTO.builder()
-                .sourceBatchId(sourceBatchId)
-                .targetBatchId(targetBatchId)
-                .quantityTransferred(qty)
-                .sourceQuantityAvailable(savedSource.getQuantityAvailable())
-                .targetQuantityAvailable(savedTarget.getQuantityAvailable())
-                .reason(reason)
-                .build();
     }
 
     // ─── Dispensation History ─────────────────────────────────────────────────

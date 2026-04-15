@@ -1,185 +1,278 @@
-<div class="nxl-content-page">
+<div class="phx-page">
 
-  <div class="nxl-head-breadcrumb d-flex align-items-center justify-content-between mb-4">
-    <div>
-      <h4 class="mb-0">Suppliers</h4>
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb mb-0">
-          <li class="breadcrumb-item"><a routerLink="/backoffice/dashboard">Dashboard</a></li>
-          <li class="breadcrumb-item active">Suppliers</li>
-        </ol>
-      </nav>
+  <!-- ── Page Header ─────────────────────────────────────────────────────── -->
+  <div class="phx-header">
+    <div class="phx-header-left">
+      <div class="phx-header-icon" style="background:linear-gradient(135deg,#0891b2,#0e7490)">
+        <i class="bi bi-truck"></i>
+      </div>
+      <div>
+        <h4 class="phx-title">Suppliers</h4>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a routerLink="/backoffice/dashboard">Dashboard</a></li>
+            <li class="breadcrumb-item active">Suppliers</li>
+          </ol>
+        </nav>
+      </div>
     </div>
-    <button class="btn btn-primary" (click)="openAdd()">
-      <i data-feather="plus" style="width:16px;height:16px" class="me-1"></i> Add Supplier
+    <button class="phx-btn phx-btn-primary" (click)="openAdd()">
+      <i class="bi bi-plus-lg"></i> Add Supplier
     </button>
   </div>
 
+  <!-- ── Two-column layout ───────────────────────────────────────────────── -->
   <div class="row g-4">
-    <!-- Suppliers list -->
-    <div class="col-md-4">
-      <div class="card h-100">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h6 class="mb-0">Suppliers</h6>
-          <span class="badge bg-soft-primary text-primary">{{ suppliers().length }}</span>
-        </div>
-        <div class="card-body p-0">
-          <div class="text-center py-4" *ngIf="loading()">
-            <div class="spinner-border spinner-border-sm text-primary"></div>
+
+    <!-- Supplier list -->
+    <div class="col-lg-4">
+      <div class="phx-card h-100">
+        <div class="phx-card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-building" style="color:#0891b2"></i>
+            <span class="fw-700">Supplier List</span>
           </div>
-          <div class="list-group list-group-flush">
-            <button
-              class="list-group-item list-group-item-action d-flex align-items-center justify-content-between"
-              *ngFor="let s of suppliers()"
-              [class.active]="selectedSupplier?.supplierId === s.supplierId"
-              (click)="selectSupplier(s)">
-              <div class="overflow-hidden">
-                <div class="fw-semibold text-truncate">{{ s.name }}</div>
-                <div class="small text-muted text-truncate">{{ s.contactInfo }}</div>
-              </div>
-              <div class="d-flex gap-1 ms-2 flex-shrink-0" (click)="$event.stopPropagation()">
-                <button class="btn btn-xs btn-soft-primary" style="padding:3px 7px;font-size:12px" (click)="openEdit(s)">
-                  <i data-feather="edit-2" style="width:12px;height:12px"></i>
-                </button>
-                <button class="btn btn-xs btn-soft-danger" style="padding:3px 7px;font-size:12px" (click)="delete(s)">
-                  <i data-feather="trash-2" style="width:12px;height:12px"></i>
-                </button>
-              </div>
-            </button>
-            <div class="list-group-item text-center text-muted small py-4" *ngIf="suppliers().length === 0">
-              No suppliers yet
+          <span class="phx-badge phx-badge-cyan">{{ suppliers().length }}</span>
+        </div>
+
+        <div class="phx-loader py-4" *ngIf="loading()">
+          <div class="spinner-border spinner-border-sm text-primary"></div>
+        </div>
+
+        <div class="phx-supplier-list">
+          <div class="phx-supplier-item"
+            *ngFor="let s of suppliers()"
+            [class.phx-supplier-active]="selectedSupplier?.supplierId === s.supplierId"
+            (click)="selectSupplier(s)">
+            <div class="phx-supplier-avatar">{{ s.name.charAt(0).toUpperCase() }}</div>
+            <div class="phx-supplier-info">
+              <div class="fw-700 text-truncate">{{ s.name }}</div>
+              <div class="small text-muted text-truncate">{{ s.contactInfo }}</div>
             </div>
+            <div class="phx-supplier-actions" (click)="$event.stopPropagation()">
+              <button class="phx-icon-btn phx-icon-btn-warning" title="Edit" (click)="openEdit(s)">
+                <i class="bi bi-pencil-fill"></i>
+              </button>
+              <button class="phx-icon-btn phx-icon-btn-danger" title="Delete" (click)="delete(s)">
+                <i class="bi bi-trash-fill"></i>
+              </button>
+            </div>
+          </div>
+          <div class="phx-empty" *ngIf="suppliers().length === 0">
+            <i class="bi bi-building-slash"></i>
+            <p>No suppliers yet</p>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Orders panel -->
-    <div class="col-md-8">
-      <div class="card h-100">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h6 class="mb-0">
-            {{ selectedSupplier ? 'Orders — ' + selectedSupplier.name : 'Select a supplier' }}
-          </h6>
-          <button class="btn btn-success btn-sm" *ngIf="selectedSupplier" (click)="openOrder()">
-            <i data-feather="shopping-cart" style="width:14px;height:14px" class="me-1"></i> Place Order
+    <div class="col-lg-8">
+      <div class="phx-card h-100">
+        <div class="phx-card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-cart3" style="color:#0891b2"></i>
+            <span class="fw-700">
+              {{ selectedSupplier ? 'Orders — ' + selectedSupplier.name : 'Select a supplier' }}
+            </span>
+          </div>
+          <button class="phx-btn phx-btn-sm phx-btn-success" *ngIf="selectedSupplier" (click)="openOrder()">
+            <i class="bi bi-plus-lg"></i> Place Order
           </button>
         </div>
-        <div class="card-body p-0">
-          <div class="text-center text-muted py-5" *ngIf="!selectedSupplier">
-            <i data-feather="arrow-left-circle" style="width:40px;height:40px;opacity:.2" class="d-block mx-auto mb-3"></i>
-            <p class="small">Click on a supplier to view their orders</p>
-          </div>
-          <div class="table-responsive" *ngIf="selectedSupplier">
-            <table class="table table-sm table-hover align-middle mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th class="ps-3">#</th>
-                  <th>Medication ID</th>
-                  <th>Qty</th>
-                  <th>Date</th>
-                  <th>Status</th>
-                  <th class="pe-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let o of orders()">
-                  <td class="ps-3 text-muted small">{{ o.orderId }}</td>
-                  <td class="font-monospace small fw-semibold">{{ o.medicationId }}</td>
-                  <td>{{ o.orderedQuantity }}</td>
-                  <td class="small text-muted">{{ o.orderDate | date:'dd/MM/yy' }}</td>
-                  <td>
-                    <span class="badge" [ngClass]="statusBadge(o.status!)">{{ o.status }}</span>
-                  </td>
-                  <td class="pe-3">
-                    <div class="d-flex gap-1" *ngIf="o.status === 'PENDING'">
-                      <button class="btn btn-soft-success" style="font-size:11px;padding:3px 9px" (click)="deliver(o.orderId!)">
-                        <i data-feather="check" style="width:12px;height:12px" class="me-1"></i>Deliver
-                      </button>
-                      <button class="btn btn-soft-danger" style="font-size:11px;padding:3px 9px" (click)="cancel(o.orderId!)">
-                        <i data-feather="x" style="width:12px;height:12px" class="me-1"></i>Cancel
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                <tr *ngIf="orders().length === 0">
-                  <td colspan="6" class="text-center text-muted py-4 small">No orders for this supplier</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+
+        <!-- Empty state -->
+        <div class="phx-empty py-5" *ngIf="!selectedSupplier">
+          <i class="bi bi-arrow-left-circle" style="font-size:48px;opacity:.15"></i>
+          <p>Select a supplier to view their orders</p>
+        </div>
+
+        <div class="table-responsive" *ngIf="selectedSupplier">
+          <table class="phx-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Medication</th>
+                <th>Qty</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let o of orders()">
+                <td class="text-muted small">{{ o.orderId }}</td>
+                <td class="fw-700">{{ medicationMap()[o.medicationId] || o.medicationId }}</td>
+                <td class="fw-600">{{ o.orderedQuantity }}</td>
+                <td class="small text-muted">{{ o.orderDate | date:'dd/MM/yyyy' }}</td>
+                <td>
+                  <span class="phx-pill"
+                    [class.phx-pill-success]="o.status==='DELIVERED'"
+                    [class.phx-pill-danger]="o.status==='CANCELLED'"
+                    [class.phx-pill-warning]="o.status==='PENDING'">
+                    {{ o.status }}
+                  </span>
+                </td>
+                <td>
+                  <div class="d-flex gap-1" *ngIf="o.status==='PENDING'">
+                    <button class="phx-btn phx-btn-sm phx-btn-success" (click)="deliver(o.orderId!)">
+                      <i class="bi bi-check-lg"></i> Deliver
+                    </button>
+                    <button class="phx-btn phx-btn-sm phx-btn-danger" (click)="cancel(o.orderId!)">
+                      <i class="bi bi-x-lg"></i> Cancel
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="orders().length === 0">
+                <td colspan="6" class="phx-empty">
+                  <i class="bi bi-inbox"></i>
+                  <p>No orders for this supplier</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Supplier Modal -->
-<div class="modal fade" [class.show]="showSupplierModal" [style.display]="showSupplierModal ? 'block' : 'none'">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">{{ editMode ? 'Edit' : 'Add' }} Supplier</h5>
-        <button class="btn-close" (click)="showSupplierModal=false"></button>
+<!-- ── Supplier Modal ────────────────────────────────────────────────────── -->
+<div class="phx-overlay" *ngIf="showSupplierModal" (click)="showSupplierModal=false"></div>
+<div class="phx-modal" [class.phx-modal-open]="showSupplierModal">
+  <div class="phx-modal-dialog">
+    <div class="phx-modal-header" style="background:linear-gradient(135deg,#0891b2,#0e7490)">
+      <div class="d-flex align-items-center gap-2 text-white">
+        <i class="bi bi-building fs-5"></i>
+        <h5 class="mb-0">{{ editMode ? 'Edit' : 'Add' }} Supplier</h5>
       </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
-          <input class="form-control" [(ngModel)]="currentSupplier.name" placeholder="Supplier name"/>
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Contact Info</label>
-          <textarea class="form-control" rows="2" [(ngModel)]="currentSupplier.contactInfo"
-            placeholder="Email, phone, address..."></textarea>
-        </div>
+      <button class="phx-close-btn" (click)="showSupplierModal=false"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="phx-modal-body">
+      <div class="phx-field">
+        <label>Name <span class="text-danger">*</span></label>
+        <input class="phx-input" [(ngModel)]="currentSupplier.name" placeholder="Supplier name"/>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-light" (click)="showSupplierModal=false">Cancel</button>
-        <button class="btn btn-primary" (click)="save()" [disabled]="!currentSupplier.name">Save</button>
+      <div class="phx-field">
+        <label>Contact Info</label>
+        <textarea class="phx-input" rows="3" [(ngModel)]="currentSupplier.contactInfo"
+          placeholder="Email, phone, address..."></textarea>
       </div>
+    </div>
+    <div class="phx-modal-footer">
+      <button class="phx-btn phx-btn-ghost" (click)="showSupplierModal=false">Cancel</button>
+      <button class="phx-btn phx-btn-primary" (click)="save()" [disabled]="!currentSupplier.name">
+        <i class="bi bi-check-lg"></i> Save
+      </button>
     </div>
   </div>
 </div>
-<div class="modal-backdrop fade show" *ngIf="showSupplierModal" (click)="showSupplierModal=false"></div>
 
-<!-- Order Modal -->
-<div class="modal fade" [class.show]="showOrderModal" [style.display]="showOrderModal ? 'block' : 'none'">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">
-          <i data-feather="shopping-cart" style="width:16px;height:16px" class="me-2"></i>
-          Place Order — {{ selectedSupplier?.name }}
-        </h5>
-        <button class="btn-close" (click)="showOrderModal=false"></button>
+<!-- ── Order Modal ───────────────────────────────────────────────────────── -->
+<div class="phx-overlay" *ngIf="showOrderModal" (click)="showOrderModal=false"></div>
+<div class="phx-modal" [class.phx-modal-open]="showOrderModal">
+  <div class="phx-modal-dialog">
+    <div class="phx-modal-header" style="background:linear-gradient(135deg,#16a34a,#15803d)">
+      <div class="d-flex align-items-center gap-2 text-white">
+        <i class="bi bi-cart-plus fs-5"></i>
+        <h5 class="mb-0">Place Order — {{ selectedSupplier?.name }}</h5>
       </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Medication ID <span class="text-danger">*</span></label>
-          <input type="number" class="form-control" [(ngModel)]="newOrder.medicationId" placeholder="e.g. 1"/>
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Quantity <span class="text-danger">*</span></label>
-          <input type="number" class="form-control" [(ngModel)]="newOrder.orderedQuantity" min="1"/>
-        </div>
+      <button class="phx-close-btn" (click)="showOrderModal=false"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="phx-modal-body">
+      <div class="phx-field">
+        <label>Medication <span class="text-danger">*</span></label>
+        <select class="phx-input" [(ngModel)]="newOrder.medicationId">
+          <option [ngValue]="undefined" disabled>Select a medication...</option>
+          <option *ngFor="let m of medications()" [ngValue]="m.medicationId">
+            {{ m.name }} — {{ m.form | titlecase }}
+          </option>
+        </select>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-light" (click)="showOrderModal=false">Cancel</button>
-        <button class="btn btn-success" (click)="placeOrder()"
-          [disabled]="!newOrder.medicationId || !newOrder.orderedQuantity">Place Order</button>
+      <div class="phx-field">
+        <label>Quantity <span class="text-danger">*</span></label>
+        <input type="number" class="phx-input" [(ngModel)]="newOrder.orderedQuantity" min="1"/>
       </div>
+    </div>
+    <div class="phx-modal-footer">
+      <button class="phx-btn phx-btn-ghost" (click)="showOrderModal=false">Cancel</button>
+      <button class="phx-btn phx-btn-success" (click)="placeOrder()"
+        [disabled]="!newOrder.medicationId || !newOrder.orderedQuantity">
+        <i class="bi bi-cart-check"></i> Place Order
+      </button>
     </div>
   </div>
 </div>
-<div class="modal-backdrop fade show" *ngIf="showOrderModal" (click)="showOrderModal=false"></div>
 
-<!-- Toast -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999" *ngIf="toast()">
-  <div class="toast show align-items-center text-white border-0"
-    [class.bg-success]="toastOk()" [class.bg-danger]="!toastOk()">
-    <div class="d-flex">
-      <div class="toast-body fw-semibold">{{ toast() }}</div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" (click)="toast.set('')"></button>
-    </div>
-  </div>
+<!-- ── Toast ────────────────────────────────────────────────────────────── -->
+<div class="phx-toast" [class.phx-toast-show]="toast()"
+  [class.phx-toast-success]="toastOk()" [class.phx-toast-error]="!toastOk()">
+  <i class="bi" [class.bi-check-circle-fill]="toastOk()" [class.bi-x-circle-fill]="!toastOk()"></i>
+  {{ toast() }}
 </div>
+
+<style>
+:root { --phx-primary:#4f46e5; }
+.phx-page { padding:24px; background:#f8fafc; min-height:100vh; }
+.phx-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
+.phx-header-left { display:flex; align-items:center; gap:16px; }
+.phx-header-icon { width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:20px; }
+.phx-title { font-size:22px; font-weight:800; color:#1e293b; margin:0; }
+.phx-btn { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:10px; font-weight:600; font-size:13.5px; border:none; cursor:pointer; transition:all .2s; }
+.phx-btn-sm { padding:6px 12px; font-size:12.5px; border-radius:8px; }
+.phx-btn-primary { background:linear-gradient(135deg,#4f46e5,#7c3aed); color:#fff; box-shadow:0 4px 14px rgba(79,70,229,.3); }
+.phx-btn-success { background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; }
+.phx-btn-danger { background:#ef4444; color:#fff; }
+.phx-btn-ghost { background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0; }
+.phx-btn-ghost:hover { background:#e2e8f0; }
+.phx-btn:disabled { opacity:.5; cursor:not-allowed; }
+.phx-card { background:#fff; border-radius:16px; box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04); border:1px solid #f1f5f9; overflow:hidden; }
+.phx-card-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid #f1f5f9; background:#fafbff; }
+.fw-700 { font-weight:700; } .fw-600 { font-weight:600; }
+.phx-badge { padding:4px 12px; border-radius:999px; font-size:12px; font-weight:700; }
+.phx-badge-cyan { background:#cffafe; color:#0e7490; }
+.phx-pill { display:inline-block; padding:4px 11px; border-radius:999px; font-size:12px; font-weight:700; }
+.phx-pill-success { background:#dcfce7; color:#16a34a; }
+.phx-pill-danger { background:#fee2e2; color:#dc2626; }
+.phx-pill-warning { background:#fef9c3; color:#854d0e; }
+.phx-supplier-list { overflow-y:auto; max-height:520px; }
+.phx-supplier-item { display:flex; align-items:center; gap:12px; padding:14px 18px; cursor:pointer; border-bottom:1px solid #f8fafc; transition:background .15s; }
+.phx-supplier-item:hover { background:#f8fafc; }
+.phx-supplier-active { background:#ede9fe!important; border-left:3px solid #4f46e5; }
+.phx-supplier-avatar { width:38px; height:38px; border-radius:10px; background:linear-gradient(135deg,#4f46e5,#7c3aed); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px; flex-shrink:0; }
+.phx-supplier-info { flex:1; min-width:0; }
+.phx-supplier-actions { display:flex; gap:6px; flex-shrink:0; }
+.phx-icon-btn { width:30px; height:30px; border-radius:8px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; transition:all .2s; }
+.phx-icon-btn-warning { background:#fef3c7; color:#d97706; }
+.phx-icon-btn-warning:hover { background:#fde68a; }
+.phx-icon-btn-danger { background:#fee2e2; color:#ef4444; }
+.phx-icon-btn-danger:hover { background:#fecaca; }
+.phx-table { width:100%; border-collapse:collapse; }
+.phx-table thead tr { background:#fafbff; }
+.phx-table th { padding:12px 16px; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; border-bottom:1px solid #f1f5f9; }
+.phx-table td { padding:13px 16px; border-bottom:1px solid #f8fafc; font-size:13.5px; color:#334155; }
+.phx-table tbody tr:hover { background:#fafbff; }
+.phx-table tbody tr:last-child td { border-bottom:none; }
+.phx-empty { text-align:center; padding:40px 20px; color:#94a3b8; }
+.phx-empty i { font-size:36px; display:block; margin-bottom:10px; opacity:.3; }
+.phx-empty p { margin:0; font-size:14px; }
+.phx-loader { display:flex; align-items:center; justify-content:center; gap:10px; color:#64748b; }
+.phx-overlay { position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:1040; backdrop-filter:blur(2px); }
+.phx-modal { position:fixed; inset:0; z-index:1050; display:flex; align-items:center; justify-content:center; pointer-events:none; opacity:0; transition:opacity .2s; }
+.phx-modal.phx-modal-open { pointer-events:auto; opacity:1; }
+.phx-modal-dialog { background:#fff; border-radius:20px; width:100%; max-width:460px; box-shadow:0 20px 60px rgba(0,0,0,.18); overflow:hidden; }
+.phx-modal-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px; }
+.phx-modal-body { padding:24px; }
+.phx-modal-footer { display:flex; justify-content:flex-end; gap:10px; padding:16px 24px; border-top:1px solid #f1f5f9; background:#fafbff; }
+.phx-close-btn { background:rgba(255,255,255,.2); border:none; color:#fff; width:32px; height:32px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.phx-close-btn:hover { background:rgba(255,255,255,.3); }
+.phx-field { margin-bottom:18px; }
+.phx-field label { display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:6px; }
+.phx-input { width:100%; padding:10px 13px; border:1.5px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none; transition:border-color .2s; }
+.phx-input:focus { border-color:#4f46e5; box-shadow:0 0 0 3px rgba(79,70,229,.08); }
+.phx-toast { position:fixed; bottom:24px; right:24px; z-index:9999; display:flex; align-items:center; gap:10px; padding:14px 20px; border-radius:12px; font-weight:600; font-size:14px; color:#fff; box-shadow:0 8px 24px rgba(0,0,0,.15); opacity:0; transform:translateY(8px); transition:all .3s; pointer-events:none; }
+.phx-toast.phx-toast-show { opacity:1; transform:translateY(0); }
+.phx-toast-success { background:linear-gradient(135deg,#16a34a,#15803d); }
+.phx-toast-error { background:linear-gradient(135deg,#ef4444,#dc2626); }
+</style>

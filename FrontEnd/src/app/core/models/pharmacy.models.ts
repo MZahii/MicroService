@@ -28,22 +28,6 @@ export interface DispenseRequest {
   //prescriptionId: string;
 }
 
-export interface StockTransferRequest {
-  sourceBatchId: number;
-  targetBatchId: number;
-  quantity: number;
-  reason?: string;
-}
-
-export interface StockTransferResult {
-  sourceBatchId: number;
-  targetBatchId: number;
-  quantityTransferred: number;
-  sourceQuantityAvailable: number;
-  targetQuantityAvailable: number;
-  reason?: string;
-}
-
 export interface Supplier {
   supplierId?: number;
   name: string;

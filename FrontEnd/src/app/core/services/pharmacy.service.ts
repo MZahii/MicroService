@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   Medication, Batch, Stock,
-  DispenseRequest, DispensationLog, Supplier, SupplyOrder, StockTransferRequest, StockTransferResult
+  DispenseRequest, DispensationLog, Supplier, SupplyOrder
 } from '../models/pharmacy.models';
 import { environment } from '../../../environments/environment';
 
@@ -11,6 +11,18 @@ import { environment } from '../../../environments/environment';
 export class PharmacyService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiBaseUrl}/api/pharmacy`;
+  private readonly publicBase = `${environment.apiBaseUrl}/api/pharmacy/public/pharmacy`;
+
+  // ─── Public (frontoffice / no auth required) ─────────────────────────────
+  getPublicMedications(): Observable<Medication[]> {
+    return this.http.get<Medication[]>(`${this.publicBase}/medications`);
+  }
+  getPublicBatches(medicationId: number): Observable<Batch[]> {
+    return this.http.get<Batch[]>(`${this.publicBase}/medications/${medicationId}/batches`);
+  }
+  getPublicStock(): Observable<Stock[]> {
+    return this.http.get<Stock[]>(`${this.publicBase}/stock`);
+  }
 
   // ─── Medications ────────────────────────────────────────────────────────────
   getMedications(): Observable<Medication[]> {
@@ -67,9 +79,6 @@ export class PharmacyService {
   }
   adjustStock(batchId: number, delta: number, reason: string): Observable<Stock> {
     return this.http.patch<Stock>(`${this.base}/stock/batches/${batchId}/adjust`, { delta, reason });
-  }
-  transferStock(request: StockTransferRequest): Observable<StockTransferResult> {
-    return this.http.post<StockTransferResult>(`${this.base}/stock/transfer`, request);
   }
   getDispensationHistory(date?: string): Observable<DispensationLog[]> {
     const params = date ? new HttpParams().set('date', date) : new HttpParams();
