@@ -6,6 +6,8 @@ import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { getValidToken } from '../../../core/auth/keycloak.service';
 import { environment } from '../../../../environments/environment';
+import { DocumentExportService } from '../../../core/services/document-export.service';
+import { AuthStorageService } from '../../../core/auth/auth-storage.service';
 
 interface ClinicalAuditEvent {
   id: number;
@@ -32,6 +34,9 @@ export class ClinicalAuditLogsComponent implements OnInit {
   search = '';
   actionFilter = 'ALL';
   logs: ClinicalAuditEvent[] = [];
+  currentPage = 1;
+  pageSize = 20;
+  readonly pageSizeOptions = [10, 20, 50];
 
   async ngOnInit(): Promise<void> {
     await this.loadLogs();
@@ -61,6 +66,51 @@ export class ClinicalAuditLogsComponent implements OnInit {
     });
   }
 
+  get paginatedLogs(): ClinicalAuditEvent[] {
+    if (this.currentPage > this.totalPages) {
+      this.currentPage = this.totalPages;
+    }
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredLogs.slice(start, start + this.pageSize);
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredLogs.length / this.pageSize));
+  }
+
+  get pageNumbers(): number[] {
+    return Array.from({ length: this.totalPages }, (_, i) => i + 1);
+  }
+
+  get uniqueActionsCount(): number {
+    return new Set(this.filteredLogs.map((log) => log.action).filter(Boolean)).size;
+  }
+
+  get uniqueEntityTypesCount(): number {
+    return new Set(this.filteredLogs.map((log) => log.entityType).filter(Boolean)).size;
+  }
+
+  onFiltersChanged(): void {
+    this.currentPage = 1;
+  }
+
+  onPageSizeChanged(): void {
+    this.currentPage = 1;
+  }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
+  }
+
+  printLogs(): void {
+    this.documentExportService.printDocument(this.buildExportConfig());
+  }
+
+  exportPdf(): void {
+    this.documentExportService.exportPdf(this.buildExportConfig());
+  }
+
   private async loadLogs(): Promise<void> {
     this.loading = true;
     this.errorMessage = '';
@@ -80,5 +130,46 @@ export class ClinicalAuditLogsComponent implements OnInit {
     }
   }
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private documentExportService: DocumentExportService,
+    private authStorage: AuthStorageService
+  ) {}
+
+  private buildExportConfig() {
+    const currentUser = this.authStorage.getUser();
+    const generatedBy = currentUser
+      ? `${currentUser.firstName ?? ''} ${currentUser.lastName ?? ''}`.trim() || currentUser.username || 'System'
+      : 'System';
+    return {
+      title: 'Clinical Audit Logs Report',
+      subtitle: 'Clinical service event timeline',
+      generatedBy,
+      summary: [
+        { label: 'Total Events', value: this.filteredLogs.length },
+        { label: 'Unique Actions', value: this.uniqueActionsCount },
+        { label: 'Entity Types', value: this.uniqueEntityTypesCount },
+        { label: 'Filtered By', value: this.actionFilter === 'ALL' ? 'All Actions' : this.actionFilter }
+      ],
+      columns: [
+        { key: 'createdAt', label: 'Date / Time' },
+        { key: 'entityType', label: 'Entity Type' },
+        { key: 'entityId', label: 'Entity ID' },
+        { key: 'action', label: 'Action' },
+        { key: 'actorUsername', label: 'Actor' },
+        { key: 'actorRole', label: 'Role' },
+        { key: 'details', label: 'Details' }
+      ],
+      rows: this.filteredLogs.map((log) => ({
+        createdAt: new Date(log.createdAt).toLocaleString(),
+        entityType: log.entityType,
+        entityId: log.entityId,
+        action: log.action,
+        actorUsername: log.actorUsername || '-',
+        actorRole: log.actorRole || '-',
+        details: log.details || '-'
+      })),
+      emptyText: 'No clinical events match the selected filters.'
+    };
+  }
 }

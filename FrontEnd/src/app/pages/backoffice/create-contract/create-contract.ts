@@ -66,10 +66,11 @@ export class CreateContract implements OnInit {
     'Surgeon',
     'Pharmacist',
     'Receptionist',
+    'Lab Agent',
     'Administrative Officer'
   ];
   readonly hrDepartmentOptions: string[] = ['Human Resources', 'Administration'];
-  readonly staffDepartmentOptions: string[] = ['Medical', 'Nursing', 'Surgery', 'Pharmacy', 'Reception'];
+  readonly staffDepartmentOptions: string[] = ['Medical', 'Nursing', 'Surgery', 'Pharmacy', 'Reception', 'Laboratory'];
   readonly hoursPerWeekOptionsByType: Record<ContractType, number[]> = {
     CDI: [35, 40, 45],
     CDD: [30, 35, 40],
@@ -213,7 +214,7 @@ export class CreateContract implements OnInit {
 
       const allowedRoles = this.isAdmin
         ? ['HR']
-        : ['DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST'];
+        : ['DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST', 'LAB_AGENT'];
 
       const contractUsers = users.filter((user) => allowedRoles.includes(user.role));
       const availableUsers = contractUsers.filter(user => !usersWithRunningContract.has(user.id));

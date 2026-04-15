@@ -16,6 +16,7 @@
       { "name": "NURSE" },
       { "name": "SURGEON" },
       { "name": "PHARMACIST" },
+      { "name": "LAB_AGENT" },
       { "name": "GUARDIAN" }
     ]
   },

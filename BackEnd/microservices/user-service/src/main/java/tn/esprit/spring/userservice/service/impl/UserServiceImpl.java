@@ -20,6 +20,10 @@ import tn.esprit.spring.userservice.dto.request.StaffSearchRequest;
 import tn.esprit.spring.userservice.dto.request.UpdateGuardianProfileRequest;
 import tn.esprit.spring.userservice.dto.request.UpdateHrProfileRequest;
 import tn.esprit.spring.userservice.dto.request.UpdateStaffProfileRequest;
+import tn.esprit.spring.userservice.dto.request.UpdateMyProfileRequest;
+import tn.esprit.spring.userservice.dto.request.UpdateMyPreferencesRequest;
+import tn.esprit.spring.userservice.dto.request.ChangeMyPasswordRequest;
+import tn.esprit.spring.userservice.dto.response.MyAccountSettingsResponse;
 import tn.esprit.spring.userservice.dto.response.StaffSearchResponse;
 import tn.esprit.spring.userservice.dto.response.UserAuditLogResponse;
 import tn.esprit.spring.userservice.dto.response.UserResponse;
@@ -57,7 +61,8 @@ public class UserServiceImpl implements UserService {
             Role.NURSE,
             Role.SURGEON,
             Role.PHARMACIST,
-            Role.RECEPTIONIST
+            Role.RECEPTIONIST,
+            Role.LAB_AGENT
     );
 
     @Override
@@ -76,7 +81,7 @@ public class UserServiceImpl implements UserService {
                 false
         );
 
-        User user = userRepository.save(
+        User user = persistUserWithRollback(
                 User.builder()
                         .keycloakId(keycloakId)
                         .username(request.getUsername())
@@ -90,7 +95,10 @@ public class UserServiceImpl implements UserService {
                         .role(Role.HR)
                         .accountStatus(AccountStatus.PENDING_CONTRACT)
                         .enabled(false)
-                        .build()
+                        .mustChangePassword(true)
+                        .build(),
+                keycloakId,
+                "HR"
         );
         saveAudit(user.getId(), "HrAccountCreated", null, userSnapshot(user));
 
@@ -123,7 +131,7 @@ public class UserServiceImpl implements UserService {
                 false
         );
 
-        User user = userRepository.save(
+        User user = persistUserWithRollback(
                 User.builder()
                         .keycloakId(keycloakId)
                         .username(request.getUsername())
@@ -134,7 +142,10 @@ public class UserServiceImpl implements UserService {
                         .role(request.getRole())
                         .accountStatus(AccountStatus.PENDING_CONTRACT)
                         .enabled(false)
-                        .build()
+                        .mustChangePassword(true)
+                        .build(),
+                keycloakId,
+                "internal staff"
         );
         saveAudit(user.getId(), "InternalAccountCreated", null, userSnapshot(user));
 
@@ -161,7 +172,7 @@ public class UserServiceImpl implements UserService {
                 false
         );
 
-        User user = userRepository.save(
+        User user = persistUserWithRollback(
                 User.builder()
                         .keycloakId(keycloakId)
                         .username(request.getUsername())
@@ -175,7 +186,10 @@ public class UserServiceImpl implements UserService {
                         .role(request.getRole())
                         .accountStatus(AccountStatus.PENDING_CONTRACT)
                         .enabled(false)
-                        .build()
+                        .mustChangePassword(true)
+                        .build(),
+                keycloakId,
+                "staff"
         );
         saveAudit(user.getId(), "StaffAccountCreated", null, userSnapshot(user));
 
@@ -212,7 +226,7 @@ public class UserServiceImpl implements UserService {
                 true
         );
 
-        User user = userRepository.save(
+        User user = persistUserWithRollback(
                 User.builder()
                         .keycloakId(keycloakId)
                         .username(request.getUsername())
@@ -226,7 +240,10 @@ public class UserServiceImpl implements UserService {
                         .role(Role.GUARDIAN)
                         .accountStatus(AccountStatus.ACTIVE)
                         .enabled(true)
-                        .build()
+                        .mustChangePassword(false)
+                        .build(),
+                keycloakId,
+                "guardian"
         );
         saveAudit(user.getId(), "GuardianAccountCreated", null, userSnapshot(user));
 
@@ -504,6 +521,97 @@ public class UserServiceImpl implements UserService {
         return UserMapper.toResponse(saved);
     }
 
+    @Override
+    public MyAccountSettingsResponse getMySettings(String authorization) {
+        User user = resolveAuthenticatedUserFromAuthorization(authorization);
+        return MyAccountSettingsResponse.from(user);
+    }
+
+    @Override
+    public MyAccountSettingsResponse updateMyProfile(String authorization, UpdateMyProfileRequest request) {
+        User user = resolveAuthenticatedUserFromAuthorization(authorization);
+        Map<String, Object> before = userSnapshot(user);
+
+        String normalizedEmail = request.getEmail().trim();
+        if (userRepository.existsByEmailAndIdNot(normalizedEmail, user.getId())) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+
+        String normalizedPhone = request.getPhone() == null ? null : request.getPhone().trim();
+        if (normalizedPhone != null && !normalizedPhone.isEmpty() && userRepository.existsByPhoneAndIdNot(normalizedPhone, user.getId())) {
+            throw new IllegalArgumentException("Phone already exists");
+        }
+
+        keycloakAdminService.updateUserProfile(
+                user.getKeycloakId(),
+                normalizedEmail,
+                request.getFirstName().trim(),
+                request.getLastName().trim()
+        );
+
+        user.setFirstName(request.getFirstName().trim());
+        user.setLastName(request.getLastName().trim());
+        user.setEmail(normalizedEmail);
+        user.setPhone((normalizedPhone == null || normalizedPhone.isEmpty()) ? null : normalizedPhone);
+        user.setAvatarUrl(trimOrNull(request.getAvatarUrl()));
+
+        User saved = userRepository.save(user);
+        saveAudit(saved.getId(), "MyProfileUpdated", before, userSnapshot(saved));
+        notifyProfileUpdated(saved, before, userSnapshot(saved));
+        return MyAccountSettingsResponse.from(saved);
+    }
+
+    @Override
+    public MyAccountSettingsResponse updateMyPreferences(String authorization, UpdateMyPreferencesRequest request) {
+        User user = resolveAuthenticatedUserFromAuthorization(authorization);
+        Map<String, Object> before = userSnapshot(user);
+
+        String preferredLanguage = normalizeLanguage(request.getPreferredLanguage());
+        String theme = normalizeTheme(request.getTheme());
+
+        user.setPreferredLanguage(preferredLanguage);
+        user.setTheme(theme);
+        user.setNotificationsEnabled(request.getNotificationsEnabled() == null || request.getNotificationsEnabled());
+
+        User saved = userRepository.save(user);
+        saveAudit(saved.getId(), "MyPreferencesUpdated", before, userSnapshot(saved));
+        return MyAccountSettingsResponse.from(saved);
+    }
+
+    @Override
+    public void changeMyPassword(String authorization, ChangeMyPasswordRequest request) {
+        User user = resolveAuthenticatedUserFromAuthorization(authorization);
+        Map<String, Object> before = userSnapshot(user);
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new IllegalArgumentException("New password and confirmation do not match.");
+        }
+
+        if (request.getNewPassword().length() < 8) {
+            throw new IllegalArgumentException("New password must be at least 8 characters.");
+        }
+
+        if (request.getCurrentPassword().equals(request.getNewPassword())) {
+            throw new IllegalArgumentException("New password must be different from current password.");
+        }
+
+        boolean validCurrentPassword = keycloakAdminService.validateCredentials(user.getUsername(), request.getCurrentPassword());
+        if (!validCurrentPassword) {
+            throw new IllegalArgumentException("Current password is incorrect.");
+        }
+
+        keycloakAdminService.updatePassword(user.getKeycloakId(), request.getNewPassword(), false);
+        user.setMustChangePassword(false);
+        User saved = userRepository.save(user);
+        saveAudit(saved.getId(), "PasswordChanged", before, userSnapshot(saved));
+        notificationBridgeService.pushNotification(
+                "PasswordChanged",
+                "Password Updated",
+                "Your account password was changed successfully.",
+                saved.getId()
+        );
+    }
+
     private void validateHrRequest(CreateHrAccountRequest request) {
         if (userRepository.existsByUsernameAndDeletedFalse(request.getUsername())) {
             throw new IllegalArgumentException("Username already exists");
@@ -532,6 +640,46 @@ public class UserServiceImpl implements UserService {
         if (request.getPhone() != null && userRepository.existsByPhoneAndDeletedFalse(request.getPhone())) {
             throw new IllegalArgumentException("Phone already exists");
         }
+    }
+
+    private User resolveAuthenticatedUserFromAuthorization(String authorization) {
+        String username = extractUsernameFromBearer(authorization);
+        String keycloakId = extractSubjectFromBearer(authorization);
+
+        if (username != null && !username.isBlank()) {
+            return userRepository.findByUsernameAndDeletedFalse(username)
+                    .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found."));
+        }
+
+        if (keycloakId != null && !keycloakId.isBlank()) {
+            return userRepository.findByKeycloakIdAndDeletedFalse(keycloakId)
+                    .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found."));
+        }
+
+        throw new IllegalArgumentException("Authorization token is missing or invalid.");
+    }
+
+    private User persistUserWithRollback(User user, String keycloakId, String accountTypeLabel) {
+        try {
+            return userRepository.save(user);
+        } catch (Exception ex) {
+            keycloakAdminService.deleteUser(keycloakId);
+            throw new IllegalArgumentException(
+                    "Failed to save " + accountTypeLabel + " account in database: " + rootCauseMessage(ex)
+            );
+        }
+    }
+
+    private String rootCauseMessage(Throwable throwable) {
+        Throwable root = throwable;
+        while (root.getCause() != null) {
+            root = root.getCause();
+        }
+        String message = root.getMessage();
+        if (message == null || message.isBlank()) {
+            return throwable.getMessage();
+        }
+        return message;
     }
 
     private void saveAudit(Long userId, String action, Object oldValue, Object newValue) {
@@ -582,8 +730,26 @@ public class UserServiceImpl implements UserService {
             if (preferred instanceof String preferredUsername && !preferredUsername.isBlank()) {
                 return preferredUsername;
             }
+            return null;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private String extractSubjectFromBearer(String authorization) {
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+            return null;
+        }
+        try {
+            String token = authorization.substring(7);
+            String[] parts = token.split("\\.");
+            if (parts.length < 2) {
+                return null;
+            }
+            byte[] decoded = Base64.getUrlDecoder().decode(parts[1]);
+            Map<?, ?> claims = objectMapper.readValue(new String(decoded, StandardCharsets.UTF_8), Map.class);
             Object sub = claims.get("sub");
-            return (sub instanceof String) ? (String) sub : null;
+            return (sub instanceof String subject && !subject.isBlank()) ? subject : null;
         } catch (Exception ignored) {
             return null;
         }
@@ -606,6 +772,12 @@ public class UserServiceImpl implements UserService {
         map.put("firstName", user.getFirstName());
         map.put("lastName", user.getLastName());
         map.put("role", String.valueOf(user.getRole()));
+        map.put("phone", user.getPhone());
+        map.put("avatarUrl", user.getAvatarUrl());
+        map.put("preferredLanguage", user.getPreferredLanguage());
+        map.put("notificationsEnabled", user.isNotificationsEnabled());
+        map.put("theme", user.getTheme());
+        map.put("mustChangePassword", user.isMustChangePassword());
         map.put("accountStatus", String.valueOf(user.getAccountStatus()));
         map.put("enabled", user.isEnabled());
         return map;
@@ -680,6 +852,30 @@ public class UserServiceImpl implements UserService {
             case "accountStatus" -> "Account Status";
             case "enabled" -> "Access";
             default -> key.replaceAll("([a-z])([A-Z])", "$1 $2");
+        };
+    }
+
+    private String trimOrNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeLanguage(String language) {
+        String normalized = language == null ? "" : language.trim().toLowerCase();
+        return switch (normalized) {
+            case "fr", "en", "ar" -> normalized;
+            default -> throw new IllegalArgumentException("Unsupported language. Allowed values: en, fr, ar.");
+        };
+    }
+
+    private String normalizeTheme(String theme) {
+        String normalized = theme == null ? "" : theme.trim().toLowerCase();
+        return switch (normalized) {
+            case "light", "dark", "system" -> normalized;
+            default -> throw new IllegalArgumentException("Unsupported theme. Allowed values: light, dark, system.");
         };
     }
 }

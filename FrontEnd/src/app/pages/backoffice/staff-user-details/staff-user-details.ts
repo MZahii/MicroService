@@ -61,7 +61,7 @@ interface LogDiffInfo {
   parsed: boolean;
 }
 
-type StaffRole = 'DOCTOR' | 'NURSE' | 'SURGEON' | 'PHARMACIST' | 'RECEPTIONIST';
+type StaffRole = 'DOCTOR' | 'NURSE' | 'SURGEON' | 'PHARMACIST' | 'RECEPTIONIST' | 'LAB_AGENT';
 type Sex = 'MALE' | 'FEMALE';
 type ContractType = 'CDI' | 'CDD' | 'INTERNSHIP' | 'PART_TIME' | 'TEMPORARY';
 
@@ -114,7 +114,7 @@ export class StaffUserDetails implements OnInit {
     notes: ''
   };
 
-  readonly staffRoles: StaffRole[] = ['DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST'];
+  readonly staffRoles: StaffRole[] = ['DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST', 'LAB_AGENT'];
   readonly sexOptions: Sex[] = ['MALE', 'FEMALE'];
   readonly contractTypeOptions: ContractType[] = ['CDI', 'CDD', 'INTERNSHIP', 'PART_TIME', 'TEMPORARY'];
   readonly hrJobTitleOptions: string[] = ['HR Manager', 'Manager Assistant'];
@@ -124,10 +124,11 @@ export class StaffUserDetails implements OnInit {
     'Surgeon',
     'Pharmacist',
     'Receptionist',
+    'Lab Agent',
     'Administrative Officer'
   ];
   readonly hrDepartmentOptions: string[] = ['Human Resources', 'Administration'];
-  readonly staffDepartmentOptions: string[] = ['Medical', 'Nursing', 'Surgery', 'Pharmacy', 'Reception'];
+  readonly staffDepartmentOptions: string[] = ['Medical', 'Nursing', 'Surgery', 'Pharmacy', 'Reception', 'Laboratory'];
   readonly hoursPerWeekOptionsByType: Record<ContractType, number[]> = {
     CDI: [35, 40, 45],
     CDD: [30, 35, 40],

@@ -326,25 +326,43 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
           label: 'Clinic Resources',
           icon: 'feather-grid',
           children: [
-            {
-              label: 'Resources List',
-              implemented: false,
-              note: 'Coming soon'
-            },
-            ...(this.isHr
+            ...(this.isAdmin
               ? [
                 {
-                  label: 'Create Clinic Resource',
-                  implemented: false,
-                  note: 'Coming soon'
+                  label: 'Hospital Structure',
+                  route: '/backoffice/hospital-structure',
+                  implemented: true
+                } as BackofficeNavChild,
+                {
+                  label: 'Office Assignments',
+                  route: '/backoffice/office-assignments',
+                  implemented: true
                 } as BackofficeNavChild
               ]
               : []),
-            {
-              label: 'Rooms / Beds / Dialysis Machines',
-              implemented: false,
-              note: 'Coming soon'
-            }
+            ...(this.isHr
+              ? [
+                {
+                  label: 'Equipment Inventory',
+                  route: '/backoffice/equipment-inventory',
+                  implemented: true
+                } as BackofficeNavChild
+              ]
+              : []),
+            ...(this.isHr
+              ? [
+                {
+                  label: 'Equipment Placement',
+                  route: '/backoffice/equipment-placement',
+                  implemented: true
+                } as BackofficeNavChild,
+                {
+                  label: 'Staff Placements',
+                  route: '/backoffice/staff-placements',
+                  implemented: true
+                } as BackofficeNavChild
+              ]
+              : [])
           ]
         }
       );

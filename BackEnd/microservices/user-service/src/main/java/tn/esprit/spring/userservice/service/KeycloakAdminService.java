@@ -10,8 +10,19 @@ import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestTemplate;
 import tn.esprit.spring.userservice.config.KeycloakAdminConfig;
+import tn.esprit.spring.userservice.dto.response.KeycloakTokenResponse;
 import tn.esprit.spring.userservice.entity.Role;
 
 import java.util.Arrays;
@@ -24,6 +35,7 @@ public class KeycloakAdminService {
 
     private final Keycloak keycloak;
     private final KeycloakAdminConfig keycloakConfig;
+    private final RestTemplateBuilder restTemplateBuilder;
 
     public String createUser(
             String username,
@@ -117,6 +129,16 @@ public class KeycloakAdminService {
         log.info("Keycloak user {} activation changed to {}", keycloakId, enabled);
     }
 
+    public void deleteUser(String keycloakId) {
+        RealmResource realmResource = keycloak.realm(keycloakConfig.getRealm());
+        try {
+            realmResource.users().get(keycloakId).remove();
+            log.warn("Keycloak user {} deleted (compensation rollback).", keycloakId);
+        } catch (Exception ex) {
+            log.error("Failed to delete Keycloak user {} during compensation rollback", keycloakId, ex);
+        }
+    }
+
     public void updateUserProfileAndRole(
             String keycloakId,
             String email,
@@ -154,6 +176,69 @@ public class KeycloakAdminService {
                 .add(List.of(realmResource.roles().get(role.name()).toRepresentation()));
 
         log.info("Keycloak user {} profile and role updated to {}", keycloakId, role);
+    }
+
+    public void updateUserProfile(
+            String keycloakId,
+            String email,
+            String firstName,
+            String lastName
+    ) {
+        RealmResource realmResource = keycloak.realm(keycloakConfig.getRealm());
+        UserResource userResource = realmResource.users().get(keycloakId);
+        UserRepresentation userRepresentation = userResource.toRepresentation();
+
+        if (userRepresentation == null) {
+            throw new IllegalArgumentException("Keycloak user not found: " + keycloakId);
+        }
+
+        userRepresentation.setEmail(email);
+        userRepresentation.setFirstName(firstName);
+        userRepresentation.setLastName(lastName);
+        userResource.update(userRepresentation);
+        log.info("Keycloak user {} profile updated", keycloakId);
+    }
+
+    public void updatePassword(String keycloakId, String newPassword, boolean temporary) {
+        RealmResource realmResource = keycloak.realm(keycloakConfig.getRealm());
+        CredentialRepresentation credential = new CredentialRepresentation();
+        credential.setType(CredentialRepresentation.PASSWORD);
+        credential.setValue(newPassword);
+        credential.setTemporary(temporary);
+        realmResource.users().get(keycloakId).resetPassword(credential);
+        log.info("Password updated successfully for userId={} (temporary={})", keycloakId, temporary);
+    }
+
+    public boolean validateCredentials(String username, String password) {
+        String tokenUrl = keycloakConfig.getServerUrl()
+                + "/realms/" + keycloakConfig.getRealm()
+                + "/protocol/openid-connect/token";
+
+        RestTemplate restTemplate = restTemplateBuilder.build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("grant_type", "password");
+        form.add("client_id", keycloakConfig.getAuth().getClientId());
+        form.add("client_secret", keycloakConfig.getAuth().getClientSecret());
+        form.add("username", username);
+        form.add("password", password);
+
+        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(form, headers);
+
+        try {
+            ResponseEntity<KeycloakTokenResponse> response = restTemplate.exchange(
+                    tokenUrl,
+                    HttpMethod.POST,
+                    requestEntity,
+                    KeycloakTokenResponse.class
+            );
+            return response.getStatusCode().is2xxSuccessful() && response.getBody() != null;
+        } catch (HttpStatusCodeException ex) {
+            return false;
+        }
     }
 
     private String safeReadBody(Response response) {

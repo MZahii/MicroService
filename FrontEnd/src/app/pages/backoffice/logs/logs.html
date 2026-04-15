@@ -10,19 +10,41 @@
   </div>
 </div>
 
-<div class="main-content">
-  <div class="card stretch stretch-full">
-    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <h5 class="card-title mb-0">System Logs</h5>
+<div class="main-content logs-page">
+  <div class="card stretch stretch-full logs-shell">
+    <div class="card-header logs-head">
+      <div>
+        <h5 class="card-title mb-1">System Logs</h5>
+        <div class="logs-subtitle">Unified account and contract timeline with field-level changes</div>
+      </div>
       <div class="d-flex gap-2">
-        <button class="btn btn-sm btn-light" type="button" (click)="printLogs()">Print</button>
-        <button class="btn btn-sm btn-primary" type="button" (click)="downloadPdf()">Download PDF</button>
+        <button class="btn btn-sm btn-light" type="button" (click)="printLogs()">Print Report</button>
+        <button class="btn btn-sm btn-primary" type="button" (click)="downloadPdf()">Export PDF</button>
       </div>
     </div>
 
     <div class="card-body">
       <div *ngIf="errorMessage" class="alert alert-danger mb-3">{{ errorMessage }}</div>
       <div *ngIf="loading" class="text-muted py-3">Loading logs...</div>
+
+      <div class="logs-summary mb-3" *ngIf="!loading">
+        <div class="summary-card">
+          <div class="summary-label">Total Logs</div>
+          <div class="summary-value">{{ filteredLogs.length }}</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Account Logs</div>
+          <div class="summary-value">{{ accountSourceCount }}</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Contract Logs</div>
+          <div class="summary-value">{{ contractSourceCount }}</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Unique Actors</div>
+          <div class="summary-value">{{ uniqueActorsCount }}</div>
+        </div>
+      </div>
 
       <div class="filters mb-3" *ngIf="!loading">
         <input
@@ -39,60 +61,72 @@
         </select>
       </div>
 
-      <div class="table-responsive" *ngIf="!loading">
-        <table class="table table-hover align-middle">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Source</th>
-              <th>User</th>
-              <th>Role</th>
-              <th>Action</th>
-              <th>Actor</th>
-              <th>Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let log of paginatedLogs">
-              <td>{{ log.createdAt | date:'yyyy-MM-dd HH:mm:ss' }}</td>
-              <td>{{ log.source }}</td>
-              <td>{{ log.fullName }}</td>
-              <td>{{ log.role }}</td>
-              <td>{{ log.action }}</td>
-              <td>{{ log.actor }}</td>
-              <td class="logs-details-cell">
+      <div class="logs-list" *ngIf="!loading">
+        <div class="user-group" *ngFor="let group of paginatedGroups">
+          <button type="button" class="group-head" (click)="toggleGroup(group.key)">
+            <div class="group-main">
+              <div class="group-user">{{ group.fullName }}</div>
+              <div class="group-role">{{ group.role }}</div>
+              <div class="group-meta">Latest: {{ group.latestAt | date:'yyyy-MM-dd HH:mm:ss' }}</div>
+            </div>
+            <div class="group-stats">
+              <span class="group-pill">{{ group.totalLogs }} events</span>
+              <span class="group-pill source-account">{{ group.accountLogs }} account</span>
+              <span class="group-pill source-contract">{{ group.contractLogs }} contract</span>
+              <button class="btn btn-xs btn-light" type="button" (click)="printUserLogs(group, $event)">Print User</button>
+              <button class="btn btn-xs btn-primary" type="button" (click)="exportUserPdf(group, $event)">PDF User</button>
+              <span class="expand-indicator">{{ isGroupExpanded(group.key) ? 'Hide' : 'Show' }}</span>
+            </div>
+          </button>
+
+          <div class="group-body" *ngIf="isGroupExpanded(group.key)">
+            <div class="log-card" *ngFor="let log of group.entries">
+              <div class="log-main">
+                <div class="log-meta">
+                  <div class="log-date">{{ log.createdAt | date:'yyyy-MM-dd HH:mm:ss' }}</div>
+                  <span class="source-pill" [ngClass]="sourceClass(log.source)">{{ log.source }}</span>
+                </div>
+                <div class="log-event">
+                  <span class="event-action" [ngClass]="actionClass(log.action)">{{ log.action }}</span>
+                </div>
+                <div class="log-actor">
+                  <span class="actor-label">Actor:</span>
+                  <span class="actor-value">{{ log.actor }}</span>
+                </div>
+              </div>
+
+              <div class="log-details">
                 <ng-container *ngIf="getChangedFields(log).length > 0; else rawDetails">
-                  <div class="diff-list">
-                    <div class="diff-item" *ngFor="let diff of getChangedFields(log)">
-                      <div class="diff-field">{{ diff.field }}</div>
-                      <div class="diff-values">
-                        <span class="diff-old">{{ diff.oldValue }}</span>
-                        <span class="diff-arrow">-></span>
-                        <span class="diff-new">{{ diff.newValue }}</span>
-                      </div>
+                  <div class="diff-item" *ngFor="let diff of getChangedFields(log)">
+                    <div class="diff-field">{{ diff.field }}</div>
+                    <div class="diff-values">
+                      <span class="diff-old">{{ diff.oldValue }}</span>
+                      <span class="diff-arrow">→</span>
+                      <span class="diff-new">{{ diff.newValue }}</span>
                     </div>
                   </div>
                 </ng-container>
                 <ng-template #rawDetails>
-                  <div *ngIf="hasParsedDetails(log)" class="text-muted">No field-level change captured.</div>
-                  <div *ngIf="!hasParsedDetails(log) && hasRawDetails(log)">
+                  <div *ngIf="hasParsedDetails(log)" class="empty-details">No field-level change captured.</div>
+                  <div *ngIf="!hasParsedDetails(log) && hasRawDetails(log)" class="raw-details">
                     <div><strong>Old:</strong> {{ getRawOld(log) }}</div>
                     <div><strong>New:</strong> {{ getRawNew(log) }}</div>
                   </div>
-                  <div *ngIf="!hasParsedDetails(log) && !hasRawDetails(log)" class="text-muted">No field changes captured.</div>
+                  <div *ngIf="!hasParsedDetails(log) && !hasRawDetails(log)" class="empty-details">No field changes captured.</div>
                 </ng-template>
-              </td>
-            </tr>
-            <tr *ngIf="filteredLogs.length === 0">
-              <td colspan="7" class="text-center text-muted py-4">No logs found.</td>
-            </tr>
-          </tbody>
-        </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="groupedLogs.length === 0">
+          No logs found.
+        </div>
       </div>
 
-      <div class="pagination-bar" *ngIf="!loading && filteredLogs.length > 0">
+      <div class="pagination-bar" *ngIf="!loading && groupedLogs.length > 0">
         <div class="pagination-meta">
-          Showing {{ rangeStart }} - {{ rangeEnd }} of {{ filteredLogs.length }}
+          Showing {{ rangeStart }} - {{ rangeEnd }} of {{ groupedLogs.length }} users
         </div>
         <div class="pagination-controls">
           <label for="logs-page-size" class="mb-0">Rows:</label>
@@ -104,9 +138,7 @@
           >
             <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
           </select>
-          <button class="btn btn-sm btn-light" type="button" (click)="previousPage()" [disabled]="currentPage === 1">
-            Prev
-          </button>
+          <button class="btn btn-sm btn-light" type="button" (click)="previousPage()" [disabled]="currentPage === 1">Prev</button>
           <button
             type="button"
             class="btn btn-sm"
@@ -117,9 +149,7 @@
           >
             {{ page }}
           </button>
-          <button class="btn btn-sm btn-light" type="button" (click)="nextPage()" [disabled]="currentPage === totalPages">
-            Next
-          </button>
+          <button class="btn btn-sm btn-light" type="button" (click)="nextPage()" [disabled]="currentPage === totalPages">Next</button>
         </div>
       </div>
     </div>

@@ -30,7 +30,8 @@ export class AuthStorageService {
         username: response.username,
         email: response.email,
         firstName: response.firstName,
-        lastName: response.lastName
+        lastName: response.lastName,
+        mustChangePassword: response.mustChangePassword
       })
     );
   }
@@ -82,6 +83,18 @@ export class AuthStorageService {
       ?? sessionStorage.getItem(this.USER_KEY);
 
     return raw ? JSON.parse(raw) : null;
+  }
+
+  isPasswordChangeRequired(): boolean {
+    return !!this.getUser()?.mustChangePassword;
+  }
+
+  setPasswordChangeRequired(required: boolean): void {
+    const user = this.getUser();
+    if (!user) return;
+    user.mustChangePassword = required;
+    const storage = localStorage.getItem(this.USER_KEY) ? localStorage : sessionStorage;
+    storage.setItem(this.USER_KEY, JSON.stringify(user));
   }
 
   isAuthenticated(): boolean {
