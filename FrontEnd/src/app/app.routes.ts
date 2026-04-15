@@ -219,10 +219,14 @@ export const routes: Routes = [
       },
       {
         path: 'appointments-clinical',
-        component: ReceptionistAppointmentsPage,
-        canActivate: [roleGuard],
-        data: { roles: ['RECEPTIONIST'] }
+        pathMatch: 'full',
+        redirectTo: 'appointments'
       },
+      // ================== DOCTOR CLINICAL WORKSPACE ==================
+      // Canonical entry for doctors: /backoffice/doctor → redirects to /backoffice/doctor/today
+      // From there, doctors can drill into consultations, lab-requests, and specific consultation details/workspaces.
+      // All navigation preserves filters and page context via returnUrl query params (Step 6).
+      // ===============================================================
       {
         path: 'doctor',
         pathMatch: 'full',

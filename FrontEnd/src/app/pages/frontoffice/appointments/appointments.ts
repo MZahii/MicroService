@@ -202,15 +202,56 @@ export class FrontofficeAppointmentsComponent implements OnInit {
         this.load();
       },
       error: (err) => {
-        if (err?.status === 403) {
-          this.hasPatientLink = false;
-          this.patients = [];
-          this.items = [];
-          this.errorMessage = this.noLinkMessage;
-          this.loading = false;
+        // Fallback: still allow guardian to view/request using patient IDs present in existing requests.
+        this.loadRequestsAsPatientFallback(err);
+      }
+    });
+  }
+
+  private loadRequestsAsPatientFallback(originalError: any): void {
+    this.loading = true;
+    this.appointmentsApi.getMyRequests().pipe(
+      finalize(() => {
+        this.loading = false;
+        this.loadingPatients = false;
+      })
+    ).subscribe({
+      next: (items) => {
+        this.items = [...items].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        const uniquePatientIds = Array.from(new Set((items || []).map(item => Number(item.patientId)).filter((id) => Number.isFinite(id) && id > 0)));
+        this.patients = uniquePatientIds.map((id) => ({
+          patientId: id,
+          fullName: `Patient #${id}`,
+          dob: '-'
+        }));
+
+        if (this.patients.length === 1) {
+          this.form.patchValue({ patientId: this.patients[0].patientId });
+          this.form.controls.patientId.clearValidators();
+          this.form.controls.patientId.updateValueAndValidity({ emitEvent: false });
+          this.hasPatientLink = true;
+          this.errorMessage = originalError?.status === 403 ? this.noLinkMessage : 'Unable to load linked patients. Existing requests are still visible.';
           return;
         }
-        this.errorMessage = err?.error?.message || 'Unable to load linked patients.';
+
+        if (this.patients.length > 1) {
+          this.form.controls.patientId.setValidators([Validators.required]);
+          this.form.controls.patientId.updateValueAndValidity({ emitEvent: false });
+          this.hasPatientLink = true;
+          this.errorMessage = 'Unable to load linked patient profiles. Please select patient by ID from existing requests.';
+          return;
+        }
+
+        this.hasPatientLink = false;
+        this.items = [];
+        this.errorMessage = this.noLinkMessage;
+      },
+      error: (fallbackErr) => {
+        this.hasPatientLink = false;
+        this.patients = [];
+        this.items = [];
+        this.errorMessage = fallbackErr?.error?.message || originalError?.error?.message || 'Unable to load linked patients.';
       }
     });
   }

@@ -14,6 +14,13 @@ export interface DoctorSearchResult {
   role?: string;
 }
 
+export interface ConsultationMetricsRequest {
+  heightCm?: number;
+  creatinineMgDl?: number;
+  weightKg?: number;
+  ageYears?: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ClinicalApiService {
   private base = (window as any).__env?.API_BASE || 'http://localhost:8083';
@@ -49,14 +56,14 @@ export class ClinicalApiService {
 
   getDoctor(id: number): Observable<any> {
     return this.http.get<any>(
-      `${this.base}/clinical/doctors/${id}`,
+      `${this.base}/api/clinical/doctors/${id}`,
       { headers: this.doctorHeaders() }
     );
   }
 
   getPatient(id: number): Observable<any> {
     return this.http.get<any>(
-      `${this.base}/clinical/patients/${id}`,
+      `${this.base}/api/clinical/patients/${id}`,
       { headers: this.doctorHeaders() }
     );
   }
@@ -66,14 +73,14 @@ export class ClinicalApiService {
     if (filters?.patientQuery) params = params.set('patientQuery', filters.patientQuery);
     if (filters?.status && filters.status !== 'ALL') params = params.set('status', filters.status);
     return this.http.get<any[]>(
-      `${this.base}/clinical/consultations/mine`,
+      `${this.base}/api/clinical/consultations/mine`,
       { headers: this.doctorHeaders(), params }
     );
   }
 
   createConsultation(payload: { patientId: number; dateTime: string }): Observable<any> {
     return this.http.post<any>(
-      `${this.base}/clinical/consultations`,
+      `${this.base}/api/clinical/consultations`,
       payload,
       { headers: this.doctorHeaders() }
     );
@@ -84,7 +91,7 @@ export class ClinicalApiService {
     payload: { dateTime?: string; status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' }
   ): Observable<any> {
     return this.http.put<any>(
-      `${this.base}/clinical/consultations/${id}`,
+      `${this.base}/api/clinical/consultations/${id}`,
       payload,
       { headers: this.doctorHeaders() }
     );
@@ -92,7 +99,7 @@ export class ClinicalApiService {
 
   cancelConsultation(id: string): Observable<void> {
     return this.http.delete<void>(
-      `${this.base}/clinical/consultations/${id}`,
+      `${this.base}/api/clinical/consultations/${id}`,
       { headers: this.doctorHeaders() }
     );
   }
@@ -200,7 +207,7 @@ export class ClinicalApiService {
     if (filters?.to) params = params.set('to', filters.to);
 
     return this.http.get<any[]>(
-      `${this.base}/clinical/appointments`,
+      `${this.base}/api/clinical/appointments`,
       { headers: this.authHeaders(), params }
     );
   }
@@ -220,7 +227,7 @@ export class ClinicalApiService {
     if (filters?.to) params = params.set('to', filters.to);
 
     return this.http.get<any[]>(
-      `${this.base}/clinical/consultations`,
+      `${this.base}/api/clinical/consultations`,
       { headers: this.authHeaders(), params }
     );
   }
@@ -238,36 +245,76 @@ export class ClinicalApiService {
     }
 
     return this.http.get<any[]>(
-      `${this.base}/clinical/guardian/consultations`,
+      `${this.base}/api/clinical/guardian/consultations`,
       { headers: this.guardianHeaders(), params }
     );
   }
 
   getGuardianConsultationOutcome(consultationId: string): Observable<any> {
     return this.http.get<any>(
-      `${this.base}/clinical/guardian/consultations/${consultationId}/outcomes`,
+      `${this.base}/api/clinical/guardian/consultations/${consultationId}/outcomes`,
       { headers: this.guardianHeaders() }
     );
   }
 
   getConsultation(id: string): Observable<any> {
     return this.http.get<any>(
-      `${this.base}/clinical/consultations/${id}`,
+      `${this.base}/api/clinical/consultations/${id}`,
       { headers: this.authHeaders() }
     );
   }
 
   getConsultationOutcome(id: string): Observable<any> {
     return this.http.get<any>(
-      `${this.base}/clinical/consultations/${id}/outcomes`,
+      `${this.base}/api/clinical/consultations/${id}/outcomes`,
       { headers: this.doctorHeaders() }
     );
   }
 
   updateConsultationLabRequests(id: string, content: string): Observable<any> {
     return this.http.post<any>(
-      `${this.base}/clinical/consultations/${id}/lab-requests`,
+      `${this.base}/api/clinical/consultations/${id}/lab-requests`,
       { content },
+      { headers: this.doctorHeaders() }
+    );
+  }
+
+  updateConsultationNotes(id: string, content: string): Observable<any> {
+    return this.http.post<any>(
+      `${this.base}/api/clinical/consultations/${id}/notes`,
+      { content },
+      { headers: this.doctorHeaders() }
+    );
+  }
+
+  updateConsultationDiagnosis(id: string, content: string): Observable<any> {
+    return this.http.post<any>(
+      `${this.base}/api/clinical/consultations/${id}/diagnosis`,
+      { content },
+      { headers: this.doctorHeaders() }
+    );
+  }
+
+  updateConsultationPrescriptions(id: string, content: string): Observable<any> {
+    return this.http.post<any>(
+      `${this.base}/api/clinical/consultations/${id}/prescriptions`,
+      { content },
+      { headers: this.doctorHeaders() }
+    );
+  }
+
+  updateConsultationTreatmentPlan(id: string, content: string): Observable<any> {
+    return this.http.post<any>(
+      `${this.base}/api/clinical/consultations/${id}/treatment-plan`,
+      { content },
+      { headers: this.doctorHeaders() }
+    );
+  }
+
+  upsertConsultationMetrics(id: string, payload: ConsultationMetricsRequest): Observable<any> {
+    return this.http.post<any>(
+      `${this.base}/api/clinical/consultations/${id}/metrics`,
+      payload,
       { headers: this.doctorHeaders() }
     );
   }
@@ -280,7 +327,7 @@ export class ClinicalApiService {
     reason?: string;
   }): Observable<any> {
     return this.http.post<any>(
-      `${this.base}/clinical/appointments`,
+      `${this.base}/api/clinical/appointments`,
       payload,
       { headers: this.authHeaders() }
     );
@@ -295,7 +342,7 @@ export class ClinicalApiService {
     status?: 'SCHEDULED' | 'CONFIRMED' | 'CANCELLED' | 'NO_SHOW';
   }): Observable<any> {
     return this.http.put<any>(
-      `${this.base}/clinical/appointments/${id}`,
+      `${this.base}/api/clinical/appointments/${id}`,
       payload,
       { headers: this.authHeaders() }
     );
@@ -303,7 +350,7 @@ export class ClinicalApiService {
 
   cancelAppointment(id: string, reason?: string): Observable<any> {
     return this.http.post<any>(
-      `${this.base}/clinical/appointments/${id}/cancel`,
+      `${this.base}/api/clinical/appointments/${id}/cancel`,
       { reason },
       { headers: this.authHeaders() }
     );
@@ -311,7 +358,7 @@ export class ClinicalApiService {
 
   startAppointmentConsultation(id: string): Observable<{ consultationId: string }> {
     return this.http.post<{ consultationId: string }>(
-      `${this.base}/clinical/appointments/${id}/start-consultation`,
+      `${this.base}/api/clinical/appointments/${id}/start-consultation`,
       {},
       { headers: this.doctorHeaders() }
     );
@@ -327,7 +374,7 @@ export class ClinicalApiService {
       .set('from', from)
       .set('to', to);
     return this.http.get<{ available: boolean; conflictReason?: string }>(
-      `${this.base}/clinical/appointments/availability`,
+      `${this.base}/api/clinical/appointments/availability`,
       { headers: this.authHeaders(), params }
     );
   }
@@ -335,7 +382,7 @@ export class ClinicalApiService {
   listAuditEvents(limit = 200): Observable<any[]> {
     const params = new HttpParams().set('limit', String(limit));
     return this.http.get<any[]>(
-      `${this.base}/clinical/audit`,
+      `${this.base}/api/clinical/audit`,
       { headers: this.authHeaders(), params }
     );
   }
@@ -343,7 +390,7 @@ export class ClinicalApiService {
   // Doctor endpoints
   getDoctorById(doctorId: string): Observable<any> {
     return this.http.get<any>(
-      `${this.base}/clinical/doctors/${doctorId}`,
+      `${this.base}/api/clinical/doctors/${doctorId}`,
       { headers: this.authHeaders() }
     );
   }
@@ -364,7 +411,7 @@ export class ClinicalApiService {
     if (filters?.to) params = params.set('to', filters.to);
 
     return this.http.get<any[]>(
-      `${this.base}/clinical/consultations/backoffice/list`,
+      `${this.base}/api/clinical/consultations/backoffice/list`,
       { headers: this.authHeaders(), params }
     );
   }

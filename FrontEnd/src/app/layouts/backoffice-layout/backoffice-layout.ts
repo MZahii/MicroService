@@ -446,17 +446,12 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
         icon: 'feather-calendar',
         children: [
           {
-            label: 'Appointments Board',
+            label: 'Appointments',
             route: '/backoffice/appointments',
             implemented: true
           },
           {
-            label: 'Clinical Appointments',
-            route: '/backoffice/appointments-clinical',
-            implemented: true
-          },
-          {
-            label: 'Appointment Requests',
+            label: 'Requests',
             route: '/backoffice/appointments/requests',
             implemented: true
           }

@@ -341,10 +341,23 @@
           </div>
 
           <div class="d-flex flex-wrap gap-2 mt-4">
+            <button class="btn btn-light" (click)="goBack()">Back</button>
             <button class="btn btn-light" (click)="saveDraft()" [disabled]="saving">Save Draft</button>
             <button class="btn btn-success" (click)="completeConsultation()" [disabled]="saving || completed || !canComplete">Mark Completed</button>
             <button class="btn btn-outline-primary" disabled>Generate Summary</button>
             <span class="text-muted small" *ngIf="!canComplete">Complete at least 70/100 to finish.</span>
+          </div>
+
+          <div class="d-flex gap-2 flex-wrap mt-3 pt-3 border-top">
+            <a class="btn btn-link btn-sm" routerLink="/backoffice/consultations">
+              <i class="feather-list"></i> All Consultations
+            </a>
+            <a class="btn btn-link btn-sm" routerLink="/backoffice/consultations/lab-requests">
+              <i class="feather-activity"></i> Lab Requests
+            </a>
+            <a class="btn btn-link btn-sm" routerLink="/backoffice/doctor/today">
+              <i class="feather-calendar"></i> Today Appointments
+            </a>
           </div>
         </div>
       </div>
