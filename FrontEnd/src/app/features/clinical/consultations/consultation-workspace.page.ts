@@ -368,6 +368,17 @@ export class ConsultationWorkspacePage implements OnInit {
     return this.completenessScore >= 70;
   }
 
+  get hospitalizationQueryParams(): Record<string, string> {
+    const params: Record<string, string> = {};
+    if (this.consultationId) {
+      params['consultationId'] = this.consultationId;
+    }
+    if (this.consultation?.patientId !== undefined && this.consultation?.patientId !== null) {
+      params['patientId'] = String(this.consultation.patientId);
+    }
+    return params;
+  }
+
   get patientHistory(): any[] {
     const patientId = this.consultation?.patientId;
     if (!patientId) return [];

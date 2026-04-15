@@ -49,6 +49,9 @@ import { ConsultationWorkspacePage } from './features/clinical/consultations/con
 import { LabRequestsPage } from './features/clinical/consultations/lab-requests.page';
 import { ReceptionistAppointmentsPage } from './features/clinical/appointments/receptionist-appointments.page';
 import { DoctorTodayAppointmentsPage } from './features/clinical/appointments/doctor-today-appointments.page';
+import { HospitalizationCreatePage } from './features/ops/hospitalizations/hospitalization-create.page';
+import { HospitalizationReviewPage } from './features/ops/hospitalizations/hospitalization-review.page';
+import { NurseHospitalizationsPage } from './features/ops/hospitalizations/nurse-hospitalizations.page';
 import { CalendarPage } from './frontoffice/pages/calendar/calendar.page';
 import { ConsultationsPage as GuardianConsultationsPage } from './frontoffice/pages/consultations/consultations.page';
 import { ConsultationDetailsPage as GuardianConsultationDetailsPage } from './frontoffice/pages/consultation-details/consultation-details.page';
@@ -267,6 +270,24 @@ export const routes: Routes = [
         component: ConsultationWorkspacePage,
         canActivate: [roleGuard],
         data: { roles: ['DOCTOR'] }
+      },
+      {
+        path: 'consultations/:id/hospitalization/new',
+        component: HospitalizationCreatePage,
+        canActivate: [roleGuard],
+        data: { roles: ['DOCTOR'] }
+      },
+      {
+        path: 'hospitalizations/:id',
+        component: HospitalizationReviewPage,
+        canActivate: [roleGuard],
+        data: { roles: ['DOCTOR', 'NURSE'] }
+      },
+      {
+        path: 'nurse/hospitalizations',
+        component: NurseHospitalizationsPage,
+        canActivate: [roleGuard],
+        data: { roles: ['NURSE'] }
       },
       {
         path: 'my-contract',

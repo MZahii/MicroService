@@ -259,6 +259,25 @@
                   <span class="text-success ms-2" *ngIf="followUpSuccess">{{ followUpSuccess }}</span>
                 </div>
               </div>
+
+              <div class="followup-card mt-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <h6 class="mb-0">Hospitalization Workflow</h6>
+                  <span class="badge bg-soft-warning text-warning">Ops Service</span>
+                </div>
+                <div class="text-muted small">
+                  If the patient needs hospitalization after this consultation, create the nurse task list here without changing the consultation logic.
+                </div>
+                <div class="mt-3">
+                  <a
+                    class="btn btn-outline-primary btn-sm"
+                    [routerLink]="['/backoffice/consultations', consultationId, 'hospitalization', 'new']"
+                    [queryParams]="hospitalizationQueryParams"
+                  >
+                    Create Hospitalization Workflow
+                  </a>
+                </div>
+              </div>
             </div>
 
             <div class="tab-pane" [class.active]="activeTab === 'labs'">
@@ -344,6 +363,13 @@
             <button class="btn btn-light" (click)="goBack()">Back</button>
             <button class="btn btn-light" (click)="saveDraft()" [disabled]="saving">Save Draft</button>
             <button class="btn btn-success" (click)="completeConsultation()" [disabled]="saving || completed || !canComplete">Mark Completed</button>
+            <a
+              class="btn btn-outline-primary"
+              [routerLink]="['/backoffice/consultations', consultationId, 'hospitalization', 'new']"
+              [queryParams]="hospitalizationQueryParams"
+            >
+              Hospitalize Patient
+            </a>
             <button class="btn btn-outline-primary" disabled>Generate Summary</button>
             <span class="text-muted small" *ngIf="!canComplete">Complete at least 70/100 to finish.</span>
           </div>
