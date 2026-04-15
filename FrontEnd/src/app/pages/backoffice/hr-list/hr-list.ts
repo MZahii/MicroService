@@ -63,6 +63,10 @@ export class HrList implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    const navigationState = history.state as { actionMessage?: string } | undefined;
+    if (navigationState?.actionMessage) {
+      this.actionMessage = navigationState.actionMessage;
+    }
     this.loadHrAccounts();
     this.refreshTimer = setInterval(() => {
       if (!this.loading) {

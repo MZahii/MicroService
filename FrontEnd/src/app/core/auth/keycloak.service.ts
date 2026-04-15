@@ -15,6 +15,17 @@ type JwtPayload = {
   resource_access?: Record<string, { roles?: unknown }>;
 };
 
+const APP_ROLE_PRIORITY = [
+  'ADMIN',
+  'HR',
+  'DOCTOR',
+  'NURSE',
+  'SURGEON',
+  'PHARMACIST',
+  'RECEPTIONIST',
+  'GUARDIAN'
+] as const;
+
 function readFromStorage(key: string): string | null {
   return localStorage.getItem(key) ?? sessionStorage.getItem(key);
 }
@@ -83,6 +94,12 @@ export function extractRolesFromToken(token: string | null | undefined): string[
 
 export function getPrimaryRoleFromToken(token: string | null | undefined): string | null {
   const roles = extractRolesFromToken(token);
+  for (const role of APP_ROLE_PRIORITY) {
+    if (roles.includes(role)) {
+      return role;
+    }
+  }
+
   return roles[0] ?? null;
 }
 
@@ -146,22 +163,13 @@ export function hasAnyRole(expectedRoles: string[]): boolean {
 
 export function getLandingRouteByRole(): string {
   const roles = getUserRoles();
-
-  const backofficeRoles = [
-    'ADMIN',
-    'HR',
-    'DOCTOR',
-    'NURSE',
-    'SURGEON',
-    'PHARMACIST',
-    'RECEPTIONIST'
-  ];
+  const backofficeRoles = APP_ROLE_PRIORITY.filter((role) => role !== 'GUARDIAN');
 
   if (roles.includes('ADMIN') || roles.includes('HR')) {
     return '/backoffice/user-admin';
   }
 
-  if (roles.some((role) => backofficeRoles.includes(role))) {
+  if (roles.some((role) => backofficeRoles.includes(role as typeof backofficeRoles[number]))) {
     return '/backoffice/dashboard';
   }
 

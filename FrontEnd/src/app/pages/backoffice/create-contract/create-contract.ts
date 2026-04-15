@@ -23,6 +23,18 @@ interface ContractRow {
   status?: 'ACTIVE' | 'SUSPENDED' | 'ENDED' | 'EXPIRED';
 }
 
+interface CreatedContractResponse {
+  id: number;
+  staffUserId: number;
+  contractReference: string;
+  contractType: ContractType;
+  status: 'ACTIVE' | 'SUSPENDED' | 'ENDED' | 'EXPIRED';
+  jobTitle: string;
+  department?: string;
+  startDate: string;
+  endDate: string;
+}
+
 @Component({
   selector: 'app-create-contract',
   standalone: true,
@@ -149,6 +161,13 @@ export class CreateContract implements OnInit {
     return selected ? this.fullName(selected) : '-';
   }
 
+  get backRouteQueryParams(): Record<string, string> | undefined {
+    if (this.isAdmin) {
+      return { scope: 'HR' };
+    }
+    return undefined;
+  }
+
   get hoursPerWeekOptions(): number[] {
     if (!this.form.contractType) return [];
     return this.hoursPerWeekOptionsByType[this.form.contractType] ?? [];
@@ -229,6 +248,7 @@ export class CreateContract implements OnInit {
 
   async submit(): Promise<void> {
     this.showError('');
+    this.successMessage = '';
     if (this.loading) return;
 
     const selectedUser = this.staffUsers.find(u => u.id === Number(this.form.staffUserId));
@@ -297,13 +317,26 @@ export class CreateContract implements OnInit {
       };
 
       const request$ = this.contractId
-        ? this.http.put(`${environment.apiBaseUrl}/api/contracts/${this.contractId}`, payload, { headers })
-        : this.http.post(`${environment.apiBaseUrl}/api/contracts`, payload, { headers });
+        ? this.http.put<CreatedContractResponse>(`${environment.apiBaseUrl}/api/contracts/${this.contractId}`, payload, { headers })
+        : this.http.post<CreatedContractResponse>(`${environment.apiBaseUrl}/api/contracts`, payload, { headers });
 
-      await firstValueFrom(request$);
-      this.showSuccess(this.contractId ? 'Contract updated successfully.' : 'Contract created successfully.');
+      const savedContract = await firstValueFrom(request$);
+      this.showSuccess(
+        this.contractId
+          ? 'Contract updated successfully. Returning to the previous page...'
+          : 'Contract created successfully. Returning to the previous page...'
+      );
       this.cdr.detectChanges();
-      setTimeout(() => this.router.navigate([this.backRoute]), 1200);
+      setTimeout(() => {
+        void this.router.navigate([this.backRoute], {
+          queryParams: this.backRouteQueryParams,
+          state: {
+            actionMessage: this.contractId
+              ? 'The contract was updated successfully.'
+              : `The contract for ${this.selectedStaffDisplayName} was created successfully.`
+          }
+        });
+      }, 1200);
     } catch (error: unknown) {
       if (error instanceof HttpErrorResponse) {
         const backendMessage = (error.error && typeof error.error === 'object' && 'message' in error.error)
@@ -331,6 +364,12 @@ export class CreateContract implements OnInit {
       this.loading = false;
       this.cdr.detectChanges();
     }
+  }
+
+  goToBackRoute(): void {
+    void this.router.navigate([this.backRoute], {
+      queryParams: this.backRouteQueryParams
+    });
   }
 
   private async loadContractForEdit(contractId: number): Promise<void> {

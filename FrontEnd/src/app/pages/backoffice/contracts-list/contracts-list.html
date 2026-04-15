@@ -23,6 +23,9 @@
           <div *ngIf="errorMessage" class="alert alert-danger mb-3">
             {{ errorMessage }}
           </div>
+          <div *ngIf="actionMessage" class="alert alert-success mb-3">
+            {{ actionMessage }}
+          </div>
 
           <div class="stats-grid mb-3" *ngIf="!loading">
             <div class="stats-card">

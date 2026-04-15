@@ -148,7 +148,7 @@
               <button class="btn btn-primary" type="submit" [disabled]="loading || loadingStaff || f.invalid">
                 {{ loading ? (contractId ? 'UPDATING...' : 'CREATING...') : (contractId ? 'UPDATE CONTRACT' : 'CREATE CONTRACT') }}
               </button>
-              <a [routerLink]="backRoute" class="btn btn-light-brand">{{ backLabel }}</a>
+              <button type="button" class="btn btn-light-brand" [disabled]="loading" (click)="goToBackRoute()">{{ backLabel }}</button>
             </div>
           </form>
         </div>

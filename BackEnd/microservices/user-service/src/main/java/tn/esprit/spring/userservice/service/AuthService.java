@@ -161,7 +161,7 @@ public class AuthService {
 
     private String resolveRedirect(Role role) {
         return switch (role) {
-            case ADMIN, HR, DOCTOR, NURSE, SURGEON, PHARMACIST, RECEPTIONIST -> "/backoffice/dashboard";
+            case ADMIN, HR, DOCTOR, NURSE, LAB_AGENT, SURGEON, PHARMACIST, RECEPTIONIST -> "/backoffice/dashboard";
             case GUARDIAN -> "/frontoffice/home";
         };
     }

@@ -51,6 +51,7 @@ interface UserRow {
 export class ContractsList implements OnInit, OnDestroy {
   loading = false;
   errorMessage = '';
+  actionMessage = '';
   role = '';
 
   searchTerm = '';
@@ -77,6 +78,10 @@ export class ContractsList implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.role = this.authStorage.getRole() ?? '';
+    const navigationState = history.state as { actionMessage?: string } | undefined;
+    if (navigationState?.actionMessage) {
+      this.actionMessage = navigationState.actionMessage;
+    }
     this.routeSub = this.route.queryParamMap.subscribe(params => {
       const scope = (params.get('scope') ?? '').toUpperCase();
       if (this.isAdmin && scope === 'HR') {
