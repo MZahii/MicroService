@@ -1,4 +1,4 @@
-import {
+﻿import {
   AfterViewInit,
   Component,
   HostListener,
@@ -205,16 +205,12 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   private buildNavigationItems(): BackofficeNavItem[] {
-    const dashboardRoute = (this.isAdmin || this.isHr)
-      ? '/backoffice/user-admin'
-      : '/backoffice/dashboard';
-
     const items: BackofficeNavItem[] = [
       {
         key: 'dashboard',
         label: 'Dashboard',
         icon: 'feather-airplay',
-        route: dashboardRoute,
+        route: '/backoffice/dashboard',
         exact: true
       }
     ];
@@ -267,11 +263,6 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
         label: 'Accounts',
         icon: 'feather-users',
         children: [
-          {
-            label: 'Create Internal User',
-            route: '/backoffice/create-internal-user',
-            implemented: true
-          },
           {
             label: 'Create Staff Account',
             route: '/backoffice/create-staff',
@@ -496,11 +487,6 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
           {
             label: 'Consultations',
             route: '/backoffice/consultations',
-            implemented: true
-          },
-          {
-            label: 'Lab Requests',
-            route: '/backoffice/consultations/lab-requests',
             implemented: true
           }
         ]

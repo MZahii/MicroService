@@ -7,8 +7,6 @@ import { FrontofficeLayoutComponent } from './layouts/frontoffice-layout/frontof
 import { Dashboard } from './pages/backoffice/dashboard/dashboard';
 import { CreateHr } from './pages/backoffice/create-hr/create-hr';
 import { CreateStaff } from './pages/backoffice/create-staff/create-staff';
-import { CreateInternalUser } from './pages/backoffice/create-internal-user/create-internal-user';
-import { UserAdminDashboard } from './pages/backoffice/user-admin-dashboard/user-admin-dashboard';
 import { StaffList } from './pages/backoffice/staff-list/staff-list';
 import { StaffUserDetails } from './pages/backoffice/staff-user-details/staff-user-details';
 import { HrList } from './pages/backoffice/hr-list/hr-list';
@@ -52,7 +50,6 @@ import { DoctorComponent } from './pages/backoffice/doctor/doctor.component';
 import { ConsultationsListPage } from './features/clinical/consultations/consultations-list.page';
 import { ConsultationDetailsPage as ClinicalConsultationDetailsPage } from './features/clinical/consultations/consultation-details.page';
 import { ConsultationWorkspacePage } from './features/clinical/consultations/consultation-workspace.page';
-import { LabRequestsPage } from './features/clinical/consultations/lab-requests.page';
 import { ReceptionistAppointmentsPage } from './features/clinical/appointments/receptionist-appointments.page';
 import { DoctorTodayAppointmentsPage } from './features/clinical/appointments/doctor-today-appointments.page';
 import { CalendarPage } from './frontoffice/pages/calendar/calendar.page';
@@ -105,12 +102,6 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       { path: 'dashboard', component: Dashboard },
       {
-        path: 'user-admin',
-        component: UserAdminDashboard,
-        canActivate: [roleGuard],
-        data: { roles: ['ADMIN', 'HR'] }
-      },
-      {
         path: 'create-hr',
         component: CreateHr,
         canActivate: [roleGuard],
@@ -121,12 +112,6 @@ export const routes: Routes = [
         component: HrList,
         canActivate: [roleGuard],
         data: { roles: ['ADMIN'] }
-      },
-      {
-        path: 'create-internal-user',
-        component: CreateInternalUser,
-        canActivate: [roleGuard],
-        data: { roles: ['HR'] }
       },
       {
         path: 'create-staff',
@@ -250,12 +235,6 @@ export const routes: Routes = [
       {
         path: 'consultations',
         component: ConsultationsListPage,
-        canActivate: [roleGuard],
-        data: { roles: ['DOCTOR'] }
-      },
-      {
-        path: 'consultations/lab-requests',
-        component: LabRequestsPage,
         canActivate: [roleGuard],
         data: { roles: ['DOCTOR'] }
       },
