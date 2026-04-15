@@ -5,6 +5,16 @@ import { RouterLink } from '@angular/router';
 import { DialysisPlan, ProcedureApiService } from '../../../core/services/procedure-api.service';
 import { ClinicalApiService, DoctorSearchResult } from '../../../core/services/clinical-api.service';
 
+interface PatientLookupItem {
+  id: number;
+  firstName: string;
+  lastName: string;
+  dateOfBirth?: string | null;
+  sex?: 'MALE' | 'FEMALE' | string | null;
+  bloodType?: string | null;
+  allergies?: string | null;
+}
+
 @Component({
   selector: 'app-procedure-dialysis',
   standalone: true,
@@ -36,12 +46,17 @@ export class ProcedureDialysisComponent implements OnInit {
   showArchived = false;
   readonly planStatuses = ['PLANNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'ARCHIVED'];
   readonly dialysisTypes = ['HEMODIALYSIS', 'PERITONEAL_DIALYSIS'];
+  availablePatients: PatientLookupItem[] = [];
+  selectedPatient: PatientLookupItem | null = null;
+  patientLoading = false;
+  patientError = '';
   availableDoctors: DoctorSearchResult[] = [];
   selectedDoctor: DoctorSearchResult | null = null;
   doctorLoading = false;
   doctorError = '';
 
   createForm = {
+    patientId: '',
     firstName: '',
     lastName: '',
     doctorId: '',
@@ -87,6 +102,7 @@ export class ProcedureDialysisComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.loadPatients();
     this.loadDoctors();
     this.loadPlans();
   }
@@ -135,6 +151,7 @@ export class ProcedureDialysisComponent implements OnInit {
   }
 
   createPlan(): void {
+    const patientId = this.createForm.patientId.trim();
     const firstName = this.createForm.firstName.trim();
     const lastName = this.createForm.lastName.trim();
     const doctorId = this.createForm.doctorId.trim();
@@ -153,6 +170,7 @@ export class ProcedureDialysisComponent implements OnInit {
     const status = 'PLANNED';
 
     if (
+      !patientId ||
       !firstName
       || !lastName
       || !doctorId
@@ -162,7 +180,7 @@ export class ProcedureDialysisComponent implements OnInit {
       || !startDate
       || !daysOfWeek
     ) {
-      this.errorMessage = 'Please fill required fields: patient, doctor, type, frequency and planning.';
+      this.errorMessage = 'Please select a patient and complete the required planning fields.';
       this.refreshView();
       return;
     }
@@ -184,8 +202,6 @@ export class ProcedureDialysisComponent implements OnInit {
       this.refreshView();
       return;
     }
-
-    const patientId = `PT-${Date.now()}`;
 
     this.saving = true;
     this.errorMessage = '';
@@ -212,6 +228,7 @@ export class ProcedureDialysisComponent implements OnInit {
     }).subscribe({
       next: () => {
         this.createForm = {
+          patientId: '',
           firstName: '',
           lastName: '',
           doctorId: '',
@@ -228,6 +245,8 @@ export class ProcedureDialysisComponent implements OnInit {
           roomNumber: '',
           machineId: ''
         };
+        this.selectedPatient = null;
+        this.patientError = '';
         this.selectedDoctor = null;
         this.doctorError = '';
         this.successMessage = 'Dialysis plan created successfully.';
@@ -452,6 +471,30 @@ export class ProcedureDialysisComponent implements OnInit {
     return fullName || doctor.username || doctor.email || String(doctor.id ?? doctor.keycloakId ?? '');
   }
 
+  formatPatientLabel(patient: PatientLookupItem | null | undefined): string {
+    if (!patient) {
+      return '';
+    }
+    const fullName = `${patient.firstName ?? ''} ${patient.lastName ?? ''}`.trim();
+    return `${fullName} | #${patient.id}`;
+  }
+
+  onPatientSelectionChange(value: string): void {
+    const patientId = Number(value);
+    const patient = this.availablePatients.find((item) => item.id === patientId) ?? null;
+    if (!patient) {
+      this.clearSelectedPatient();
+      return;
+    }
+
+    this.selectedPatient = patient;
+    this.patientError = '';
+    this.createForm.patientId = String(patient.id);
+    this.createForm.firstName = patient.firstName ?? '';
+    this.createForm.lastName = patient.lastName ?? '';
+    this.refreshView();
+  }
+
   onDoctorSelectionChange(value: string): void {
     const selectedId = value.trim();
     const doctor = this.availableDoctors.find(
@@ -475,6 +518,28 @@ export class ProcedureDialysisComponent implements OnInit {
     return this.availableStatusesFor(plan).includes('ARCHIVED') && plan.status !== 'ARCHIVED';
   }
 
+  private loadPatients(): void {
+    this.patientLoading = true;
+    this.patientError = '';
+
+    this.clinicalApi.listPatients().subscribe({
+      next: (patients) => {
+        this.availablePatients = (patients ?? [])
+          .map((item) => this.normalizePatient(item))
+          .filter((item) => item.id > 0)
+          .sort((a, b) => this.formatPatientLabel(a).localeCompare(this.formatPatientLabel(b)));
+        this.patientLoading = false;
+        this.refreshView();
+      },
+      error: () => {
+        this.availablePatients = [];
+        this.patientLoading = false;
+        this.patientError = 'Failed to load patients.';
+        this.refreshView();
+      }
+    });
+  }
+
   private loadDoctors(): void {
     this.doctorLoading = true;
     this.doctorError = '';
@@ -492,6 +557,27 @@ export class ProcedureDialysisComponent implements OnInit {
         this.refreshView();
       }
     });
+  }
+
+  private clearSelectedPatient(): void {
+    this.selectedPatient = null;
+    this.patientError = '';
+    this.createForm.patientId = '';
+    this.createForm.firstName = '';
+    this.createForm.lastName = '';
+    this.refreshView();
+  }
+
+  private normalizePatient(item: any): PatientLookupItem {
+    return {
+      id: Number(item?.id ?? 0),
+      firstName: String(item?.firstName ?? '').trim(),
+      lastName: String(item?.lastName ?? '').trim(),
+      dateOfBirth: item?.dateOfBirth ?? null,
+      sex: item?.sex ?? null,
+      bloodType: item?.bloodType ?? null,
+      allergies: item?.allergies ?? null
+    };
   }
 
   private formatApiError(

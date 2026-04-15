@@ -25,11 +25,34 @@
         <div class="card-body">
           <h6 class="section-title">Patient</h6>
           <div class="mb-3">
+            <label class="form-label">Select Existing Patient</label>
+            <select
+              class="form-select"
+              [ngModel]="createForm.patientId"
+              (ngModelChange)="onPatientSelectionChange($event)"
+              [disabled]="patientLoading"
+            >
+              <option value="">Choose a patient</option>
+              <option *ngFor="let patient of availablePatients" [value]="patient.id">
+                {{ formatPatientLabel(patient) }}
+              </option>
+            </select>
+            <small class="text-muted d-block mt-1">Select an existing patient profile before creating the dialysis plan.</small>
+            <small class="text-danger d-block mt-1" *ngIf="patientError">{{ patientError }}</small>
+            <div class="small text-muted mt-2" *ngIf="patientLoading">Loading patients...</div>
+          </div>
+
+          <div class="alert alert-light border small mb-3" *ngIf="selectedPatient">
+            Selected patient: <strong>{{ formatPatientLabel(selectedPatient) }}</strong>
+          </div>
+
+          <div class="mb-3">
             <label class="form-label">First Name</label>
             <input
               type="text"
               class="form-control"
               [(ngModel)]="createForm.firstName"
+              [readonly]="true"
               placeholder="Ali"
             />
           </div>
@@ -40,6 +63,7 @@
               type="text"
               class="form-control"
               [(ngModel)]="createForm.lastName"
+              [readonly]="true"
               placeholder="Ben Salah"
             />
           </div>
