@@ -42,7 +42,7 @@ management:
 
 eureka:
   instance:
-    hostname: ${EUREKA_INSTANCE_HOSTNAME:host.docker.internal}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
     prefer-ip-address: false
   client:
     service-url:

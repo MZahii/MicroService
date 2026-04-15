@@ -64,7 +64,7 @@ spring:
             - id: administration-service-api
               uri: lb://administration-service
               predicates:
-                - Path=/api/patients/**,/api/contracts/**,/api/observability/**
+                - Path=/api/patients/**,/api/contracts/**,/api/observability/**,/api/hospital-structure/**,/api/hospital-resources/**,/api/staff-assignments/**
               filters:
                 - StripPrefix=1
 

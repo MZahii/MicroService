@@ -1,0 +1,102 @@
+<div class="page-header">
+  <div class="page-header-left d-flex align-items-center">
+    <div class="page-header-title"><h5 class="m-b-10">Staff Placements</h5></div>
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a routerLink="/backoffice/dashboard">Dashboard</a></li>
+      <li class="breadcrumb-item">Staff Placements</li>
+    </ul>
+  </div>
+</div>
+
+<div class="main-content placements-page">
+  <div *ngIf="errorMessage" class="alert alert-danger mb-3">{{ errorMessage }}</div>
+  <div *ngIf="successMessage" class="alert alert-success mb-3">{{ successMessage }}</div>
+
+  <div class="summary-grid" *ngIf="!loading">
+    <div class="summary-card"><span>Total Placements</span><strong>{{ totalAssignments }}</strong></div>
+    <div class="summary-card"><span>Doctors</span><strong>{{ assignments.DOCTOR.length }}</strong></div>
+    <div class="summary-card"><span>Lab Agents</span><strong>{{ assignments.LAB_AGENT.length }}</strong></div>
+    <div class="summary-card"><span>Pharmacists</span><strong>{{ assignments.PHARMACIST.length }}</strong></div>
+    <div class="summary-card"><span>Receptionists</span><strong>{{ assignments.RECEPTIONIST.length }}</strong></div>
+  </div>
+
+  <div class="card stretch stretch-full mb-3">
+    <div class="card-body tab-row">
+      <button type="button" class="tab-btn" [class.active]="activeTab==='DOCTOR'" (click)="setTab('DOCTOR')">Doctors</button>
+      <button type="button" class="tab-btn" [class.active]="activeTab==='LAB_AGENT'" (click)="setTab('LAB_AGENT')">Lab Agents</button>
+      <button type="button" class="tab-btn" [class.active]="activeTab==='PHARMACIST'" (click)="setTab('PHARMACIST')">Pharmacists</button>
+      <button type="button" class="tab-btn" [class.active]="activeTab==='RECEPTIONIST'" (click)="setTab('RECEPTIONIST')">Receptionists</button>
+    </div>
+  </div>
+
+  <div class="card stretch stretch-full mb-3" *ngIf="!loading">
+    <div class="card-header section-header">
+      <h6 class="mb-0">Create {{ roleLabel(activeTab) }} Placement</h6>
+    </div>
+
+    <div class="card-body create-grid">
+      <select class="form-control" [(ngModel)]="createForm[activeTab].workspaceId">
+        <option [ngValue]="null" disabled>Select workspace</option>
+        <option *ngFor="let ws of tabWorkspaceOptions" [ngValue]="ws.workspaceId">{{ workspaceLabel(ws) }}</option>
+      </select>
+
+      <select class="form-control" [(ngModel)]="createForm[activeTab].userId">
+        <option [ngValue]="null" disabled>Select user</option>
+        <option *ngFor="let user of tabAvailableUsers" [ngValue]="user.id">
+          {{ user.firstName }} {{ user.lastName }} ({{ user.email }})
+        </option>
+      </select>
+
+      <button class="btn btn-primary" type="button" [disabled]="saving" (click)="createAssignment(activeTab)">Assign</button>
+    </div>
+
+    <div class="card-footer note" *ngIf="activeTab==='DOCTOR'">
+      Doctors can be linked to multiple Doctor Offices. Duplicate links in the same office are prevented.
+    </div>
+  </div>
+
+  <div class="workspace-grid" *ngIf="!loading">
+    <div class="workspace-card" *ngFor="let group of tabWorkspaceGroups">
+      <div class="workspace-head">
+        <div>
+          <div class="workspace-title">{{ group.floorLabel }} / {{ group.workspaceName }}</div>
+          <div class="workspace-meta">{{ group.workspaceCode }} • {{ group.workspaceType.replaceAll('_', ' ') }}</div>
+        </div>
+        <span class="badge bg-soft-secondary text-dark">{{ group.assigned.length }} assigned</span>
+      </div>
+
+      <div *ngIf="group.assigned.length === 0" class="text-muted small">No users assigned.</div>
+
+      <div class="assigned-stack" *ngIf="group.assigned.length > 0">
+        <div class="assigned-row" *ngFor="let assignment of group.assigned">
+          <div class="assigned-main">
+            <div class="assigned-name">{{ userLabel(assignment.userId) }}</div>
+            <div class="assigned-meta">{{ userEmail(assignment.userId) }}</div>
+          </div>
+
+          <div class="assigned-actions">
+            <button
+              *ngIf="activeTab !== 'DOCTOR'"
+              type="button"
+              class="btn btn-outline-warning btn-sm"
+              (click)="moveState[assignment.id]?.enabled ? cancelMove(assignment.id) : startMove(assignment.id)"
+            >
+              {{ moveState[assignment.id]?.enabled ? 'Cancel' : 'Move' }}
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm" (click)="deleteAssignment(assignment)">Delete</button>
+          </div>
+
+          <div class="move-inline" *ngIf="activeTab !== 'DOCTOR' && moveState[assignment.id]?.enabled">
+            <select class="form-control form-control-sm" [(ngModel)]="moveState[assignment.id].targetWorkspaceId">
+              <option [ngValue]="null" disabled>Select target workspace</option>
+              <option *ngFor="let ws of tabWorkspaceOptions" [ngValue]="ws.workspaceId" [disabled]="ws.workspaceId===assignment.workspaceId">
+                {{ workspaceLabel(ws) }}
+              </option>
+            </select>
+            <button class="btn btn-warning btn-sm" type="button" [disabled]="saving" (click)="confirmMove(assignment)">Confirm Move</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

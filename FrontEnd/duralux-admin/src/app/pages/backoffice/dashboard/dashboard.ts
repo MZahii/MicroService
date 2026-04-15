@@ -149,7 +149,7 @@ export class Dashboard implements AfterViewInit, OnInit {
 
   get staffUsers(): any[] {
     return this.allUsers.filter((user) =>
-      ['DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST'].includes(user.role)
+      ['DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST', 'LAB_AGENT'].includes(user.role)
     );
   }
 
@@ -202,7 +202,7 @@ export class Dashboard implements AfterViewInit, OnInit {
   }
 
   get roleBreakdown(): Array<{ role: string; count: number }> {
-    const roles = ['DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST'];
+    const roles = ['DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST', 'LAB_AGENT'];
     return roles.map(role => ({
       role,
       count: this.staffUsers.filter(u => u.role === role).length

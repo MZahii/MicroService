@@ -1,0 +1,166 @@
+<div class="page-header">
+  <div class="page-header-left d-flex align-items-center">
+    <div class="page-header-title">
+      <h5 class="m-b-10">Hospital Structure</h5>
+    </div>
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a routerLink="/backoffice/dashboard">Dashboard</a></li>
+      <li class="breadcrumb-item">Hospital Structure</li>
+    </ul>
+  </div>
+</div>
+
+<div class="main-content hospital-structure-page">
+  <div *ngIf="errorMessage" class="alert alert-danger mb-3">{{ errorMessage }}</div>
+  <div *ngIf="successMessage" class="alert alert-success mb-3">{{ successMessage }}</div>
+
+  <div *ngIf="loading" class="card stretch stretch-full">
+    <div class="card-body text-muted">Loading hospital structure...</div>
+  </div>
+
+  <ng-container *ngIf="!loading && structure as state">
+    <div class="summary-grid">
+      <div class="summary-card"><span>Total Floors</span><strong>{{ summaryStats.totalFloors }}</strong></div>
+      <div class="summary-card"><span>Total Workspaces</span><strong>{{ summaryStats.totalWorkspaces }}</strong></div>
+      <div class="summary-card"><span>Workspace Types Used</span><strong>{{ summaryStats.totalWorkspaceTypesUsed }}</strong></div>
+      <div class="summary-card"><span>Empty Floors</span><strong>{{ summaryStats.emptyFloors }}</strong></div>
+      <div class="summary-card"><span>Floors with Workspaces</span><strong>{{ summaryStats.floorsWithWorkspaces }}</strong></div>
+      <div class="summary-card"><span>Most Used Type</span><strong>{{ summaryStats.mostUsedWorkspaceType }}</strong></div>
+      <div class="summary-card"><span>Last Update</span><strong>{{ summaryStats.lastUpdatedAt }}</strong></div>
+      <div class="summary-card"><span>Status</span><strong>{{ state.initialized ? 'Initialized' : 'Not initialized' }}</strong></div>
+    </div>
+
+    <div class="card stretch stretch-full" *ngIf="!state.initialized">
+      <div class="card-header"><h5 class="card-title">Initialize Floors</h5></div>
+      <div class="card-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Number of Floors</label>
+            <input type="number" class="form-control" min="1" max="120" [(ngModel)]="initializeTotalFloors" />
+          </div>
+          <div class="col-md-4">
+            <button class="btn btn-primary" type="button" [disabled]="saving" (click)="initializeFloors()">
+              {{ saving ? 'INITIALIZING...' : 'INITIALIZE FLOORS' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ng-container *ngIf="state.initialized">
+      <div class="card stretch stretch-full manage-card">
+        <div class="card-header"><h5 class="card-title">Manage Floors</h5></div>
+        <div class="card-body">
+          <div class="row g-3 align-items-end">
+            <div class="col-lg-4 col-md-6">
+              <label class="form-label fw-semibold">Insert Position</label>
+              <select class="form-control" [(ngModel)]="addFloorPosition">
+                <option value="TOP">Top (highest floor)</option>
+                <option value="BOTTOM">Bottom (becomes new GF)</option>
+                <option value="BETWEEN" [disabled]="!canInsertBetween">Between</option>
+              </select>
+            </div>
+
+            <div class="col-lg-4 col-md-6" *ngIf="addFloorPosition === 'BETWEEN'">
+              <label class="form-label fw-semibold">Insert After Floor</label>
+              <select class="form-control" [(ngModel)]="addFloorAfterId">
+                <option [ngValue]="null" disabled>Select floor</option>
+                <option *ngFor="let floor of betweenCandidates" [ngValue]="floor.id">{{ floor.floorLabel }}</option>
+              </select>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+              <button class="btn btn-primary w-100" type="button" [disabled]="saving" (click)="addFloor()">
+                {{ saving ? 'ADDING...' : 'ADD FLOOR' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="floor-stack" *ngIf="state.floors.length; else emptyState">
+        <div class="card stretch stretch-full floor-card" *ngFor="let floor of state.floors">
+          <div class="card-header floor-header">
+            <button class="floor-toggle" type="button" (click)="toggleFloor(floor.id)">
+              <div class="floor-main">
+                <div class="floor-title">Floor {{ floor.floorLabel }}</div>
+                <div class="floor-total">{{ floor.totalWorkspaces }} workspace(s)</div>
+              </div>
+              <div class="floor-preview">
+                <span class="preview-chip" *ngFor="let group of quickGroupPreview(floor.id)">
+                  {{ group.label }}: {{ group.count }}
+                </span>
+              </div>
+              <div class="floor-toggle-text">{{ isExpanded(floor.id) ? 'Hide' : 'Show' }}</div>
+            </button>
+            <div class="floor-actions">
+              <button class="btn btn-outline-primary btn-sm" type="button" [disabled]="saving" (click)="editFloorNote(floor)">Edit Note</button>
+              <button class="btn btn-outline-danger btn-sm" type="button" [disabled]="saving" (click)="deleteFloor(floor)">Delete Floor</button>
+            </div>
+          </div>
+
+          <div class="card-body" *ngIf="isExpanded(floor.id)">
+            <div class="add-workspace-row">
+              <div>
+                <label class="form-label">Workspace Type</label>
+                <select class="form-control" [(ngModel)]="workspaceFormByFloor[floor.id].workspaceType">
+                  <option value="" disabled>Select workspace type</option>
+                  <option *ngFor="let option of workspaceTypes" [value]="option.value">{{ option.label }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Quantity</label>
+                <input type="number" class="form-control" min="1" max="200" [(ngModel)]="workspaceFormByFloor[floor.id].quantity" />
+              </div>
+              <div class="add-btn-wrap">
+                <button class="btn btn-primary" type="button" [disabled]="saving" (click)="addWorkspaces(floor)">Add Workspace Group</button>
+              </div>
+            </div>
+
+            <div class="groups-table" *ngIf="groupedWorkspacesByFloor[floor.id].length; else noGroups">
+              <div class="group-row" *ngFor="let group of groupedWorkspacesByFloor[floor.id]">
+                <div class="group-name">{{ group.label }}</div>
+                <div class="group-count">Current: {{ group.count }}</div>
+                <div class="group-edit">
+                  <input type="number" class="form-control form-control-sm" min="0" [ngModel]="groupQuantityDrafts[floor.id + '_' + group.workspaceType]" (ngModelChange)="groupQuantityDrafts[floor.id + '_' + group.workspaceType] = $event" />
+                  <button class="btn btn-outline-primary btn-sm" type="button" [disabled]="saving" (click)="applyGroupQuantity(floor, group)">Apply</button>
+                </div>
+                <div class="group-actions">
+                  <button class="btn btn-outline-secondary btn-sm" type="button" (click)="openGroupDetails(floor, group)">View Details</button>
+                  <button class="btn btn-outline-danger btn-sm" type="button" [disabled]="saving" (click)="deleteGroup(floor, group)">Delete Group</button>
+                </div>
+              </div>
+            </div>
+
+            <ng-template #noGroups>
+              <div class="text-muted">No workspace groups on this floor yet.</div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #emptyState>
+        <div class="card stretch stretch-full"><div class="card-body text-muted">No floors found.</div></div>
+      </ng-template>
+    </ng-container>
+  </ng-container>
+
+  <div class="details-modal" *ngIf="detailModal as modal" (click)="closeGroupDetails()">
+    <div class="details-panel" (click)="$event.stopPropagation()">
+      <div class="details-header">
+        <h6>{{ modal.group.label }} - Floor {{ modal.floor.floorLabel }}</h6>
+        <button class="btn btn-sm btn-light" type="button" (click)="closeGroupDetails()">Close</button>
+      </div>
+      <div class="details-list" *ngIf="modal.group.items.length; else noItems">
+        <div class="details-item" *ngFor="let item of modal.group.items">
+          <div>
+            <div class="item-name">{{ item.workspaceName }}</div>
+            <div class="item-code">{{ item.workspaceCode }}</div>
+          </div>
+          <button class="btn btn-outline-danger btn-sm" type="button" [disabled]="saving" (click)="deleteWorkspaceItem(item)">Delete</button>
+        </div>
+      </div>
+      <ng-template #noItems><div class="text-muted">No items found.</div></ng-template>
+    </div>
+  </div>
+</div>

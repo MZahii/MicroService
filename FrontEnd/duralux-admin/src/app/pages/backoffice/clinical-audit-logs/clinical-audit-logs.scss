@@ -4,7 +4,60 @@
   gap: 12px;
 }
 
+.logs-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.summary-card {
+  border: 1px solid #dbe2ea;
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 10px;
+}
+
+.summary-label {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.summary-value {
+  margin-top: 4px;
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.page-size {
+  width: 90px;
+}
+
+@media print {
+  .page-header,
+  .filters,
+  .btn,
+  .pagination-wrap {
+    display: none !important;
+  }
+}
+
 @media (max-width: 768px) {
+  .logs-summary {
+    grid-template-columns: 1fr;
+  }
+
   .filters {
     grid-template-columns: 1fr;
   }

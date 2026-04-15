@@ -8,5 +8,6 @@ public enum Role {
     NURSE,
     SURGEON,
     PHARMACIST,
+    LAB_AGENT,
     GUARDIAN
 }

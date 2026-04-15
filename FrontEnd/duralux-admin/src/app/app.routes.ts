@@ -34,6 +34,12 @@ import { ProcedureDialysisPrescriptionsComponent } from './pages/backoffice/proc
 import { ProcedureDialysisSessionsComponent } from './pages/backoffice/procedure-dialysis-sessions/procedure-dialysis-sessions';
 import { ProcedureSurgicalComponent } from './pages/backoffice/procedure-surgical/procedure-surgical';
 import { ProcedureSurgicalAdvancedComponent } from './pages/backoffice/procedure-surgical-advanced/procedure-surgical-advanced';
+import { HospitalStructureComponent } from './pages/backoffice/hospital-structure/hospital-structure';
+import { EquipmentInventoryComponent } from './pages/backoffice/equipment-inventory/equipment-inventory';
+import { EquipmentPlacementComponent } from './pages/backoffice/equipment-placement/equipment-placement';
+import { OfficeAssignmentsComponent } from './pages/backoffice/office-assignments/office-assignments';
+import { StaffPlacementsComponent } from './pages/backoffice/staff-placements/staff-placements';
+import { AccountSettingsComponent } from './pages/backoffice/account-settings/account-settings';
 import { GuardianTrackingComponent } from './pages/frontoffice/guardian-tracking/guardian-tracking';
 import { CommunicationListComponent } from './pages/frontoffice/communication-list/communication-list';
 import { CommunicationNewComponent } from './pages/frontoffice/communication-new/communication-new';
@@ -64,6 +70,7 @@ import { Login } from './pages/public/login/login';
 
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { passwordChangeGuard } from './core/guards/password-change.guard';
 
 export const routes: Routes = [
   // ================= PUBLIC WEBSITE =================
@@ -87,9 +94,9 @@ export const routes: Routes = [
   {
     path: 'backoffice',
     component: BackofficeLayoutComponent,
-    canActivate: [authGuard, roleGuard],
+    canActivate: [authGuard, roleGuard, passwordChangeGuard],
     data: {
-      roles: ['ADMIN', 'HR', 'DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST']
+      roles: ['ADMIN', 'HR', 'DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST', 'LAB_AGENT']
     },
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
@@ -247,7 +254,7 @@ export const routes: Routes = [
         path: 'my-contract',
         component: MyContractComponent,
         canActivate: [roleGuard],
-        data: { roles: ['HR', 'DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST'] }
+        data: { roles: ['HR', 'DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST', 'LAB_AGENT'] }
       },
       {
         path: 'logs',
@@ -304,6 +311,42 @@ export const routes: Routes = [
             .then((m) => m.PHARMACY_ROUTES),
         canActivate: [roleGuard],
         data: { roles: ['PHARMACIST', 'ADMIN', 'NURSE'] }
+      },
+      {
+        path: 'hospital-structure',
+        component: HospitalStructureComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] }
+      },
+      {
+        path: 'equipment-inventory',
+        component: EquipmentInventoryComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['HR'] }
+      },
+      {
+        path: 'equipment-placement',
+        component: EquipmentPlacementComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['HR'] }
+      },
+      {
+        path: 'office-assignments',
+        component: OfficeAssignmentsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] }
+      },
+      {
+        path: 'staff-placements',
+        component: StaffPlacementsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['HR'] }
+      },
+      {
+        path: 'account-settings',
+        component: AccountSettingsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'HR', 'DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST', 'LAB_AGENT'] }
       }
     ]
   },

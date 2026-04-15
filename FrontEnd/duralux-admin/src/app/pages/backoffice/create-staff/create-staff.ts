@@ -7,7 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { getValidToken } from '../../../core/auth/keycloak.service';
 import { environment } from '../../../../environments/environment';
 
-type StaffRole = 'DOCTOR' | 'NURSE' | 'SURGEON' | 'PHARMACIST' | 'RECEPTIONIST';
+type StaffRole = 'DOCTOR' | 'NURSE' | 'SURGEON' | 'PHARMACIST' | 'RECEPTIONIST' | 'LAB_AGENT';
 type Sex = 'MALE' | 'FEMALE' | '';
 interface UserRow {
   id: number;
@@ -57,7 +57,8 @@ export class CreateStaff {
     'NURSE',
     'SURGEON',
     'PHARMACIST',
-    'RECEPTIONIST'
+    'RECEPTIONIST',
+    'LAB_AGENT'
   ];
 
   constructor(
@@ -138,7 +139,7 @@ export class CreateStaff {
         this.http.get<UserRow[] | unknown>(`${environment.apiBaseUrl}/api/users`, { headers })
       );
       const users = Array.isArray(response) ? response : [];
-      const staffRoles: StaffRole[] = ['DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST'];
+      const staffRoles: StaffRole[] = ['DOCTOR', 'NURSE', 'SURGEON', 'PHARMACIST', 'RECEPTIONIST', 'LAB_AGENT'];
       this.existingStaffUsernames = new Set(
         users
           .filter((u) => staffRoles.includes(u.role as StaffRole))

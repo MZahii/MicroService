@@ -8,6 +8,10 @@ import tn.esprit.spring.userservice.dto.request.StaffSearchRequest;
 import tn.esprit.spring.userservice.dto.request.UpdateGuardianProfileRequest;
 import tn.esprit.spring.userservice.dto.request.UpdateHrProfileRequest;
 import tn.esprit.spring.userservice.dto.request.UpdateStaffProfileRequest;
+import tn.esprit.spring.userservice.dto.request.UpdateMyPreferencesRequest;
+import tn.esprit.spring.userservice.dto.request.UpdateMyProfileRequest;
+import tn.esprit.spring.userservice.dto.request.ChangeMyPasswordRequest;
+import tn.esprit.spring.userservice.dto.response.MyAccountSettingsResponse;
 import tn.esprit.spring.userservice.dto.response.StaffSearchResponse;
 import tn.esprit.spring.userservice.dto.response.UserAuditLogResponse;
 import tn.esprit.spring.userservice.dto.response.UserResponse;
@@ -35,4 +39,8 @@ public interface UserService {
     long countPendingUsersOlderThanDays(int days);
     UserResponse softDeleteUser(Long userId);
     UserResponse restoreUser(Long userId);
+    MyAccountSettingsResponse getMySettings(String authorization);
+    MyAccountSettingsResponse updateMyProfile(String authorization, UpdateMyProfileRequest request);
+    MyAccountSettingsResponse updateMyPreferences(String authorization, UpdateMyPreferencesRequest request);
+    void changeMyPassword(String authorization, ChangeMyPasswordRequest request);
 }

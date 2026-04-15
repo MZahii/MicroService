@@ -103,7 +103,8 @@ export function getLandingRouteByRole(): string {
     'NURSE',
     'SURGEON',
     'PHARMACIST',
-    'RECEPTIONIST'
+    'RECEPTIONIST',
+    'LAB_AGENT'
   ];
 
   if (role && backofficeRoles.includes(role)) {

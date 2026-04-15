@@ -47,19 +47,24 @@ public class AuthService {
                 request.getPassword()
         );
 
+        String redirectTo = user.isMustChangePassword()
+                ? "/backoffice/account-settings?forcePasswordChange=true"
+                : resolveRedirect(user.getRole());
+
         return LoginResponse.builder()
                 .accessToken(tokenResponse.getAccessToken())
                 .refreshToken(tokenResponse.getRefreshToken())
                 .tokenType(tokenResponse.getTokenType())
                 .expiresIn(tokenResponse.getExpiresIn())
                 .role(user.getRole().name())
-                .redirectTo(resolveRedirect(user.getRole()))
+                .redirectTo(redirectTo)
                 .userId(user.getId())
                 .keycloakId(user.getKeycloakId())
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
+                .mustChangePassword(user.isMustChangePassword())
                 .build();
     }
 
@@ -161,7 +166,7 @@ public class AuthService {
 
     private String resolveRedirect(Role role) {
         return switch (role) {
-            case ADMIN, HR, DOCTOR, NURSE, SURGEON, PHARMACIST, RECEPTIONIST -> "/backoffice/dashboard";
+            case ADMIN, HR, DOCTOR, NURSE, SURGEON, PHARMACIST, RECEPTIONIST, LAB_AGENT -> "/backoffice/dashboard";
             case GUARDIAN -> "/frontoffice/home";
         };
     }
