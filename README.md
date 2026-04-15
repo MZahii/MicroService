@@ -77,6 +77,7 @@ This starts Keycloak, Eureka, and infra dependencies.
 Important:
 - Keycloak now reads DB credentials from `BackEnd/.env`.
 - To share Keycloak users/realm data across team members, use the same shared Postgres/Neon values in `.env`.
+- The API Gateway container is now behind the `container-gateway` profile, so `docker compose -f docker-compose.infra.yml up -d` will not reserve port `8083`.
 - If you want local Keycloak DB only (not shared), run:
 
 ```powershell
@@ -91,7 +92,12 @@ Open the project in IntelliJ and run:
 2. `UserServiceApplication`
 
 Important:
-- If the gateway container is already running from Docker (`8083`), stop it before running `ApiGatewayApplication` in IntelliJ to avoid port conflicts.
+- The normal infra command no longer starts the gateway container, so `ApiGatewayApplication` can run on `8083` from IntelliJ without conflict.
+- If you explicitly start the gateway container profile, stop it before running `ApiGatewayApplication` in IntelliJ:
+
+```powershell
+docker compose -f docker-compose.infra.yml --profile container-gateway down
+```
 
 ### Step 4: Start frontend
 

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DialysisPlan, ProcedureApiService } from '../../../core/services/procedure-api.service';
+import { ClinicalApiService, DoctorSearchResult } from '../../../core/services/clinical-api.service';
 
 @Component({
   selector: 'app-procedure-dialysis',
@@ -12,8 +13,20 @@ import { DialysisPlan, ProcedureApiService } from '../../../core/services/proced
   styleUrl: './procedure-dialysis.scss'
 })
 export class ProcedureDialysisComponent implements OnInit {
+  private readonly allowedStatusTransitions: Record<string, string[]> = {
+    PLANNED: ['PLANNED', 'IN_PROGRESS', 'CANCELLED', 'ARCHIVED'],
+    IN_PROGRESS: ['IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'ARCHIVED'],
+    COMPLETED: ['COMPLETED', 'ARCHIVED'],
+    CANCELLED: ['CANCELLED', 'ARCHIVED'],
+    ARCHIVED: ['ARCHIVED']
+  };
+
   loading = false;
   saving = false;
+  downloadingPdfId: number | null = null;
+  showEditModal = false;
+  savingEdit = false;
+  editingPlanId: number | null = null;
   errorMessage = '';
   successMessage = '';
 
@@ -23,6 +36,10 @@ export class ProcedureDialysisComponent implements OnInit {
   showArchived = false;
   readonly planStatuses = ['PLANNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'ARCHIVED'];
   readonly dialysisTypes = ['HEMODIALYSIS', 'PERITONEAL_DIALYSIS'];
+  availableDoctors: DoctorSearchResult[] = [];
+  selectedDoctor: DoctorSearchResult | null = null;
+  doctorLoading = false;
+  doctorError = '';
 
   createForm = {
     firstName: '',
@@ -42,14 +59,35 @@ export class ProcedureDialysisComponent implements OnInit {
     machineId: ''
   };
 
+  editForm = {
+    firstName: '',
+    lastName: '',
+    doctorId: '',
+    dialysisType: 'HEMODIALYSIS',
+    sessionsPerWeek: 3,
+    sessionDurationMinutes: 240,
+    startDate: '',
+    endDate: '',
+    daysOfWeek: '',
+    bloodFlowRate: null as number | null,
+    dialysateFlowRate: null as number | null,
+    ultrafiltrationGoal: null as number | null,
+    dialysisCenterId: '',
+    roomNumber: '',
+    machineId: '',
+    status: 'PLANNED'
+  };
+
   editState: Record<number, string> = {};
 
   constructor(
     private procedureApi: ProcedureApiService,
+    private clinicalApi: ClinicalApiService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    this.loadDoctors();
     this.loadPlans();
   }
 
@@ -70,6 +108,10 @@ export class ProcedureDialysisComponent implements OnInit {
     });
   }
 
+  get editingPlan(): DialysisPlan | undefined {
+    return this.plans.find((plan) => plan.id === this.editingPlanId);
+  }
+
   loadPlans(): void {
     this.loading = true;
     this.errorMessage = '';
@@ -86,7 +128,7 @@ export class ProcedureDialysisComponent implements OnInit {
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.loading = false;
-        this.errorMessage = err?.error?.message || err?.message || 'Failed to load dialysis plans.';
+        this.errorMessage = this.formatApiError(err, 'Failed to load dialysis plans.');
         this.refreshView();
       }
     });
@@ -121,6 +163,25 @@ export class ProcedureDialysisComponent implements OnInit {
       || !daysOfWeek
     ) {
       this.errorMessage = 'Please fill required fields: patient, doctor, type, frequency and planning.';
+      this.refreshView();
+      return;
+    }
+
+    if (sessionsPerWeek < 1 || sessionsPerWeek > 7) {
+      this.errorMessage = 'Sessions per week must be between 1 and 7.';
+      this.refreshView();
+      return;
+    }
+
+    if (sessionDurationMinutes < 30 || sessionDurationMinutes > 720) {
+      this.errorMessage = 'Session duration must be between 30 and 720 minutes.';
+      this.refreshView();
+      return;
+    }
+
+    if (endDate && endDate < startDate) {
+      this.errorMessage = 'End date cannot be before start date.';
+      this.refreshView();
       return;
     }
 
@@ -167,6 +228,8 @@ export class ProcedureDialysisComponent implements OnInit {
           roomNumber: '',
           machineId: ''
         };
+        this.selectedDoctor = null;
+        this.doctorError = '';
         this.successMessage = 'Dialysis plan created successfully.';
         this.saving = false;
         this.refreshView();
@@ -174,31 +237,137 @@ export class ProcedureDialysisComponent implements OnInit {
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.saving = false;
-        this.errorMessage = err?.error?.message || err?.message || 'Failed to create dialysis plan.';
+        this.errorMessage = this.formatApiError(err, 'Failed to create dialysis plan.');
         this.refreshView();
       }
     });
   }
 
-  updatePlan(plan: DialysisPlan): void {
-    const status = (this.editState[plan.id] ?? '').trim().toUpperCase();
+  openEditModal(plan: DialysisPlan): void {
+    this.editingPlanId = plan.id;
+    this.editForm = {
+      firstName: plan.firstName ?? '',
+      lastName: plan.lastName ?? '',
+      doctorId: plan.doctorId ?? '',
+      dialysisType: plan.dialysisType ?? 'HEMODIALYSIS',
+      sessionsPerWeek: Number(plan.sessionsPerWeek ?? 3),
+      sessionDurationMinutes: Number(plan.sessionDurationMinutes ?? 240),
+      startDate: plan.startDate ?? '',
+      endDate: plan.endDate ?? '',
+      daysOfWeek: plan.daysOfWeek ?? '',
+      bloodFlowRate: plan.bloodFlowRate ?? null,
+      dialysateFlowRate: plan.dialysateFlowRate ?? null,
+      ultrafiltrationGoal: plan.ultrafiltrationGoal ?? null,
+      dialysisCenterId: plan.dialysisCenterId ?? '',
+      roomNumber: plan.roomNumber ?? '',
+      machineId: plan.machineId ?? '',
+      status: plan.status ?? 'PLANNED'
+    };
+    this.selectedDoctor = this.availableDoctors.find(
+      (doctor) => String(doctor.keycloakId ?? doctor.id ?? '').trim() === this.editForm.doctorId
+    ) ?? null;
+    this.showEditModal = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.refreshView();
+  }
 
-    if (!status) {
-      this.errorMessage = 'Status is required.';
+  closeEditModal(): void {
+    this.showEditModal = false;
+    this.savingEdit = false;
+    this.editingPlanId = null;
+    this.refreshView();
+  }
+
+  savePlanChanges(): void {
+    if (this.editingPlanId == null) {
       return;
     }
 
+    const firstName = this.editForm.firstName.trim();
+    const lastName = this.editForm.lastName.trim();
+    const doctorId = this.editForm.doctorId.trim();
+    const dialysisType = this.editForm.dialysisType.trim();
+    const sessionsPerWeek = Number(this.editForm.sessionsPerWeek);
+    const sessionDurationMinutes = Number(this.editForm.sessionDurationMinutes);
+    const startDate = this.editForm.startDate;
+    const endDate = this.editForm.endDate || null;
+    const daysOfWeek = this.editForm.daysOfWeek.trim();
+    const bloodFlowRate = this.editForm.bloodFlowRate;
+    const dialysateFlowRate = this.editForm.dialysateFlowRate;
+    const ultrafiltrationGoal = this.editForm.ultrafiltrationGoal;
+    const dialysisCenterId = this.editForm.dialysisCenterId.trim() || null;
+    const roomNumber = this.editForm.roomNumber.trim() || null;
+    const machineId = this.editForm.machineId.trim() || null;
+    const status = this.editForm.status.trim().toUpperCase();
+
+    if (
+      !firstName ||
+      !lastName ||
+      !doctorId ||
+      !dialysisType ||
+      !sessionsPerWeek ||
+      !sessionDurationMinutes ||
+      !startDate ||
+      !daysOfWeek ||
+      !status
+    ) {
+      this.errorMessage = 'Please complete the required fields before saving the dialysis plan.';
+      this.refreshView();
+      return;
+    }
+
+    if (sessionsPerWeek < 1 || sessionsPerWeek > 7) {
+      this.errorMessage = 'Sessions per week must be between 1 and 7.';
+      this.refreshView();
+      return;
+    }
+
+    if (sessionDurationMinutes < 30 || sessionDurationMinutes > 720) {
+      this.errorMessage = 'Session duration must be between 30 and 720 minutes.';
+      this.refreshView();
+      return;
+    }
+
+    if (endDate && endDate < startDate) {
+      this.errorMessage = 'End date cannot be before start date.';
+      this.refreshView();
+      return;
+    }
+
+    this.savingEdit = true;
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.procedureApi.updateDialysisPlan(plan.id, { status }).subscribe({
+    this.procedureApi.updateDialysisPlan(this.editingPlanId, {
+      firstName,
+      lastName,
+      doctorId,
+      dialysisType,
+      sessionsPerWeek,
+      sessionDurationMinutes,
+      startDate,
+      endDate,
+      daysOfWeek,
+      bloodFlowRate,
+      dialysateFlowRate,
+      ultrafiltrationGoal,
+      dialysisCenterId,
+      roomNumber,
+      machineId,
+      status
+    }).subscribe({
       next: () => {
+        this.savingEdit = false;
+        this.showEditModal = false;
+        this.editingPlanId = null;
         this.successMessage = 'Dialysis plan updated successfully.';
         this.refreshView();
         this.loadPlans();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
-        this.errorMessage = err?.error?.message || err?.message || 'Failed to update dialysis plan.';
+        this.savingEdit = false;
+        this.errorMessage = this.formatApiError(err, 'Failed to update dialysis plan.');
         this.refreshView();
       }
     });
@@ -212,21 +381,127 @@ export class ProcedureDialysisComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.procedureApi.updateDialysisPlan(plan.id, { status: 'ARCHIVED' }).subscribe({
+    this.procedureApi.updateDialysisPlan(plan.id, this.buildPlanPayload(plan, 'ARCHIVED')).subscribe({
       next: () => {
         this.successMessage = 'Dialysis plan archived successfully.';
         this.refreshView();
         this.loadPlans();
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
-        this.errorMessage = err?.error?.message || err?.message || 'Failed to archive dialysis plan.';
+        this.errorMessage = this.formatApiError(err, 'Failed to archive dialysis plan.');
+        this.refreshView();
+      }
+    });
+  }
+
+  private buildPlanPayload(plan: DialysisPlan, statusOverride?: string) {
+    return {
+      firstName: plan.firstName ?? '',
+      lastName: plan.lastName ?? '',
+      doctorId: plan.doctorId ?? '',
+      dialysisType: plan.dialysisType ?? '',
+      sessionsPerWeek: Number(plan.sessionsPerWeek ?? 0),
+      sessionDurationMinutes: Number(plan.sessionDurationMinutes ?? 0),
+      startDate: plan.startDate ?? '',
+      endDate: plan.endDate ?? null,
+      daysOfWeek: plan.daysOfWeek ?? '',
+      bloodFlowRate: plan.bloodFlowRate ?? null,
+      dialysateFlowRate: plan.dialysateFlowRate ?? null,
+      ultrafiltrationGoal: plan.ultrafiltrationGoal ?? null,
+      dialysisCenterId: plan.dialysisCenterId ?? null,
+      roomNumber: plan.roomNumber ?? null,
+      machineId: plan.machineId ?? null,
+      status: statusOverride ?? plan.status ?? 'PLANNED'
+    };
+  }
+
+  downloadPlanPdf(plan: DialysisPlan): void {
+    this.downloadingPdfId = plan.id;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.procedureApi.downloadDialysisPlanSummaryPdf(plan.id).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `dialysis-plan-${plan.id}-summary.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        this.downloadingPdfId = null;
+        this.successMessage = 'Dialysis plan PDF exported successfully.';
+        this.refreshView();
+      },
+      error: (err: { error?: { message?: string }; message?: string }) => {
+        this.downloadingPdfId = null;
+        this.errorMessage = this.formatApiError(err, 'Failed to export dialysis plan PDF.');
         this.refreshView();
       }
     });
   }
 
   private refreshView(): void {
-    this.cdr.detectChanges();
+    this.cdr.markForCheck();
   }
 
+  formatDoctorLabel(doctor: DoctorSearchResult | null | undefined): string {
+    if (!doctor) {
+      return '';
+    }
+    const fullName = `${doctor.firstName ?? ''} ${doctor.lastName ?? ''}`.trim();
+    return fullName || doctor.username || doctor.email || String(doctor.id ?? doctor.keycloakId ?? '');
+  }
+
+  onDoctorSelectionChange(value: string): void {
+    const selectedId = value.trim();
+    const doctor = this.availableDoctors.find(
+      (doctor) => String(doctor.keycloakId ?? doctor.id ?? '').trim() === selectedId
+    ) ?? null;
+    if (this.showEditModal) {
+      this.editForm.doctorId = selectedId;
+      this.selectedDoctor = doctor;
+    } else {
+      this.createForm.doctorId = selectedId;
+      this.selectedDoctor = doctor;
+    }
+    this.refreshView();
+  }
+
+  availableStatusesFor(plan: DialysisPlan): string[] {
+    return this.allowedStatusTransitions[plan.status] ?? [plan.status];
+  }
+
+  canArchivePlan(plan: DialysisPlan): boolean {
+    return this.availableStatusesFor(plan).includes('ARCHIVED') && plan.status !== 'ARCHIVED';
+  }
+
+  private loadDoctors(): void {
+    this.doctorLoading = true;
+    this.doctorError = '';
+
+    this.clinicalApi.listDoctors(50).subscribe({
+      next: (doctors) => {
+        this.availableDoctors = doctors ?? [];
+        this.doctorLoading = false;
+        this.refreshView();
+      },
+      error: () => {
+        this.availableDoctors = [];
+        this.doctorLoading = false;
+        this.doctorError = 'Failed to load doctors.';
+        this.refreshView();
+      }
+    });
+  }
+
+  private formatApiError(
+    err: { error?: { message?: string }; message?: string },
+    fallback: string
+  ): string {
+    const message = err?.error?.message || err?.message || '';
+    if (message.includes('503') || message.includes('Service Unavailable')) {
+      return 'Procedure service is temporarily unavailable. Verify procedure-service and the API Gateway, then retry.';
+    }
+    return message || fallback;
+  }
 }
