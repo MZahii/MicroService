@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AppointmentsApiService, AppointmentRequestItem, AppointmentStatus } from '../../../core/services/appointments-api.service';
@@ -16,6 +16,7 @@ import { Subscription, finalize } from 'rxjs';
 export class FrontofficeAppointmentsComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private redirectTimer?: ReturnType<typeof setTimeout>;
+  private bootstrapTimer?: ReturnType<typeof setTimeout>;
   private querySub?: Subscription;
 
   loading = true;
@@ -55,22 +56,28 @@ export class FrontofficeAppointmentsComponent implements OnInit {
     private appointmentsApi: AppointmentsApiService,
     private communicationApi: CommunicationApiService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
-    this.querySub = this.route.queryParamMap.subscribe(params => {
-      if (params.get('created') === '1') {
+    if (this.route.snapshot.queryParamMap.get('created') === '1') {
+      setTimeout(() => {
         this.successMessage = 'Request submitted successfully! You will receive confirmation within 24 hours.';
-      }
-    });
-    this.loadPatients();
+        this.cdr.detectChanges();
+      });
+    }
+
+    this.bootstrapTimer = setTimeout(() => this.loadPatients(), 0);
   }
 
   ngOnDestroy(): void {
     this.querySub?.unsubscribe();
     if (this.redirectTimer) {
       clearTimeout(this.redirectTimer);
+    }
+    if (this.bootstrapTimer) {
+      clearTimeout(this.bootstrapTimer);
     }
   }
 
@@ -187,6 +194,7 @@ export class FrontofficeAppointmentsComponent implements OnInit {
           this.items = [];
           this.errorMessage = this.noLinkMessage;
           this.loading = false;
+          this.cdr.detectChanges();
           return;
         }
 
@@ -200,6 +208,7 @@ export class FrontofficeAppointmentsComponent implements OnInit {
         }
 
         this.load();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         // Fallback: still allow guardian to view/request using patient IDs present in existing requests.
@@ -232,6 +241,7 @@ export class FrontofficeAppointmentsComponent implements OnInit {
           this.form.controls.patientId.updateValueAndValidity({ emitEvent: false });
           this.hasPatientLink = true;
           this.errorMessage = originalError?.status === 403 ? this.noLinkMessage : 'Unable to load linked patients. Existing requests are still visible.';
+          this.cdr.detectChanges();
           return;
         }
 
@@ -240,18 +250,21 @@ export class FrontofficeAppointmentsComponent implements OnInit {
           this.form.controls.patientId.updateValueAndValidity({ emitEvent: false });
           this.hasPatientLink = true;
           this.errorMessage = 'Unable to load linked patient profiles. Please select patient by ID from existing requests.';
+          this.cdr.detectChanges();
           return;
         }
 
         this.hasPatientLink = false;
         this.items = [];
         this.errorMessage = this.noLinkMessage;
+        this.cdr.detectChanges();
       },
       error: (fallbackErr) => {
         this.hasPatientLink = false;
         this.patients = [];
         this.items = [];
         this.errorMessage = fallbackErr?.error?.message || originalError?.error?.message || 'Unable to load linked patients.';
+        this.cdr.detectChanges();
       }
     });
   }
@@ -275,15 +288,18 @@ export class FrontofficeAppointmentsComponent implements OnInit {
       next: (items) => {
         this.items = [...items].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         this.page = 1;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         if (err?.status === 403) {
           this.hasPatientLink = false;
           this.items = [];
           this.errorMessage = this.noLinkMessage;
+          this.cdr.detectChanges();
           return;
         }
         this.errorMessage = err?.error?.message || 'Failed to load appointments.';
+        this.cdr.detectChanges();
       }
     });
   }
@@ -323,13 +339,13 @@ export class FrontofficeAppointmentsComponent implements OnInit {
       next: () => {
         this.successMessage = 'Request submitted successfully! You will receive confirmation within 24 hours.';
         this.form.patchValue({ requestedDate: '', preferredTimeSlot: 'NO_PREFERENCE', appointmentType: 'CONSULTATION', reason: '' });
-        this.redirectTimer = setTimeout(() => {
-          void this.router.navigate(['/frontoffice/appointments'], { queryParams: { created: '1' } });
-          this.load();
-        }, 1500);
+        void this.router.navigate(['/frontoffice/appointments'], { queryParams: { created: '1' } });
+        this.load();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.errorMessage = err?.error?.message || 'Failed to create request.';
+        this.cdr.detectChanges();
       }
     });
   }
@@ -348,8 +364,12 @@ export class FrontofficeAppointmentsComponent implements OnInit {
       next: () => {
         this.successMessage = 'Appointment request cancelled.';
         this.load();
+        this.cdr.detectChanges();
       },
-      error: (err) => this.errorMessage = err?.error?.message || 'Cancel failed.'
+      error: (err) => {
+        this.errorMessage = err?.error?.message || 'Cancel failed.';
+        this.cdr.detectChanges();
+      }
     });
   };
 }
