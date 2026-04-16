@@ -1,0 +1,196 @@
+name: nephropaidi-stack
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: nephro-keycloak
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_DB: ${KC_DB:-postgres}
+      KC_DB_URL: ${KC_DB_URL}
+      KC_DB_USERNAME: ${KC_DB_USERNAME}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin123}
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./keycloak/realm:/opt/keycloak/data/import
+    restart: unless-stopped
+
+  eureka:
+    build:
+      context: ./eureka
+    container_name: nephro-eureka
+    environment:
+      EUREKA_INSTANCE_HOSTNAME: eureka
+      EUREKA_DEFAULT_ZONE: http://eureka:8761/eureka/
+    ports:
+      - "8761:8761"
+    restart: unless-stopped
+
+  config-server:
+    build:
+      context: ./config-server
+    container_name: nephro-config-server
+    environment:
+      EUREKA_DEFAULT_ZONE: http://eureka:8761/eureka
+    depends_on:
+      - eureka
+    ports:
+      - "8889:8888"
+    restart: unless-stopped
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: nephro-api-gateway
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://eureka:8761/eureka
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/nephrospaidi
+    depends_on:
+      - config-server
+      - eureka
+      - keycloak
+    ports:
+      - "8086:8083"
+    restart: unless-stopped
+
+  administration-service:
+    build:
+      context: ./microservices/Administration-service
+    container_name: nephro-administration-service
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://eureka:8761/eureka
+      USER_SERVICE_BASE_URL: http://user-service:8090
+    depends_on:
+      - config-server
+      - eureka
+    ports:
+      - "18087:8087"
+    restart: unless-stopped
+
+  user-service:
+    build:
+      context: ./microservices/user-service
+    container_name: nephro-user-service
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_URL: http://eureka:8761/eureka
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      ADMINISTRATION_SERVICE_BASE_URL: http://administration-service:8087
+    depends_on:
+      - config-server
+      - eureka
+      - keycloak
+    ports:
+      - "18090:8090"
+    restart: unless-stopped
+
+  clinical-service:
+    build:
+      context: ./microservices/clinical-service
+    container_name: nephro-clinical-service
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://eureka:8761/eureka
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/nephrospaidi
+      SERVICES_ADMINISTRATION_BASE: http://administration-service:8087
+      SERVICES_USER_BASE: http://user-service:8090
+    depends_on:
+      - config-server
+      - eureka
+      - keycloak
+    ports:
+      - "18084:8084"
+    restart: unless-stopped
+
+  communication-service:
+    build:
+      context: ./microservices/communication-service
+    container_name: nephro-communication-service
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://eureka:8761/eureka
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/nephrospaidi
+      USER_SERVICE_BASE_URL: http://user-service:8090
+      ADMINISTRATION_SERVICE_BASE_URL: http://administration-service:8087
+    depends_on:
+      - config-server
+      - eureka
+      - keycloak
+    ports:
+      - "18085:8085"
+    restart: unless-stopped
+
+  ops-service:
+    build:
+      context: ./microservices/ops-service
+    container_name: nephro-ops-service
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://eureka:8761/eureka
+      EUREKA_INSTANCE_HOSTNAME: ops-service
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/nephrospaidi
+    depends_on:
+      - config-server
+      - eureka
+      - keycloak
+    ports:
+      - "18082:8082"
+    restart: unless-stopped
+
+  pharmacy-service:
+    build:
+      context: ./microservices/pharmacy-service
+    container_name: nephro-pharmacy-service
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://eureka:8761/eureka
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/nephrospaidi
+      USER_SERVICE_BASE_URL: http://user-service:8090
+    depends_on:
+      - config-server
+      - eureka
+      - keycloak
+    ports:
+      - "18088:8088"
+    restart: unless-stopped
+
+  procedure-service:
+    build:
+      context: ./microservices/procedure-service
+    container_name: nephro-procedure-service
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8761/eureka
+      EUREKA_DEFAULT_ZONE: http://eureka:8761/eureka
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/nephrospaidi
+    depends_on:
+      - config-server
+      - eureka
+      - keycloak
+    ports:
+      - "18089:8089"
+    restart: unless-stopped
+
+  core-ops-service:
+    profiles: ["legacy-core-ops"]
+    build:
+      context: ./microservices/core-ops-service
+    container_name: nephro-core-ops-service
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://eureka:8761/eureka
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/nephrospaidi
+    depends_on:
+      - config-server
+      - eureka
+      - keycloak
+    ports:
+      - "18091:8091"
+    restart: unless-stopped
