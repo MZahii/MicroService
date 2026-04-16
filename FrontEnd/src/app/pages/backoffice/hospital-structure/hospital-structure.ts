@@ -100,7 +100,6 @@ export class HospitalStructureComponent implements OnInit {
   expandedFloorIds = new Set<number>();
 
   workspaceFormByFloor: Record<number, { workspaceType: WorkspaceType | ''; quantity: number }> = {};
-  groupQuantityDrafts: Record<string, number> = {};
 
   groupedWorkspacesByFloor: Record<number, WorkspaceGroupView[]> = {};
   summaryStats: SummaryStats = {
@@ -171,6 +170,10 @@ export class HospitalStructureComponent implements OnInit {
       this.errorMessage = 'Please enter a valid floor count (minimum 1).';
       return;
     }
+    if (this.initializeTotalFloors > 120) {
+      this.errorMessage = 'Floor count cannot exceed 120.';
+      return;
+    }
 
     this.startSave();
     try {
@@ -222,30 +225,6 @@ export class HospitalStructureComponent implements OnInit {
     }
   }
 
-  async editFloorNote(floor: FloorItem): Promise<void> {
-    const current = floor.description ?? '';
-    const input = prompt(`Update note for floor ${floor.floorLabel}`, current);
-    if (input === null) return;
-
-    this.startSave();
-    try {
-      const headers = await this.authHeaders();
-      await firstValueFrom(
-        this.http.put(
-          `${environment.apiBaseUrl}/api/hospital-structure/floors/${floor.id}`,
-          { description: input.trim() || null },
-          { headers }
-        )
-      );
-      this.successMessage = `Floor ${floor.floorLabel} note updated.`;
-      await this.loadAll();
-    } catch (error: unknown) {
-      this.handleError(error, 'Failed to update floor note.');
-    } finally {
-      this.endSave();
-    }
-  }
-
   async deleteFloor(floor: FloorItem): Promise<void> {
     if (!confirm(`Delete floor ${floor.floorLabel} and all its workspaces?`)) {
       return;
@@ -275,6 +254,10 @@ export class HospitalStructureComponent implements OnInit {
       this.errorMessage = 'Quantity must be at least 1.';
       return;
     }
+    if (form.quantity > 200) {
+      this.errorMessage = 'Quantity cannot exceed 200 per request.';
+      return;
+    }
 
     this.startSave();
     try {
@@ -296,37 +279,6 @@ export class HospitalStructureComponent implements OnInit {
       await this.loadAll();
     } catch (error: unknown) {
       this.handleError(error, 'Failed to add workspace group.');
-    } finally {
-      this.endSave();
-    }
-  }
-
-  async applyGroupQuantity(floor: FloorItem, group: WorkspaceGroupView): Promise<void> {
-    const draft = this.groupQuantityDrafts[this.groupKey(floor.id, group.workspaceType)];
-    if (!Number.isFinite(draft) || draft < 0) {
-      this.errorMessage = 'Quantity must be 0 or more.';
-      return;
-    }
-
-    this.startSave();
-    try {
-      const headers = await this.authHeaders();
-      await firstValueFrom(
-        this.http.put(
-          `${environment.apiBaseUrl}/api/hospital-structure/workspaces/groups`,
-          {
-            floorId: floor.id,
-            workspaceType: group.workspaceType,
-            quantity: draft
-          },
-          { headers }
-        )
-      );
-
-      this.successMessage = `${group.label} quantity updated on floor ${floor.floorLabel}.`;
-      await this.loadAll();
-    } catch (error: unknown) {
-      this.handleError(error, 'Failed to update group quantity.');
     } finally {
       this.endSave();
     }
@@ -442,9 +394,6 @@ export class HospitalStructureComponent implements OnInit {
         })
         .sort((a, b) => a.label.localeCompare(b.label));
 
-      for (const group of grouped[floor.id]) {
-        this.groupQuantityDrafts[this.groupKey(floor.id, group.workspaceType)] = group.count;
-      }
     }
 
     this.groupedWorkspacesByFloor = grouped;
@@ -475,10 +424,6 @@ export class HospitalStructureComponent implements OnInit {
         this.workspaceFormByFloor[floor.id] = { workspaceType: '', quantity: 1 };
       }
     }
-  }
-
-  private groupKey(floorId: number, workspaceType: WorkspaceType): string {
-    return `${floorId}_${workspaceType}`;
   }
 
   private async fetchStructure(): Promise<StructureResponse> {

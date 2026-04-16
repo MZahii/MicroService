@@ -133,6 +133,11 @@ export class OfficeAssignmentsComponent implements OnInit {
       this.errorMessage = 'Please select both user and workspace.';
       return;
     }
+    const selectedUser = this.users.find((user) => user.id === form.userId);
+    if (!selectedUser || !selectedUser.enabled) {
+      this.errorMessage = 'Selected user is not active/enabled for assignment.';
+      return;
+    }
 
     this.saving = true;
     this.errorMessage = '';
@@ -147,7 +152,8 @@ export class OfficeAssignmentsComponent implements OnInit {
 
       this.successMessage = `${role} assignment created.`;
       this.createForm[role] = { userId: null, workspaceId: null };
-      await this.loadRoleData(role);
+      this.moveState = {};
+      await this.loadAll();
     } catch (error: any) {
       this.errorMessage = error?.error?.message || error?.message || 'Failed to create assignment.';
     } finally {
@@ -181,7 +187,8 @@ export class OfficeAssignmentsComponent implements OnInit {
 
       this.successMessage = 'Assignment moved.';
       this.cancelMove(assignment.id);
-      await this.loadRoleData(assignment.role);
+      this.moveState = {};
+      await this.loadAll();
     } catch (error: any) {
       this.errorMessage = error?.error?.message || error?.message || 'Failed to move assignment.';
     } finally {
@@ -201,7 +208,8 @@ export class OfficeAssignmentsComponent implements OnInit {
       const headers = await this.authHeaders();
       await firstValueFrom(this.http.delete(`${environment.apiBaseUrl}/api/staff-assignments/${assignment.id}`, { headers }));
       this.successMessage = 'Assignment deleted.';
-      await this.loadRoleData(assignment.role);
+      this.moveState = {};
+      await this.loadAll();
     } catch (error: any) {
       this.errorMessage = error?.error?.message || error?.message || 'Failed to delete assignment.';
     } finally {
@@ -234,6 +242,10 @@ export class OfficeAssignmentsComponent implements OnInit {
       return false;
     }
     return true;
+  }
+
+  moveOptionsFor(assignment: AssignmentRow): WorkspaceOption[] {
+    return this.tabWorkspaceOptions.filter((option) => this.canMoveToWorkspace(assignment, option));
   }
 
   canCreateInWorkspace(role: AssignmentRole, option: WorkspaceOption): boolean {
@@ -269,7 +281,7 @@ export class OfficeAssignmentsComponent implements OnInit {
   private availableUsersByRole(role: AssignmentRole): UserRow[] {
     const assignedIds = new Set(this.assignments[role].map((assignment) => assignment.userId));
     return this.users
-      .filter((user) => user.role === role)
+      .filter((user) => user.role === role && user.enabled)
       .filter((user) => !assignedIds.has(user.id))
       .sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`));
   }

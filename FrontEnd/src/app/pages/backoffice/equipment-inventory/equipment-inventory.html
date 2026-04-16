@@ -1,31 +1,32 @@
-<div class="page-header">
-  <div class="page-header-left d-flex align-items-center">
-    <div class="page-header-title"><h5 class="m-b-10">Equipment Inventory</h5></div>
-    <ul class="breadcrumb">
-      <li class="breadcrumb-item"><a routerLink="/backoffice/dashboard">Dashboard</a></li>
-      <li class="breadcrumb-item">Equipment Inventory</li>
-    </ul>
-  </div>
-</div>
+<div class="module-page equipment-page">
+  <header class="module-header card stretch stretch-full">
+    <div>
+      <p class="module-kicker">HR Operations</p>
+      <h2>Equipment Inventory</h2>
+      <p class="module-subtitle">Create equipment in batches, monitor status by group, and manage item lifecycle from one compact workflow.</p>
+    </div>
+    <div class="module-header__crumbs">
+      <a routerLink="/backoffice/dashboard">Dashboard</a>
+      <span>/</span>
+      <span>Equipment Inventory</span>
+    </div>
+  </header>
 
-<div class="main-content equipment-page">
   <div *ngIf="errorMessage" class="alert alert-danger mb-3">{{ errorMessage }}</div>
   <div *ngIf="successMessage" class="alert alert-success mb-3">{{ successMessage }}</div>
 
-  <div class="summary-grid">
-    <div class="summary-card"><span>Total Equipment</span><strong>{{ summary.total }}</strong></div>
-    <div class="summary-card"><span>Available</span><strong>{{ summary.available }}</strong></div>
-    <div class="summary-card"><span>Maintenance</span><strong>{{ summary.underMaintenance }}</strong></div>
-    <div class="summary-card"><span>Out Of Service</span><strong>{{ summary.outOfService }}</strong></div>
-    <div class="summary-card"><span>Archived</span><strong>{{ summary.archived }}</strong></div>
-    <div class="summary-card"><span>Used Categories</span><strong>{{ usedCategoryCount }}</strong></div>
-  </div>
+  <section class="kpi-grid">
+    <article class="kpi-card"><span>Total Equipment</span><strong>{{ summary.total }}</strong></article>
+    <article class="kpi-card"><span>Available</span><strong>{{ summary.available }}</strong></article>
+    <article class="kpi-card"><span>Maintenance</span><strong>{{ summary.underMaintenance }}</strong></article>
+    <article class="kpi-card"><span>Out Of Service</span><strong>{{ summary.outOfService }}</strong></article>
+    <article class="kpi-card"><span>Archived</span><strong>{{ summary.archived }}</strong></article>
+    <article class="kpi-card"><span>Used Categories</span><strong>{{ usedCategoryCount }}</strong></article>
+  </section>
 
-  <div class="card stretch stretch-full mb-3">
-    <div class="card-header section-header">
-      <h6 class="mb-0">Filters</h6>
-    </div>
-    <div class="card-body filters-row">
+  <section class="card stretch stretch-full panel-card">
+    <div class="card-header"><h6 class="mb-0">Search & Filters</h6></div>
+    <div class="card-body filters-grid">
       <input class="form-control" placeholder="Search by code or name" [(ngModel)]="filters.query" />
 
       <select class="form-control" [(ngModel)]="filters.category" (ngModelChange)="onFilterCategoryChange()">
@@ -49,77 +50,77 @@
         <option value="ALL">All equipment</option>
       </select>
 
-      <button class="btn btn-outline-primary" type="button" (click)="search()">Apply</button>
-      <button class="btn btn-primary" type="button" (click)="openCreate()">Add Equipment Batch</button>
+      <div class="filters-actions">
+        <button class="btn btn-outline-primary" type="button" (click)="search()">Apply</button>
+        <button class="btn btn-primary" type="button" (click)="openCreate()">Add Equipment Batch</button>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div class="card stretch stretch-full mb-3" *ngIf="showCreateForm">
-    <div class="card-header section-header">
-      <h6 class="mb-0">Create Equipment Batch</h6>
-    </div>
+  <section class="card stretch stretch-full panel-card" *ngIf="showCreateForm">
+    <div class="card-header"><h6 class="mb-0">Create Equipment Batch</h6></div>
 
     <div class="card-body create-grid">
-      <div class="field-block">
-        <label class="form-label">Category</label>
+      <label class="field-wrap">
+        <span class="field-label">Category</span>
         <select class="form-control" [(ngModel)]="form.category" (ngModelChange)="onCategoryChange()">
           <option value="" disabled>Select category</option>
           <option *ngFor="let opt of categoryOptions" [value]="opt.category">{{ categoryLabel(opt.category) }}</option>
         </select>
-      </div>
+      </label>
 
-      <div class="field-block" *ngIf="requiresSubtype">
-        <label class="form-label">Subtype</label>
+      <label class="field-wrap" *ngIf="requiresSubtype">
+        <span class="field-label">Subtype</span>
         <select class="form-control" [(ngModel)]="form.subtype">
           <option value="" disabled>Select subtype</option>
           <option *ngFor="let subtype of subtypeOptions" [value]="subtype.value">{{ categoryLabel(subtype.label) }}</option>
         </select>
-      </div>
+      </label>
 
-      <div class="field-block" *ngIf="form.subtype==='OTHER'">
-        <label class="form-label">Custom Subtype</label>
+      <label class="field-wrap" *ngIf="form.subtype==='OTHER'">
+        <span class="field-label">Custom Subtype</span>
         <input class="form-control" placeholder="Enter custom subtype" [(ngModel)]="form.customSubtype" />
-      </div>
+      </label>
 
-      <div class="field-block">
-        <label class="form-label">Quantity</label>
+      <label class="field-wrap">
+        <span class="field-label">Quantity</span>
         <input class="form-control" type="number" min="1" [(ngModel)]="form.quantity" />
-      </div>
+      </label>
 
-      <div class="field-block field-block--wide">
-        <label class="form-label">Description (optional)</label>
+      <label class="field-wrap field-wrap--wide">
+        <span class="field-label">Description (optional)</span>
         <input class="form-control" placeholder="Optional shared note for this batch" [(ngModel)]="form.description" />
-      </div>
+      </label>
 
       <div class="form-actions">
         <button class="btn btn-primary" type="button" [disabled]="saving" (click)="createBatch()">Create Batch</button>
         <button class="btn btn-light" type="button" [disabled]="saving" (click)="closeCreate()">Cancel</button>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="grouped-grid" *ngIf="!loading">
-    <div class="group-card" *ngFor="let group of grouped; trackBy: trackByGroup">
-      <div class="group-head">
+  <section class="grouped-grid" *ngIf="!loading">
+    <article class="group-card" *ngFor="let group of grouped; trackBy: trackByGroup">
+      <header class="group-head">
         <div>
           <div class="group-title">{{ groupLabel(group) }}</div>
           <div class="group-subtitle">{{ group.count }} item(s)</div>
         </div>
         <button class="btn btn-outline-primary btn-sm" type="button" (click)="openGroupDetails(group)">View Details</button>
-      </div>
+      </header>
 
       <div class="group-metrics">
-        <span class="pill">Available: {{ group.available }}</span>
-        <span class="pill">Maintenance: {{ group.underMaintenance }}</span>
-        <span class="pill">Out Of Service: {{ group.outOfService }}</span>
-        <span class="pill">Archived: {{ group.archived }}</span>
+        <span class="metric-pill">Available: {{ group.available }}</span>
+        <span class="metric-pill">Maintenance: {{ group.underMaintenance }}</span>
+        <span class="metric-pill">Out Of Service: {{ group.outOfService }}</span>
+        <span class="metric-pill">Archived: {{ group.archived }}</span>
       </div>
-    </div>
+    </article>
 
     <div class="empty-state" *ngIf="grouped.length === 0">
       No equipment matches your current filters.
     </div>
-  </div>
+  </section>
 
   <div class="group-modal" *ngIf="selectedGroup">
     <div class="group-modal__backdrop" (click)="closeGroupDetails()"></div>
@@ -134,7 +135,7 @@
       </div>
 
       <div class="group-modal__body">
-        <div class="detail-row" *ngFor="let item of selectedGroup.items; trackBy: trackByItem">
+        <article class="detail-row" *ngFor="let item of selectedGroup.items; trackBy: trackByItem">
           <div class="detail-main">
             <div class="detail-title">{{ item.name }}</div>
             <div class="detail-meta">
@@ -149,7 +150,7 @@
             </select>
             <button class="btn btn-outline-danger btn-sm" type="button" (click)="archive(item)">Archive</button>
           </div>
-        </div>
+        </article>
       </div>
     </div>
   </div>

@@ -9,6 +9,7 @@ import tn.esprit.spring.Administrationservice.dto.response.*;
 import tn.esprit.spring.Administrationservice.entity.*;
 import tn.esprit.spring.Administrationservice.repository.*;
 import tn.esprit.spring.Administrationservice.service.HospitalEquipmentService;
+import tn.esprit.spring.Administrationservice.service.NotificationPublisherService;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -45,6 +46,7 @@ public class HospitalEquipmentServiceImpl implements HospitalEquipmentService {
     private final EquipmentPlacementRepository placementRepository;
     private final FloorWorkspaceRepository workspaceRepository;
     private final HospitalFloorRepository floorRepository;
+    private final NotificationPublisherService notificationPublisherService;
 
     @Override
     @Transactional
@@ -71,6 +73,11 @@ public class HospitalEquipmentServiceImpl implements HospitalEquipmentService {
         }
 
         List<HospitalEquipment> saved = equipmentRepository.saveAll(batch);
+        notificationPublisherService.publish(
+                "EquipmentCreated",
+                "Equipment Inventory Updated",
+                saved.size() + " equipment item(s) created in category " + category.name() + "."
+        );
         return saved.stream().map(EquipmentResponse::from).map(this::enrichWithPlacement).toList();
     }
 
@@ -112,6 +119,7 @@ public class HospitalEquipmentServiceImpl implements HospitalEquipmentService {
     @Transactional
     public EquipmentResponse updateStatus(Long equipmentId, UpdateEquipmentStatusRequest request) {
         HospitalEquipment equipment = getEquipmentOrThrow(equipmentId);
+        EquipmentStatus previousStatus = equipment.getStatus();
         equipment.setStatus(request.getStatus());
 
         if (request.getStatus() == EquipmentStatus.ARCHIVED) {
@@ -125,6 +133,11 @@ public class HospitalEquipmentServiceImpl implements HospitalEquipmentService {
         }
 
         HospitalEquipment saved = equipmentRepository.save(equipment);
+        notificationPublisherService.publish(
+                "EquipmentStatusChanged",
+                "Equipment Status Updated",
+                saved.getEquipmentCode() + " status changed from " + previousStatus + " to " + saved.getStatus() + "."
+        );
         return enrichWithPlacement(EquipmentResponse.from(saved));
     }
 
@@ -145,6 +158,11 @@ public class HospitalEquipmentServiceImpl implements HospitalEquipmentService {
         HospitalEquipment saved = equipmentRepository.save(equipment);
         archivePlacementIfExists(saved.getId());
         recordArchiveLog(saved, "ARCHIVED", reason);
+        notificationPublisherService.publish(
+                "EquipmentArchived",
+                "Equipment Archived",
+                saved.getEquipmentCode() + " was archived" + (reason == null ? "." : " (" + reason + ").")
+        );
 
         return enrichWithPlacement(EquipmentResponse.from(saved));
     }
@@ -311,6 +329,12 @@ public class HospitalEquipmentServiceImpl implements HospitalEquipmentService {
                 .active(true)
                 .placedAt(LocalDateTime.now())
                 .build());
+        notificationPublisherService.publish(
+                "EquipmentPlaced",
+                "Equipment Placement Updated",
+                equipment.getEquipmentCode() + " placed in " + workspace.getWorkspaceName()
+                        + " (" + floorLabel(workspace.getFloor().getFloorOrder()) + ")."
+        );
 
         return buildWorkspacePlacementDetails(workspace);
     }
@@ -331,6 +355,11 @@ public class HospitalEquipmentServiceImpl implements HospitalEquipmentService {
             equipment.setStatus(EquipmentStatus.AVAILABLE);
             equipmentRepository.save(equipment);
         }
+        notificationPublisherService.publish(
+                "EquipmentRemovedFromWorkspace",
+                "Equipment Removed From Workspace",
+                equipment.getEquipmentCode() + " was removed from " + workspace.getWorkspaceName() + "."
+        );
 
         return buildWorkspacePlacementDetails(workspace);
     }
@@ -345,6 +374,7 @@ public class HospitalEquipmentServiceImpl implements HospitalEquipmentService {
         ensureWorkspaceEligible(targetWorkspace);
 
         HospitalEquipment equipment = currentPlacement.getEquipment();
+        FloorWorkspace sourceWorkspace = currentPlacement.getWorkspace();
         ensureCompatibility(targetWorkspace.getWorkspaceType(), equipment.getCategory());
 
         currentPlacement.setActive(false);
@@ -357,6 +387,12 @@ public class HospitalEquipmentServiceImpl implements HospitalEquipmentService {
                 .active(true)
                 .placedAt(LocalDateTime.now())
                 .build());
+        notificationPublisherService.publish(
+                "EquipmentMoved",
+                "Equipment Moved",
+                equipment.getEquipmentCode() + " moved from " + sourceWorkspace.getWorkspaceName()
+                        + " to " + targetWorkspace.getWorkspaceName() + "."
+        );
 
         return buildWorkspacePlacementDetails(targetWorkspace);
     }
@@ -365,6 +401,7 @@ public class HospitalEquipmentServiceImpl implements HospitalEquipmentService {
     @Transactional
     public PlacementWorkspaceDetailsResponse updateEquipmentStatusFromPlacement(Long equipmentId, UpdateEquipmentStatusRequest request) {
         HospitalEquipment equipment = getEquipmentOrThrow(equipmentId);
+        EquipmentStatus previousStatus = equipment.getStatus();
         EquipmentPlacement previousPlacement = placementRepository.findByEquipmentIdAndActiveTrue(equipmentId).orElse(null);
 
         equipment.setStatus(request.getStatus());
@@ -375,6 +412,11 @@ public class HospitalEquipmentServiceImpl implements HospitalEquipmentService {
             recordArchiveLog(equipment, "ARCHIVED_FROM_PLACEMENT", "Archived from placement view");
         }
         equipmentRepository.save(equipment);
+        notificationPublisherService.publish(
+                "EquipmentStatusChanged",
+                "Equipment Status Updated",
+                equipment.getEquipmentCode() + " status changed from " + previousStatus + " to " + equipment.getStatus() + "."
+        );
 
         FloorWorkspace workspaceForResponse = previousPlacement != null
                 ? previousPlacement.getWorkspace()

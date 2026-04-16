@@ -15,6 +15,7 @@ import tn.esprit.spring.Administrationservice.entity.WorkspaceType;
 import tn.esprit.spring.Administrationservice.repository.FloorWorkspaceRepository;
 import tn.esprit.spring.Administrationservice.repository.HospitalFloorRepository;
 import tn.esprit.spring.Administrationservice.repository.StaffWorkspaceAssignmentRepository;
+import tn.esprit.spring.Administrationservice.service.NotificationPublisherService;
 import tn.esprit.spring.Administrationservice.service.StaffWorkspaceAssignmentService;
 
 import java.util.ArrayList;
@@ -51,6 +52,7 @@ public class StaffWorkspaceAssignmentServiceImpl implements StaffWorkspaceAssign
     private final StaffWorkspaceAssignmentRepository assignmentRepository;
     private final FloorWorkspaceRepository workspaceRepository;
     private final HospitalFloorRepository floorRepository;
+    private final NotificationPublisherService notificationPublisherService;
 
     @Override
     @Transactional(readOnly = true)
@@ -126,6 +128,13 @@ public class StaffWorkspaceAssignmentServiceImpl implements StaffWorkspaceAssign
                 .workspace(workspace)
                 .build());
 
+        notificationPublisherService.publish(
+                "StaffAssignmentCreated",
+                "Staff Assignment Created",
+                role.name() + " user #" + request.getUserId() + " assigned to " + workspace.getWorkspaceName()
+                        + " (" + floorLabel(workspace.getFloor().getFloorOrder()) + ")."
+        );
+
         return StaffWorkspaceAssignmentResponse.from(created, floorLabel(workspace.getFloor().getFloorOrder()));
     }
 
@@ -138,6 +147,11 @@ public class StaffWorkspaceAssignmentServiceImpl implements StaffWorkspaceAssign
         FloorWorkspace targetWorkspace = getWorkspaceOrThrow(request.getWorkspaceId());
         StaffPlacementRole role = assignment.getRole();
         ensureWorkspaceCompatible(role, targetWorkspace);
+        if (assignment.getWorkspace().getId().equals(targetWorkspace.getId())) {
+            throw new IllegalArgumentException("Assignment is already linked to this workspace.");
+        }
+
+        FloorWorkspace previousWorkspace = assignment.getWorkspace();
 
         if (role == StaffPlacementRole.ADMIN) {
             assignmentRepository.findByWorkspaceIdAndRole(targetWorkspace.getId(), role).stream()
@@ -156,6 +170,12 @@ public class StaffWorkspaceAssignmentServiceImpl implements StaffWorkspaceAssign
 
         assignment.setWorkspace(targetWorkspace);
         StaffWorkspaceAssignment saved = assignmentRepository.save(assignment);
+        notificationPublisherService.publish(
+                "StaffAssignmentMoved",
+                "Staff Assignment Moved",
+                role.name() + " user #" + assignment.getUserId() + " moved from "
+                        + previousWorkspace.getWorkspaceName() + " to " + targetWorkspace.getWorkspaceName() + "."
+        );
 
         return StaffWorkspaceAssignmentResponse.from(saved, floorLabel(targetWorkspace.getFloor().getFloorOrder()));
     }
@@ -165,7 +185,15 @@ public class StaffWorkspaceAssignmentServiceImpl implements StaffWorkspaceAssign
     public void deleteAssignment(Long assignmentId) {
         StaffWorkspaceAssignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Assignment not found: " + assignmentId));
+        String workspaceName = assignment.getWorkspace().getWorkspaceName();
+        String role = assignment.getRole().name();
+        Long userId = assignment.getUserId();
         assignmentRepository.delete(assignment);
+        notificationPublisherService.publish(
+                "StaffAssignmentDeleted",
+                "Staff Assignment Deleted",
+                role + " user #" + userId + " was unassigned from " + workspaceName + "."
+        );
     }
 
     private void ensureWorkspaceCompatible(StaffPlacementRole role, FloorWorkspace workspace) {

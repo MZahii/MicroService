@@ -142,6 +142,11 @@ export class StaffPlacementsComponent implements OnInit {
       this.errorMessage = 'Please select both workspace and user.';
       return;
     }
+    const selectedUser = this.users.find((user) => user.id === form.userId);
+    if (!selectedUser || !selectedUser.enabled) {
+      this.errorMessage = 'Selected user is not active/enabled for placement.';
+      return;
+    }
 
     this.saving = true;
     this.errorMessage = '';
@@ -156,7 +161,8 @@ export class StaffPlacementsComponent implements OnInit {
 
       this.successMessage = `${this.roleLabel(role)} placement created.`;
       this.createForm[role] = { userId: null, workspaceId: null };
-      await this.loadRoleData(role);
+      this.moveState = {};
+      await this.loadAll();
     } catch (error: any) {
       this.errorMessage = error?.error?.message || error?.message || 'Failed to create placement.';
     } finally {
@@ -190,7 +196,8 @@ export class StaffPlacementsComponent implements OnInit {
 
       this.successMessage = 'Placement moved.';
       this.cancelMove(assignment.id);
-      await this.loadRoleData(assignment.role);
+      this.moveState = {};
+      await this.loadAll();
     } catch (error: any) {
       this.errorMessage = error?.error?.message || error?.message || 'Failed to move placement.';
     } finally {
@@ -210,7 +217,8 @@ export class StaffPlacementsComponent implements OnInit {
       const headers = await this.authHeaders();
       await firstValueFrom(this.http.delete(`${environment.apiBaseUrl}/api/staff-assignments/${assignment.id}`, { headers }));
       this.successMessage = 'Placement deleted.';
-      await this.loadRoleData(assignment.role);
+      this.moveState = {};
+      await this.loadAll();
     } catch (error: any) {
       this.errorMessage = error?.error?.message || error?.message || 'Failed to delete placement.';
     } finally {
@@ -259,7 +267,7 @@ export class StaffPlacementsComponent implements OnInit {
   private async loadUsers(): Promise<void> {
     const headers = await this.authHeaders();
     const allUsers = await firstValueFrom(this.http.get<UserRow[]>(`${environment.apiBaseUrl}/api/users`, { headers }));
-    this.users = (allUsers ?? []).filter((user) => ['DOCTOR', 'LAB_AGENT', 'PHARMACIST', 'RECEPTIONIST'].includes(user.role));
+    this.users = (allUsers ?? []).filter((user) => ['DOCTOR', 'LAB_AGENT', 'PHARMACIST', 'RECEPTIONIST'].includes(user.role) && user.enabled);
   }
 
   private availableUsersByRole(role: PlacementRole): UserRow[] {

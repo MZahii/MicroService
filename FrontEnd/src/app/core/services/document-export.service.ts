@@ -57,183 +57,280 @@ export class DocumentExportService {
           <title>${this.escapeHtml(config.title)}</title>
           <style>
             :root {
-              --brand: #1d4ed8;
-              --brand-soft: #eff6ff;
-              --text: #0f172a;
+              --brand: #0f4aa2;
+              --brand-dark: #0b2f6b;
+              --brand-soft: #eef4ff;
+              --ink: #0f172a;
               --muted: #64748b;
-              --border: #cbd5e1;
+              --line: #d0ddee;
+              --surface: #ffffff;
             }
+
             * { box-sizing: border-box; }
+
             body {
               margin: 0;
-              color: var(--text);
-              font-family: "Segoe UI", Tahoma, Arial, sans-serif;
-              font-size: 13px;
+              color: var(--ink);
+              font-family: "Segoe UI", "Inter", Tahoma, Arial, sans-serif;
+              font-size: 12px;
               line-height: 1.45;
-              background: #f8fafc;
+              background: #f3f7fc;
             }
-            .page {
+
+            .doc-shell {
               width: 100%;
-              max-width: 1100px;
+              max-width: 1120px;
               margin: 0 auto;
-              padding: 24px;
-              background: #fff;
+              padding: 20px;
             }
+
+            .doc-card {
+              background: var(--surface);
+              border: 1px solid var(--line);
+              border-radius: 14px;
+              overflow: hidden;
+              box-shadow: 0 8px 30px rgba(15, 23, 42, .08);
+            }
+
             .doc-header {
+              padding: 16px 18px 14px;
+              border-bottom: 2px solid var(--brand);
+              background: linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%);
               display: flex;
               justify-content: space-between;
-              align-items: center;
+              align-items: flex-start;
               gap: 16px;
-              border-bottom: 2px solid var(--brand);
-              padding-bottom: 14px;
-              margin-bottom: 14px;
             }
+
             .brand {
               display: flex;
               align-items: center;
               gap: 12px;
             }
+
             .brand img {
-              width: 44px;
-              height: 44px;
+              width: 46px;
+              height: 46px;
               object-fit: contain;
             }
-            .brand-title {
-              font-size: 18px;
-              font-weight: 700;
-              color: #0b1739;
+
+            .clinic-name {
               margin: 0;
+              font-size: 18px;
+              font-weight: 800;
+              color: var(--brand-dark);
             }
-            .brand-sub {
-              margin: 2px 0 0 0;
-              color: var(--muted);
-              font-size: 12px;
-            }
-            .meta {
-              text-align: right;
-              color: var(--muted);
-              font-size: 12px;
-            }
-            .doc-title {
-              margin: 6px 0 0 0;
-              font-size: 22px;
-              color: #0b1739;
-            }
-            .doc-subtitle {
-              margin: 4px 0 14px 0;
-              color: var(--muted);
-              font-size: 13px;
-            }
-            .summary-grid {
-              display: grid;
-              grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-              gap: 10px;
-              margin: 0 0 16px 0;
-            }
-            .summary-card {
-              border: 1px solid var(--border);
-              background: var(--brand-soft);
-              border-radius: 8px;
-              padding: 10px;
-            }
-            .summary-card .label {
+
+            .clinic-meta {
+              margin: 2px 0 0;
               color: var(--muted);
               font-size: 11px;
-              text-transform: uppercase;
-              letter-spacing: .04em;
             }
+
+            .doc-title {
+              margin: 8px 0 0;
+              font-size: 22px;
+              line-height: 1.2;
+              color: #0b1739;
+            }
+
+            .doc-subtitle {
+              margin: 4px 0 0;
+              color: var(--muted);
+              font-size: 12px;
+            }
+
+            .export-meta {
+              text-align: right;
+              color: var(--muted);
+              font-size: 11px;
+              min-width: 220px;
+              display: grid;
+              gap: 4px;
+            }
+
+            .meta-row {
+              display: flex;
+              justify-content: space-between;
+              gap: 8px;
+            }
+
+            .doc-body {
+              padding: 14px 18px;
+            }
+
+            .summary-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+              gap: 10px;
+              margin: 0 0 14px;
+            }
+
+            .summary-card {
+              border: 1px solid var(--line);
+              background: var(--brand-soft);
+              border-radius: 10px;
+              padding: 9px;
+            }
+
+            .summary-card .label {
+              color: var(--muted);
+              font-size: 10px;
+              text-transform: uppercase;
+              letter-spacing: .05em;
+            }
+
             .summary-card .value {
               margin-top: 4px;
-              font-size: 16px;
-              font-weight: 700;
+              font-size: 15px;
+              font-weight: 800;
               color: #0f172a;
             }
+
             table {
               width: 100%;
               border-collapse: collapse;
-              margin-top: 8px;
+              border: 1px solid var(--line);
+              border-radius: 10px;
+              overflow: hidden;
+              table-layout: fixed;
             }
+
             thead th {
               text-align: left;
               padding: 10px 8px;
-              background: #f1f5f9;
+              background: #eaf1fd;
               color: #0b1739;
-              font-size: 12px;
-              border: 1px solid var(--border);
+              font-size: 11px;
+              border-bottom: 1px solid var(--line);
+              word-break: break-word;
             }
+
             tbody td {
               padding: 8px;
-              border: 1px solid var(--border);
+              border-bottom: 1px solid #e9eff7;
               vertical-align: top;
+              color: #1e293b;
+              word-break: break-word;
             }
+
             tbody tr:nth-child(even) td {
-              background: #f8fafc;
+              background: #f9fbff;
             }
+
+            tbody tr:last-child td {
+              border-bottom: none;
+            }
+
             .empty {
               text-align: center;
               color: var(--muted);
               padding: 16px;
             }
+
             .doc-footer {
-              border-top: 1px solid var(--border);
-              margin-top: 16px;
-              padding-top: 8px;
+              border-top: 1px solid var(--line);
+              padding: 10px 18px;
               display: flex;
               justify-content: space-between;
               align-items: center;
               color: var(--muted);
-              font-size: 11px;
+              font-size: 10px;
+              background: #f8fbff;
             }
+
+            .footer-left {
+              display: grid;
+              gap: 2px;
+            }
+
+            .footer-right {
+              text-align: right;
+            }
+
+            .page-number:before {
+              content: counter(page);
+            }
+
             @page {
               size: A4;
-              margin: 14mm;
+              margin: 12mm;
             }
+
             @media print {
               body {
                 background: #fff;
               }
-              .page {
+
+              .doc-shell {
                 max-width: none;
                 padding: 0;
               }
+
+              .doc-card {
+                box-shadow: none;
+                border-radius: 0;
+              }
+
               .doc-footer {
                 position: fixed;
-                bottom: 0;
                 left: 0;
                 right: 0;
-                background: #fff;
+                bottom: 0;
+                border-top: 1px solid var(--line);
+              }
+
+              thead {
+                display: table-header-group;
+              }
+
+              tr {
+                page-break-inside: avoid;
               }
             }
           </style>
         </head>
         <body>
-          <div class="page">
-            <div class="doc-header">
-              <div>
-                <div class="brand">
-                  <img src="${logoUrl}" alt="Clinic Logo" />
-                  <div>
-                    <h1 class="brand-title">NephrosPaidi Clinic</h1>
-                    <p class="brand-sub">Hospital Management System</p>
+          <div class="doc-shell">
+            <article class="doc-card">
+              <header class="doc-header">
+                <div>
+                  <div class="brand">
+                    <img src="${logoUrl}" alt="Clinic Logo" />
+                    <div>
+                      <h1 class="clinic-name">NephrosPaidi Clinic</h1>
+                      <p class="clinic-meta">Hospital Management Platform • Administrative & Clinical Reports</p>
+                    </div>
                   </div>
+                  <h2 class="doc-title">${this.escapeHtml(config.title)}</h2>
+                  ${config.subtitle ? `<p class="doc-subtitle">${this.escapeHtml(config.subtitle)}</p>` : ''}
                 </div>
-                <h2 class="doc-title">${this.escapeHtml(config.title)}</h2>
-                ${config.subtitle ? `<p class="doc-subtitle">${this.escapeHtml(config.subtitle)}</p>` : ''}
-              </div>
-              <div class="meta">
-                <div><strong>Generated:</strong> ${this.escapeHtml(this.formatDateTime(generatedAt))}</div>
-                <div><strong>Generated By:</strong> ${this.escapeHtml(config.generatedBy || 'System')}</div>
-              </div>
-            </div>
-            ${summaryHtml}
-            ${tableHtml}
-            <div class="doc-footer">
-              <span>NephrosPaidi Clinic Â· Confidential Document</span>
-              <span>Export generated on ${this.escapeHtml(this.formatDateTime(generatedAt))}</span>
-            </div>
+                <div class="export-meta">
+                  <div class="meta-row"><strong>Generated At</strong><span>${this.escapeHtml(this.formatDateTime(generatedAt))}</span></div>
+                  <div class="meta-row"><strong>Generated By</strong><span>${this.escapeHtml(config.generatedBy || 'System')}</span></div>
+                  <div class="meta-row"><strong>Document Type</strong><span>Operational Report</span></div>
+                </div>
+              </header>
+
+              <section class="doc-body">
+                ${summaryHtml}
+                ${tableHtml}
+              </section>
+
+              <footer class="doc-footer">
+                <div class="footer-left">
+                  <span>NephrosPaidi Clinic • Confidential</span>
+                  <span>Prepared for administrative/clinical supervision workflows.</span>
+                </div>
+                <div class="footer-right">
+                  <div>Page <span class="page-number"></span></div>
+                  <div>${this.escapeHtml(this.formatDateTime(generatedAt))}</div>
+                </div>
+              </footer>
+            </article>
           </div>
           <script>
-            ${autoPrint ? 'setTimeout(function(){ window.focus(); window.print(); }, 400);' : ''}
+            ${autoPrint ? 'setTimeout(function(){ window.focus(); window.print(); }, 350);' : ''}
           </script>
         </body>
       </html>

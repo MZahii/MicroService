@@ -53,8 +53,7 @@ export class AccountSettingsComponent implements OnInit {
     firstName: '',
     lastName: '',
     email: '',
-    phone: '',
-    avatarUrl: ''
+    phone: ''
   };
 
   preferencesForm = {
@@ -108,14 +107,15 @@ export class AccountSettingsComponent implements OnInit {
         firstName: response.firstName ?? '',
         lastName: response.lastName ?? '',
         email: response.email ?? '',
-        phone: response.phone ?? '',
-        avatarUrl: response.avatarUrl ?? ''
+        phone: response.phone ?? ''
       };
       this.preferencesForm = {
         preferredLanguage: response.preferredLanguage ?? 'en',
         notificationsEnabled: response.notificationsEnabled,
         theme: response.theme ?? 'light'
       };
+      this.applyPreferencesLocally();
+      this.authStorage.setPreferences(this.preferencesForm);
 
       if (!response.mustChangePassword) {
         this.authStorage.setPasswordChangeRequired(false);
@@ -134,6 +134,12 @@ export class AccountSettingsComponent implements OnInit {
   }
 
   async saveProfile(): Promise<void> {
+    const profileValidation = this.validateProfile();
+    if (profileValidation) {
+      this.errorMessage = profileValidation;
+      return;
+    }
+
     this.savingProfile = true;
     this.errorMessage = '';
     this.successMessage = '';
@@ -145,8 +151,7 @@ export class AccountSettingsComponent implements OnInit {
           firstName: this.profileForm.firstName,
           lastName: this.profileForm.lastName,
           email: this.profileForm.email,
-          phone: this.profileForm.phone || null,
-          avatarUrl: this.profileForm.avatarUrl || null
+          phone: this.profileForm.phone || null
         }, { headers })
       );
       this.successMessage = 'Profile updated successfully.';
@@ -159,6 +164,12 @@ export class AccountSettingsComponent implements OnInit {
   }
 
   async savePreferences(): Promise<void> {
+    const preferenceValidation = this.validatePreferences();
+    if (preferenceValidation) {
+      this.errorMessage = preferenceValidation;
+      return;
+    }
+
     this.savingPrefs = true;
     this.errorMessage = '';
     this.successMessage = '';
@@ -173,6 +184,8 @@ export class AccountSettingsComponent implements OnInit {
         }, { headers })
       );
       this.successMessage = 'Preferences updated successfully.';
+      this.applyPreferencesLocally();
+      this.authStorage.setPreferences(this.preferencesForm);
       await this.loadSettings();
     } catch (error: any) {
       this.errorMessage = error?.error?.message || error?.message || 'Failed to update preferences.';
@@ -182,6 +195,12 @@ export class AccountSettingsComponent implements OnInit {
   }
 
   async changePassword(): Promise<void> {
+    const passwordValidation = this.validatePassword();
+    if (passwordValidation) {
+      this.errorMessage = passwordValidation;
+      return;
+    }
+
     this.savingPassword = true;
     this.errorMessage = '';
     this.successMessage = '';
@@ -220,5 +239,52 @@ export class AccountSettingsComponent implements OnInit {
   private async authHeaders(): Promise<HttpHeaders> {
     const token = await getValidToken();
     return new HttpHeaders({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' });
+  }
+
+  private validateProfile(): string | null {
+    const firstName = this.profileForm.firstName.trim();
+    const lastName = this.profileForm.lastName.trim();
+    const email = this.profileForm.email.trim();
+    const phone = this.profileForm.phone.trim();
+
+    if (firstName.length < 3) return 'First name must contain at least 3 characters.';
+    if (lastName.length < 3) return 'Last name must contain at least 3 characters.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Please enter a valid email address.';
+    if (phone && !/^[+]?\d{8,15}$/.test(phone)) return 'Phone must contain only digits (8 to 15), with optional + prefix.';
+    return null;
+  }
+
+  private validatePreferences(): string | null {
+    const langs = ['en', 'fr', 'ar'];
+    const themes = ['light', 'dark', 'system'];
+    if (!langs.includes(this.preferencesForm.preferredLanguage)) return 'Unsupported language selection.';
+    if (!themes.includes(this.preferencesForm.theme)) return 'Unsupported theme selection.';
+    return null;
+  }
+
+  private validatePassword(): string | null {
+    const current = this.securityForm.currentPassword;
+    const next = this.securityForm.newPassword;
+    const confirm = this.securityForm.confirmPassword;
+
+    if (!current.trim()) return 'Current password is required.';
+    if (!next.trim()) return 'New password is required.';
+    if (next.length < 10) return 'New password must be at least 10 characters.';
+    if (!/[A-Z]/.test(next)) return 'New password must include at least one uppercase letter.';
+    if (!/[a-z]/.test(next)) return 'New password must include at least one lowercase letter.';
+    if (!/\d/.test(next)) return 'New password must include at least one number.';
+    if (!/[^A-Za-z0-9]/.test(next)) return 'New password must include at least one special character.';
+    if (/\s/.test(next)) return 'New password cannot contain spaces.';
+    if (next !== confirm) return 'New password and confirmation do not match.';
+    if (current === next) return 'New password must be different from current password.';
+    return null;
+  }
+
+  private applyPreferencesLocally(): void {
+    const language = this.preferencesForm.preferredLanguage || 'en';
+    const theme = this.preferencesForm.theme || 'light';
+    document.documentElement.setAttribute('lang', language);
+    document.documentElement.setAttribute('data-theme-preference', theme);
+    document.body.classList.toggle('np-theme-dark', theme === 'dark');
   }
 }

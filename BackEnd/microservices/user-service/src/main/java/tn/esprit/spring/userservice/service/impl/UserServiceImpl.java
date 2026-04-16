@@ -553,7 +553,8 @@ public class UserServiceImpl implements UserService {
         user.setLastName(request.getLastName().trim());
         user.setEmail(normalizedEmail);
         user.setPhone((normalizedPhone == null || normalizedPhone.isEmpty()) ? null : normalizedPhone);
-        user.setAvatarUrl(trimOrNull(request.getAvatarUrl()));
+        // Avatar URL self-edit is intentionally disabled in settings UI for safer profile management.
+        // Keep persisted value unchanged here.
 
         User saved = userRepository.save(user);
         saveAudit(saved.getId(), "MyProfileUpdated", before, userSnapshot(saved));
@@ -593,6 +594,9 @@ public class UserServiceImpl implements UserService {
 
         if (request.getCurrentPassword().equals(request.getNewPassword())) {
             throw new IllegalArgumentException("New password must be different from current password.");
+        }
+        if (request.getNewPassword().contains(" ")) {
+            throw new IllegalArgumentException("New password cannot contain spaces.");
         }
 
         boolean validCurrentPassword = keycloakAdminService.validateCredentials(user.getUsername(), request.getCurrentPassword());

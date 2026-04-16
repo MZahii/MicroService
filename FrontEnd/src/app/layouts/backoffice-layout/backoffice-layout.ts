@@ -82,6 +82,7 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
   notifications: HeaderNotification[] = [];
   unreadCount = 0;
   hasNewNotificationPulse = false;
+  notificationsEnabled = true;
 
   private notificationsTimer?: ReturnType<typeof setInterval>;
   private lastNotificationId?: number;
@@ -547,6 +548,8 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
       BACKOFFICE_STYLES,
       BACKOFFICE_SCRIPTS
     );
+    this.applyPreferences(this.authStorage.getPreferences());
+    await this.loadAccountPreferences();
 
     this.navSub = this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
@@ -558,10 +561,12 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
         }, 120);
       });
 
-    await this.loadNotifications(true);
-    this.notificationsTimer = setInterval(() => {
-      this.loadNotifications();
-    }, this.notificationsPollMs);
+    if (this.notificationsEnabled) {
+      await this.loadNotifications(true);
+      this.notificationsTimer = setInterval(() => {
+        this.loadNotifications();
+      }, this.notificationsPollMs);
+    }
   }
 
   ngAfterViewInit(): void {
@@ -622,6 +627,9 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   async toggleNotifications(event: MouseEvent): Promise<void> {
+    if (!this.notificationsEnabled) {
+      return;
+    }
     event.stopPropagation();
     this.userMenuOpen = false;
     this.notificationsOpen = !this.notificationsOpen;
@@ -661,6 +669,11 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   private async loadNotifications(initial = false): Promise<void> {
+    if (!this.notificationsEnabled) {
+      this.notifications = [];
+      this.unreadCount = 0;
+      return;
+    }
     if (this.loadingNotifications) return;
     this.loadingNotifications = true;
     try {
@@ -705,5 +718,31 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
   async onLogout(): Promise<void> {
     this.userMenuOpen = false;
     await logout();
+  }
+
+  private async loadAccountPreferences(): Promise<void> {
+    try {
+      const token = await getValidToken();
+      const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+      const response = await firstValueFrom(this.http.get<any>(`${environment.apiBaseUrl}/api/users/me/settings`, { headers }));
+      const preferences = {
+        theme: String(response?.theme ?? 'light'),
+        preferredLanguage: String(response?.preferredLanguage ?? 'en'),
+        notificationsEnabled: response?.notificationsEnabled !== false
+      };
+      this.authStorage.setPreferences(preferences);
+      this.applyPreferences(preferences);
+    } catch {
+      // Keep locally cached preferences when settings endpoint is unavailable.
+    }
+  }
+
+  private applyPreferences(preferences: { theme: string; preferredLanguage: string; notificationsEnabled: boolean }): void {
+    const theme = preferences.theme || 'light';
+    const language = preferences.preferredLanguage || 'en';
+    this.notificationsEnabled = preferences.notificationsEnabled !== false;
+    document.documentElement.setAttribute('lang', language);
+    document.documentElement.setAttribute('data-theme-preference', theme);
+    document.body.classList.toggle('np-theme-dark', theme === 'dark');
   }
 }

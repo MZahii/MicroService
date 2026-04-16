@@ -11,6 +11,9 @@ export class AuthStorageService {
   private readonly ROLE_KEY = 'np_role';
   private readonly REDIRECT_KEY = 'np_redirect_to';
   private readonly USER_KEY = 'np_user';
+  private readonly PREF_THEME_KEY = 'np_pref_theme';
+  private readonly PREF_LANGUAGE_KEY = 'np_pref_language';
+  private readonly PREF_NOTIFICATIONS_KEY = 'np_pref_notifications_enabled';
 
   saveSession(response: LoginResponse, rememberMe: boolean = true): void {
     this.clear();
@@ -107,11 +110,39 @@ export class AuthStorageService {
     localStorage.removeItem(this.ROLE_KEY);
     localStorage.removeItem(this.REDIRECT_KEY);
     localStorage.removeItem(this.USER_KEY);
+    localStorage.removeItem(this.PREF_THEME_KEY);
+    localStorage.removeItem(this.PREF_LANGUAGE_KEY);
+    localStorage.removeItem(this.PREF_NOTIFICATIONS_KEY);
 
     sessionStorage.removeItem(this.ACCESS_TOKEN_KEY);
     sessionStorage.removeItem(this.REFRESH_TOKEN_KEY);
     sessionStorage.removeItem(this.ROLE_KEY);
     sessionStorage.removeItem(this.REDIRECT_KEY);
     sessionStorage.removeItem(this.USER_KEY);
+    sessionStorage.removeItem(this.PREF_THEME_KEY);
+    sessionStorage.removeItem(this.PREF_LANGUAGE_KEY);
+    sessionStorage.removeItem(this.PREF_NOTIFICATIONS_KEY);
+  }
+
+  setPreferences(preferences: { theme?: string; preferredLanguage?: string; notificationsEnabled?: boolean }): void {
+    const storage = localStorage.getItem(this.USER_KEY) ? localStorage : sessionStorage;
+    if (preferences.theme) {
+      storage.setItem(this.PREF_THEME_KEY, preferences.theme);
+    }
+    if (preferences.preferredLanguage) {
+      storage.setItem(this.PREF_LANGUAGE_KEY, preferences.preferredLanguage);
+    }
+    if (preferences.notificationsEnabled !== undefined && preferences.notificationsEnabled !== null) {
+      storage.setItem(this.PREF_NOTIFICATIONS_KEY, String(preferences.notificationsEnabled));
+    }
+  }
+
+  getPreferences(): { theme: string; preferredLanguage: string; notificationsEnabled: boolean } {
+    const storage = localStorage.getItem(this.USER_KEY) ? localStorage : sessionStorage;
+    const theme = storage.getItem(this.PREF_THEME_KEY) ?? 'light';
+    const preferredLanguage = storage.getItem(this.PREF_LANGUAGE_KEY) ?? 'en';
+    const notificationsEnabledRaw = storage.getItem(this.PREF_NOTIFICATIONS_KEY);
+    const notificationsEnabled = notificationsEnabledRaw === null ? true : notificationsEnabledRaw === 'true';
+    return { theme, preferredLanguage, notificationsEnabled };
   }
 }

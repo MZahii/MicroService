@@ -3,6 +3,7 @@ package tn.esprit.spring.Administrationservice.dto.request;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.Setter;
 import tn.esprit.spring.Administrationservice.entity.WorkspaceType;
@@ -12,6 +13,7 @@ import tn.esprit.spring.Administrationservice.entity.WorkspaceType;
 public class CreateWorkspaceRequest {
 
     @NotNull(message = "floorId is required")
+    @Positive(message = "floorId must be positive")
     private Long floorId;
 
     @NotNull(message = "workspaceType is required")

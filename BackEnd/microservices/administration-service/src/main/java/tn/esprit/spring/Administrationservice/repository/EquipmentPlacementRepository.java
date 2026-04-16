@@ -11,7 +11,9 @@ import java.util.Optional;
 public interface EquipmentPlacementRepository extends JpaRepository<EquipmentPlacement, Long> {
     Optional<EquipmentPlacement> findByEquipmentIdAndActiveTrue(Long equipmentId);
     List<EquipmentPlacement> findByWorkspaceIdAndActiveTrueOrderByPlacedAtAsc(Long workspaceId);
+    List<EquipmentPlacement> findByWorkspaceId(Long workspaceId);
     List<EquipmentPlacement> findByWorkspaceFloorIdAndActiveTrue(Long floorId);
+    List<EquipmentPlacement> findByWorkspaceFloorId(Long floorId);
     List<EquipmentPlacement> findByActiveTrue();
     List<EquipmentPlacement> findByEquipmentIdInAndActiveTrue(List<Long> equipmentIds);
 }

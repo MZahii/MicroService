@@ -6,10 +6,13 @@ import org.springframework.transaction.annotation.Transactional;
 import tn.esprit.spring.Administrationservice.dto.request.*;
 import tn.esprit.spring.Administrationservice.dto.response.*;
 import tn.esprit.spring.Administrationservice.entity.*;
+import tn.esprit.spring.Administrationservice.repository.EquipmentPlacementRepository;
 import tn.esprit.spring.Administrationservice.repository.FloorWorkspaceRepository;
 import tn.esprit.spring.Administrationservice.repository.HospitalFloorRepository;
 import tn.esprit.spring.Administrationservice.service.HospitalStructureService;
+import tn.esprit.spring.Administrationservice.service.NotificationPublisherService;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -25,6 +28,8 @@ public class HospitalStructureServiceImpl implements HospitalStructureService {
 
     private final HospitalFloorRepository floorRepository;
     private final FloorWorkspaceRepository workspaceRepository;
+    private final EquipmentPlacementRepository equipmentPlacementRepository;
+    private final NotificationPublisherService notificationPublisherService;
 
     @Override
     @Transactional(readOnly = true)
@@ -93,6 +98,12 @@ public class HospitalStructureServiceImpl implements HospitalStructureService {
         renumberAndPersistFloors(floors);
         refreshWorkspaceCodesForAllFloors();
 
+        notificationPublisherService.publish(
+                "HospitalStructureFloorAdded",
+                "Hospital Structure Updated",
+                "A new floor was added (" + floorLabel(newFloor.getFloorOrder()) + ") and floor numbering was recalculated."
+        );
+
         return toFloorResponse(newFloor);
     }
 
@@ -113,6 +124,9 @@ public class HospitalStructureServiceImpl implements HospitalStructureService {
         HospitalFloor floor = floorRepository.findById(floorId)
                 .orElseThrow(() -> new IllegalArgumentException("Floor not found: " + floorId));
 
+        for (FloorWorkspace workspace : floor.getWorkspaces()) {
+            cleanupPlacementsForWorkspace(workspace.getId());
+        }
         floorRepository.delete(floor);
 
         List<HospitalFloor> remainingFloors = floorRepository.findAllByOrderByFloorOrderAsc();
@@ -120,6 +134,12 @@ public class HospitalStructureServiceImpl implements HospitalStructureService {
             renumberAndPersistFloors(remainingFloors);
             refreshWorkspaceCodesForAllFloors();
         }
+
+        notificationPublisherService.publish(
+                "HospitalStructureFloorDeleted",
+                "Floor Deleted",
+                "Floor " + floorLabel(floor.getFloorOrder()) + " and related structure data were deleted."
+        );
 
         return getStructure();
     }
@@ -151,6 +171,12 @@ public class HospitalStructureServiceImpl implements HospitalStructureService {
         List<FloorWorkspace> created = workspaceRepository.saveAll(toCreate);
         String floorLabel = floorLabel(floor.getFloorOrder());
 
+        notificationPublisherService.publish(
+                "HospitalStructureWorkspaceGroupCreated",
+                "Workspace Group Added",
+                quantity + " " + workspaceType.getDisplayName() + " workspace(s) were added on floor " + floorLabel + "."
+        );
+
         return created.stream()
                 .sorted(WORKSPACE_NAME_SORT)
                 .map(workspace -> WorkspaceResponse.from(workspace, floorLabel, floor.getFloorOrder()))
@@ -178,10 +204,19 @@ public class HospitalStructureServiceImpl implements HospitalStructureService {
         FloorWorkspace workspace = workspaceRepository.findById(workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("Workspace not found: " + workspaceId));
 
+        cleanupPlacementsForWorkspace(workspaceId);
         HospitalFloor floor = workspace.getFloor();
+        String deletedName = workspace.getWorkspaceName();
+        String floorLabel = floorLabel(floor.getFloorOrder());
         workspaceRepository.delete(workspace);
         HospitalFloor refreshedFloor = floorRepository.findById(floor.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Floor not found after workspace deletion: " + floor.getId()));
+
+        notificationPublisherService.publish(
+                "HospitalStructureWorkspaceDeleted",
+                "Workspace Deleted",
+                "Workspace " + deletedName + " was deleted from floor " + floorLabel + "."
+        );
 
         return toFloorResponse(refreshedFloor);
     }
@@ -221,8 +256,17 @@ public class HospitalStructureServiceImpl implements HospitalStructureService {
         } else {
             int toDelete = currentSize - desiredQuantity;
             List<FloorWorkspace> deletions = current.subList(currentSize - toDelete, currentSize);
+            for (FloorWorkspace deletion : deletions) {
+                cleanupPlacementsForWorkspace(deletion.getId());
+            }
             workspaceRepository.deleteAll(deletions);
         }
+
+        notificationPublisherService.publish(
+                "HospitalStructureWorkspaceGroupQuantityUpdated",
+                "Workspace Quantity Updated",
+                type.getDisplayName() + " quantity was set to " + desiredQuantity + " on floor " + floorLabel(floor.getFloorOrder()) + "."
+        );
 
         HospitalFloor refreshed = floorRepository.findById(floor.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Floor not found after workspace group update: " + floor.getId()));
@@ -241,7 +285,15 @@ public class HospitalStructureServiceImpl implements HospitalStructureService {
             return toFloorResponse(floor);
         }
 
+        for (FloorWorkspace workspace : groupItems) {
+            cleanupPlacementsForWorkspace(workspace.getId());
+        }
         workspaceRepository.deleteAll(groupItems);
+        notificationPublisherService.publish(
+                "HospitalStructureWorkspaceGroupDeleted",
+                "Workspace Group Deleted",
+                "All " + workspaceType.getDisplayName() + " workspaces were removed from floor " + floorLabel(floor.getFloorOrder()) + "."
+        );
         HospitalFloor refreshed = floorRepository.findById(floor.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Floor not found after workspace group deletion: " + floor.getId()));
         return toFloorResponse(refreshed);
@@ -361,5 +413,23 @@ public class HospitalStructureServiceImpl implements HospitalStructureService {
         }
         String trimmed = input.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private void cleanupPlacementsForWorkspace(Long workspaceId) {
+        List<EquipmentPlacement> placements = equipmentPlacementRepository.findByWorkspaceId(workspaceId);
+        if (placements.isEmpty()) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        for (EquipmentPlacement placement : placements) {
+            if (placement.isActive()) {
+                placement.setActive(false);
+            }
+            if (placement.getRemovedAt() == null) {
+                placement.setRemovedAt(now);
+            }
+        }
+        equipmentPlacementRepository.saveAll(placements);
+        equipmentPlacementRepository.deleteAll(placements);
     }
 }

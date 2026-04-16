@@ -254,6 +254,14 @@ export class EquipmentInventoryComponent implements OnInit {
       this.errorMessage = 'Quantity must be greater than 0.';
       return;
     }
+    if (!Number.isInteger(this.form.quantity)) {
+      this.errorMessage = 'Quantity must be a whole number.';
+      return;
+    }
+    if (this.form.quantity > 500) {
+      this.errorMessage = 'Quantity cannot exceed 500 in one batch.';
+      return;
+    }
 
     this.saving = true;
     this.errorMessage = '';

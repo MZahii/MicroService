@@ -154,15 +154,11 @@
                   </div>
                   <div>
                     <label class="form-label">Job Title</label>
-                    <select class="form-control" [(ngModel)]="contractForm.jobTitle">
-                      <option *ngFor="let title of contractJobTitleOptions" [ngValue]="title">{{ title }}</option>
-                    </select>
+                    <input class="form-control" [value]="fixedContractJobTitle" readonly />
                   </div>
                   <div>
                     <label class="form-label">Department</label>
-                    <select class="form-control" [(ngModel)]="contractForm.department">
-                      <option *ngFor="let dep of contractDepartmentOptions" [ngValue]="dep">{{ dep }}</option>
-                    </select>
+                    <input class="form-control" [value]="fixedContractDepartment" readonly />
                   </div>
                   <div>
                     <label class="form-label">Start Date</label>
