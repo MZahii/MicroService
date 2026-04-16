@@ -94,6 +94,7 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
     clinic: false,
     pharmacy: false,
     procedures: false,
+    ops: false,
     communication: false,
     appointments: false,
     doctorClinical: false
@@ -425,14 +426,31 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
             route: '/backoffice/pharmacy/stock',
             implemented: true
           },
-          {
-            label: 'Suppliers',
-            route: '/backoffice/pharmacy/suppliers',
-            implemented: true
-          },
+          ...(this.isPharmacist || this.isAdmin
+            ? [{
+                label: 'Suppliers',
+                route: '/backoffice/pharmacy/suppliers',
+                implemented: true
+              } as BackofficeNavChild]
+            : []),
           {
             label: 'Dispensations',
             route: '/backoffice/pharmacy/dispensations',
+            implemented: true
+          }
+        ]
+      });
+    }
+
+    if (this.isNurse) {
+      items.push({
+        key: 'ops',
+        label: 'OPS Workflow',
+        icon: 'feather-clipboard',
+        children: [
+          {
+            label: 'Hospitalizations',
+            route: '/backoffice/nurse/hospitalizations',
             implemented: true
           }
         ]

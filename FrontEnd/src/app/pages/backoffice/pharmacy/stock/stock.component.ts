@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { PharmacyService } from '../../../../core/services/pharmacy.service';
 import { Stock, DispenseRequest, Batch, Medication, SmartDispenseRequest, SmartDispenseResponse, TransferStockRequest, TransferStockResponse } from '../../../../core/models/pharmacy.models';
+import { hasAnyRole } from '../../../../core/auth/keycloak.service';
 
 @Component({
   selector: 'app-stock',
@@ -14,6 +15,7 @@ import { Stock, DispenseRequest, Batch, Medication, SmartDispenseRequest, SmartD
 })
 export class StockComponent implements OnInit {
   private svc = inject(PharmacyService);
+  private readonly canManagePharmacy = hasAnyRole(['PHARMACIST', 'ADMIN']);
 
   stocks = signal<Stock[]>([]);
   lowStock = signal<Stock[]>([]);
@@ -81,7 +83,11 @@ export class StockComponent implements OnInit {
     this.svc.getAllStock().subscribe({ next: d => { this.stocks.set(d); this.loading.set(false); } });
     this.svc.getLowStock(10).subscribe({ next: d => this.lowStock.set(d) });
     this.svc.getOutOfStock().subscribe({ next: d => this.outOfStock.set(d) });
-    this.svc.getExpiredBatches().subscribe({ next: d => this.expiredBatches.set(d) });
+    if (this.canManagePharmacy) {
+      this.svc.getExpiredBatches().subscribe({ next: d => this.expiredBatches.set(d) });
+    } else {
+      this.expiredBatches.set([]);
+    }
     this.loadBatchMedicationMap();
   }
 
