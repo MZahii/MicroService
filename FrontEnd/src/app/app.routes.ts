@@ -57,6 +57,7 @@ import { ConsultationsPage as GuardianConsultationsPage } from './frontoffice/pa
 import { ConsultationDetailsPage as GuardianConsultationDetailsPage } from './frontoffice/pages/consultation-details/consultation-details.page';
 import { ProfilePage } from './frontoffice/pages/profile/profile.page';
 import { MessagesPage } from './frontoffice/pages/messages/messages.page';
+import { SchedulePage } from './frontoffice/pages/schedule/schedule.page';
 
 import { HomePageComponent } from './pages/public/home-page/home-page';
 import { AboutPageComponent } from './pages/public/about-page/about-page';
@@ -363,14 +364,23 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', component: FrontofficeHomeComponent },
-      { path: 'calendar', component: CalendarPage },
+      {
+        path: 'schedule',
+        component: SchedulePage,
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'appointments' },
+          { path: 'appointments', component: FrontofficeAppointmentsComponent },
+          { path: 'calendar', component: CalendarPage }
+        ]
+      },
+      { path: 'calendar', pathMatch: 'full', redirectTo: 'schedule/calendar' },
       { path: 'consultations', component: GuardianConsultationsPage },
       { path: 'consultations/:id', component: GuardianConsultationDetailsPage },
       { path: 'messages', component: MessagesPage },
       { path: 'communication', component: CommunicationListComponent },
       { path: 'communication/new', component: CommunicationNewComponent },
       { path: 'communication/:id', component: CommunicationThreadComponent },
-      { path: 'appointments', component: FrontofficeAppointmentsComponent },
+      { path: 'appointments', pathMatch: 'full', redirectTo: 'schedule/appointments' },
       { path: 'profile', component: ProfilePage },
       { path: 'profile-legacy', component: FrontofficeProfileComponent },
       { path: 'patients/:id', component: FrontofficePatientDetailsComponent },
