@@ -148,9 +148,17 @@ export class ClinicalApiService {
   }
 
   listDoctors(limit = 10): Observable<DoctorSearchResult[]> {
+    return this.listStaffByRoles(['DOCTOR'], limit);
+  }
+
+  listSurgeons(limit = 10): Observable<DoctorSearchResult[]> {
+    return this.listStaffByRoles(['SURGEON'], limit);
+  }
+
+  private listStaffByRoles(roles: string[], limit: number): Observable<DoctorSearchResult[]> {
     const payload = {
       query: '',
-      roles: ['DOCTOR'],
+      roles,
       page: 0,
       size: limit,
       sortBy: 'firstName',
