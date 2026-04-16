@@ -37,6 +37,35 @@
             Child Tracking
           </a>
         </li>
+
+        <li class="dropdown">
+          <a href="javascript:void(0)" routerLinkActive="active"
+             [routerLinkActiveOptions]="{exact:false}"
+             [class.active]="isServicesActive">
+            Services <i class="bi bi-chevron-down toggle-dropdown"></i>
+          </a>
+          <ul>
+            <li>
+              <a routerLink="/services" routerLinkActive="active">
+                <i class="bi bi-grid me-2"></i>All Services
+              </a>
+            </li>
+            <li>
+              <a routerLink="/frontoffice/pharmacy" routerLinkActive="active">
+                <i class="bi bi-capsule me-2"></i>Pharmacy
+              </a>
+            </li>
+            <li>
+              <a routerLink="/doctors" routerLinkActive="active">
+                <i class="bi bi-person-badge me-2"></i>Doctors
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <li>
+          <a routerLink="/contact" routerLinkActive="active">Contact</a>
+        </li>
       </ul>
 
       <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
@@ -91,6 +120,15 @@
           <span>Child Tracking</span>
         </a>
 
+        <a routerLink="/frontoffice/pharmacy" class="guardian-menu-item" routerLinkActive="active">
+          <i class="bi bi-capsule"></i>
+          <span>Pharmacy</span>
+        </a>
+
+        <a routerLink="/contact" class="guardian-menu-item">
+          <i class="bi bi-headset"></i>
+          <span>Support</span>
+        </a>
         <a routerLink="/frontoffice/my-contract" class="guardian-menu-item">
           <i class="bi bi-file-earmark-text"></i>
           <span>My Contract</span>
@@ -140,6 +178,9 @@
           <li><a routerLink="/frontoffice/schedule">Schedule</a></li>
           <li><a routerLink="/frontoffice/consultations">Consultation Records</a></li>
           <li><a routerLink="/frontoffice/tracking">Child Tracking</a></li>
+          <li><a routerLink="/frontoffice/pharmacy">Pharmacy</a></li>
+          <li><a routerLink="/services">Services</a></li>
+          <li><a routerLink="/contact">Support</a></li>
         </ul>
       </div>
 

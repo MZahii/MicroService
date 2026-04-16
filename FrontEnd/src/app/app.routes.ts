@@ -37,6 +37,7 @@ import { ProcedureDialysisSessionsComponent } from './pages/backoffice/procedure
 import { ProcedureSurgicalComponent } from './pages/backoffice/procedure-surgical/procedure-surgical';
 import { ProcedureSurgicalAdvancedComponent } from './pages/backoffice/procedure-surgical-advanced/procedure-surgical-advanced';
 import { GuardianTrackingComponent } from './pages/frontoffice/guardian-tracking/guardian-tracking';
+import { FrontofficePharmacyComponent } from './pages/frontoffice/frontoffice-pharmacy/frontoffice-pharmacy.component';
 import { CommunicationListComponent } from './pages/frontoffice/communication-list/communication-list';
 import { CommunicationNewComponent } from './pages/frontoffice/communication-new/communication-new';
 import { CommunicationThreadComponent } from './pages/frontoffice/communication-thread/communication-thread';
@@ -385,7 +386,8 @@ export const routes: Routes = [
       { path: 'profile-legacy', component: FrontofficeProfileComponent },
       { path: 'patients/:id', component: FrontofficePatientDetailsComponent },
       { path: 'my-contract', component: MyContractComponent },
-      { path: 'tracking', component: GuardianTrackingComponent }
+      { path: 'tracking', component: GuardianTrackingComponent },
+      { path: 'pharmacy', component: FrontofficePharmacyComponent }
     ]
   },
 
