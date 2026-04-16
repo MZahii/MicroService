@@ -146,6 +146,15 @@ public class GatewaySecurityConfig {
                                 "PHARMACIST",
                                 "LAB_AGENT",
                                 "GUARDIAN"
+                        ).pathMatchers(HttpMethod.GET, "/api/pharmacy/**").hasAnyRole(
+                                "ADMIN",
+                                "HR",
+                                "RECEPTIONIST",
+                                "DOCTOR",
+                                "NURSE",
+                                "SURGEON",
+                                "PHARMACIST",
+                                "GUARDIAN"
                         )
 
                         .anyExchange().authenticated()

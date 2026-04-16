@@ -54,6 +54,8 @@ spring:
               uri: lb://clinical-service
               predicates:
                 - Path=/api/clinical/**
+              filters:
+                - RewritePath=/api/clinical/?(?<segment>.*), /clinical/$\{segment}
 
             # Communication Service - Guardian/staff messaging and appointment requests
             - id: communication-service-api

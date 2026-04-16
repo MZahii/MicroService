@@ -41,6 +41,7 @@ import { OfficeAssignmentsComponent } from './pages/backoffice/office-assignment
 import { StaffPlacementsComponent } from './pages/backoffice/staff-placements/staff-placements';
 import { AccountSettingsComponent } from './pages/backoffice/account-settings/account-settings';
 import { GuardianTrackingComponent } from './pages/frontoffice/guardian-tracking/guardian-tracking';
+import { FrontofficePharmacyComponent } from './pages/frontoffice/frontoffice-pharmacy/frontoffice-pharmacy.component';
 import { CommunicationListComponent } from './pages/frontoffice/communication-list/communication-list';
 import { CommunicationNewComponent } from './pages/frontoffice/communication-new/communication-new';
 import { CommunicationThreadComponent } from './pages/frontoffice/communication-thread/communication-thread';
@@ -52,11 +53,15 @@ import { ConsultationDetailsPage as ClinicalConsultationDetailsPage } from './fe
 import { ConsultationWorkspacePage } from './features/clinical/consultations/consultation-workspace.page';
 import { ReceptionistAppointmentsPage } from './features/clinical/appointments/receptionist-appointments.page';
 import { DoctorTodayAppointmentsPage } from './features/clinical/appointments/doctor-today-appointments.page';
+import { HospitalizationCreatePage } from './features/ops/hospitalizations/hospitalization-create.page';
+import { HospitalizationReviewPage } from './features/ops/hospitalizations/hospitalization-review.page';
+import { NurseHospitalizationsPage } from './features/ops/hospitalizations/nurse-hospitalizations.page';
 import { CalendarPage } from './frontoffice/pages/calendar/calendar.page';
 import { ConsultationsPage as GuardianConsultationsPage } from './frontoffice/pages/consultations/consultations.page';
 import { ConsultationDetailsPage as GuardianConsultationDetailsPage } from './frontoffice/pages/consultation-details/consultation-details.page';
 import { ProfilePage } from './frontoffice/pages/profile/profile.page';
 import { MessagesPage } from './frontoffice/pages/messages/messages.page';
+import { SchedulePage } from './frontoffice/pages/schedule/schedule.page';
 
 import { HomePageComponent } from './pages/public/home-page/home-page';
 import { AboutPageComponent } from './pages/public/about-page/about-page';
@@ -211,10 +216,14 @@ export const routes: Routes = [
       },
       {
         path: 'appointments-clinical',
-        component: ReceptionistAppointmentsPage,
-        canActivate: [roleGuard],
-        data: { roles: ['RECEPTIONIST'] }
+        pathMatch: 'full',
+        redirectTo: 'appointments'
       },
+      // ================== DOCTOR CLINICAL WORKSPACE ==================
+      // Canonical entry for doctors: /backoffice/doctor → redirects to /backoffice/doctor/today
+      // From there, doctors can drill into consultations, lab-requests, and specific consultation details/workspaces.
+      // All navigation preserves filters and page context via returnUrl query params (Step 6).
+      // ===============================================================
       {
         path: 'doctor',
         pathMatch: 'full',
@@ -249,6 +258,24 @@ export const routes: Routes = [
         component: ConsultationWorkspacePage,
         canActivate: [roleGuard],
         data: { roles: ['DOCTOR'] }
+      },
+      {
+        path: 'consultations/:id/hospitalization/new',
+        component: HospitalizationCreatePage,
+        canActivate: [roleGuard],
+        data: { roles: ['DOCTOR'] }
+      },
+      {
+        path: 'hospitalizations/:id',
+        component: HospitalizationReviewPage,
+        canActivate: [roleGuard],
+        data: { roles: ['DOCTOR', 'NURSE'] }
+      },
+      {
+        path: 'nurse/hospitalizations',
+        component: NurseHospitalizationsPage,
+        canActivate: [roleGuard],
+        data: { roles: ['NURSE'] }
       },
       {
         path: 'my-contract',
@@ -360,19 +387,29 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', component: FrontofficeHomeComponent },
-      { path: 'calendar', component: CalendarPage },
+      {
+        path: 'schedule',
+        component: SchedulePage,
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'appointments' },
+          { path: 'appointments', component: FrontofficeAppointmentsComponent },
+          { path: 'calendar', component: CalendarPage }
+        ]
+      },
+      { path: 'calendar', pathMatch: 'full', redirectTo: 'schedule/calendar' },
       { path: 'consultations', component: GuardianConsultationsPage },
       { path: 'consultations/:id', component: GuardianConsultationDetailsPage },
       { path: 'messages', component: MessagesPage },
       { path: 'communication', component: CommunicationListComponent },
       { path: 'communication/new', component: CommunicationNewComponent },
       { path: 'communication/:id', component: CommunicationThreadComponent },
-      { path: 'appointments', component: FrontofficeAppointmentsComponent },
+      { path: 'appointments', pathMatch: 'full', redirectTo: 'schedule/appointments' },
       { path: 'profile', component: ProfilePage },
       { path: 'profile-legacy', component: FrontofficeProfileComponent },
       { path: 'patients/:id', component: FrontofficePatientDetailsComponent },
       { path: 'my-contract', component: MyContractComponent },
-      { path: 'tracking', component: GuardianTrackingComponent }
+      { path: 'tracking', component: GuardianTrackingComponent },
+      { path: 'pharmacy', component: FrontofficePharmacyComponent }
     ]
   },
 

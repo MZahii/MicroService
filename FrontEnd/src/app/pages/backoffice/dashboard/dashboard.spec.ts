@@ -1,5 +1,5 @@
-﻿  import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+  import { ComponentFixture, TestBed } from '@angular/core/testing';
+  import { provideRouter } from '@angular/router';
 
   import { Dashboard } from './dashboard';
 
@@ -10,7 +10,7 @@ import { provideRouter } from '@angular/router';
     beforeEach(async () => {
       await TestBed.configureTestingModule({
         imports: [Dashboard],
-      providers: [provideRouter([])]
+        providers: [provideRouter([])]
       })
       .compileComponents();
 
@@ -23,4 +23,3 @@ import { provideRouter } from '@angular/router';
       expect(component).toBeTruthy();
     });
   });
-

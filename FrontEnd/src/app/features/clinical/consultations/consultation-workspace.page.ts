@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ClinicalApiService } from '../../../core/services/clinical-api.service';
 import {
   ConsultationWorkspaceDraft,
@@ -26,6 +26,7 @@ export class ConsultationWorkspacePage implements OnInit {
   history: any[] = [];
   previousEgfr: number | null = null;
   previousEgfrDate: string | null = null;
+  returnUrl: string | null = null;
 
   loading = false;
   error = '';
@@ -66,6 +67,7 @@ export class ConsultationWorkspacePage implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private api: ClinicalApiService,
     private workspace: ConsultationWorkspaceService
   ) {}
@@ -77,6 +79,7 @@ export class ConsultationWorkspacePage implements OnInit {
       return;
     }
     this.consultationId = id;
+    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || null;
     this.minFollowUpDate = this.toLocalDateTimeMin(new Date());
     this.loadConsultation();
     this.loadDraft();
@@ -128,9 +131,11 @@ export class ConsultationWorkspacePage implements OnInit {
     this.saving = true;
     this.infoMessage = '';
     this.workspace.saveDraft(this.consultationId, this.draft).subscribe({
-      next: () => {
+      next: (saved) => {
         this.saving = false;
-        this.infoMessage = 'Draft saved locally.';
+        this.infoMessage = saved
+          ? 'Draft saved to backend.'
+          : 'Backend save failed. A local backup was kept.';
       },
       error: () => {
         this.saving = false;
@@ -148,7 +153,13 @@ export class ConsultationWorkspacePage implements OnInit {
     this.saving = true;
     this.infoMessage = '';
     this.workspace.completeConsultation(this.consultationId, this.draft).subscribe({
-      next: () => {
+      next: (saved) => {
+        if (!saved) {
+          this.saving = false;
+          this.infoMessage = 'Cannot complete consultation because backend save failed. Please retry.';
+          return;
+        }
+
         this.api.updateConsultation(this.consultationId, { status: 'COMPLETED' }).subscribe({
           next: () => {
             this.saving = false;
@@ -357,6 +368,17 @@ export class ConsultationWorkspacePage implements OnInit {
     return this.completenessScore >= 70;
   }
 
+  get hospitalizationQueryParams(): Record<string, string> {
+    const params: Record<string, string> = {};
+    if (this.consultationId) {
+      params['consultationId'] = this.consultationId;
+    }
+    if (this.consultation?.patientId !== undefined && this.consultation?.patientId !== null) {
+      params['patientId'] = String(this.consultation.patientId);
+    }
+    return params;
+  }
+
   get patientHistory(): any[] {
     const patientId = this.consultation?.patientId;
     if (!patientId) return [];
@@ -449,5 +471,13 @@ export class ConsultationWorkspacePage implements OnInit {
   private normalizeDateTime(value: string): string {
     if (!value) return value;
     return value.length === 16 ? `${value}:00` : value;
+  }
+
+  goBack(): void {
+    if (this.returnUrl) {
+      this.router.navigateByUrl(this.returnUrl);
+    } else {
+      this.router.navigate(['/backoffice/consultations']);
+    }
   }
 }

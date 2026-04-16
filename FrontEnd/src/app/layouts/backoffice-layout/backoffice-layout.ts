@@ -95,6 +95,7 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
     clinic: false,
     pharmacy: false,
     procedures: false,
+    ops: false,
     communication: false,
     appointments: false,
     doctorClinical: false
@@ -435,14 +436,31 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
             route: '/backoffice/pharmacy/stock',
             implemented: true
           },
-          {
-            label: 'Suppliers',
-            route: '/backoffice/pharmacy/suppliers',
-            implemented: true
-          },
+          ...(this.isPharmacist || this.isAdmin
+            ? [{
+                label: 'Suppliers',
+                route: '/backoffice/pharmacy/suppliers',
+                implemented: true
+              } as BackofficeNavChild]
+            : []),
           {
             label: 'Dispensations',
             route: '/backoffice/pharmacy/dispensations',
+            implemented: true
+          }
+        ]
+      });
+    }
+
+    if (this.isNurse) {
+      items.push({
+        key: 'ops',
+        label: 'OPS Workflow',
+        icon: 'feather-clipboard',
+        children: [
+          {
+            label: 'Hospitalizations',
+            route: '/backoffice/nurse/hospitalizations',
             implemented: true
           }
         ]
@@ -456,17 +474,12 @@ export class BackofficeLayoutComponent implements OnInit, AfterViewInit, OnDestr
         icon: 'feather-calendar',
         children: [
           {
-            label: 'Appointments Board',
+            label: 'Appointments',
             route: '/backoffice/appointments',
             implemented: true
           },
           {
-            label: 'Clinical Appointments',
-            route: '/backoffice/appointments-clinical',
-            implemented: true
-          },
-          {
-            label: 'Appointment Requests',
+            label: 'Requests',
             route: '/backoffice/appointments/requests',
             implemented: true
           }
